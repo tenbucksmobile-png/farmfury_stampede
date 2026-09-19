@@ -28,6 +28,10 @@ namespace FarmFuryStampede.LevelSystem
         [SerializeField] private GameObject breakableWallPrefab;
 
         [SerializeField] private float respawnInvulnerability = 1.5f;
+        [Tooltip("How long the defeat pose shows at the spot of death before the respawn.")]
+        [SerializeField] private float defeatPoseSeconds = 0.6f;
+
+        private Coroutine _respawnRoutine;
 
         private GameObject _levelInstance;
         private Transform _spawnedRoot;
@@ -37,6 +41,7 @@ namespace FarmFuryStampede.LevelSystem
         public LevelData LoadedLevel { get; private set; }
         public int SpawnedCount => _spawned.Count;
         public bool IsLoaded => _levelInstance != null;
+        public bool IsRespawning => _respawnRoutine != null;
         public CharacterController2D Player => player;
 
         /// <summary>Spawned objects currently active (not collected, defeated or pooled).</summary>
@@ -152,6 +157,12 @@ namespace FarmFuryStampede.LevelSystem
         /// <summary>Destroys the level instance and returns everything spawned for it to the pool.</summary>
         public void UnloadLevel()
         {
+            if (_respawnRoutine != null)
+            {
+                StopCoroutine(_respawnRoutine);
+                _respawnRoutine = null;
+            }
+
             foreach (var go in _spawned)
             {
                 if (go != null && ObjectPool.Instance != null)
@@ -202,8 +213,25 @@ namespace FarmFuryStampede.LevelSystem
         /// <summary>Moves the player to the given respawn point and grants brief invulnerability.</summary>
         public void RespawnPlayer(Vector2 position)
         {
+            if (_respawnRoutine == null)
+            {
+                _respawnRoutine = StartCoroutine(RespawnAfterDefeatPose(position));
+            }
+        }
+
+        private System.Collections.IEnumerator RespawnAfterDefeatPose(Vector2 position)
+        {
+            player.BeginDeath(defeatPoseSeconds);
+            yield return new WaitForSeconds(defeatPoseSeconds);
+            _respawnRoutine = null;
             PlacePlayer(position);
             player.GrantInvulnerability(respawnInvulnerability);
+        }
+
+        /// <summary>Freezes the player in the defeat pose for good (the level is over). Used when the last life is lost.</summary>
+        public void FreezePlayerDefeated()
+        {
+            player.BeginDeath(60f);
         }
 
         private void PlacePlayer(Vector2 position)

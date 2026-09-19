@@ -58,6 +58,10 @@ namespace FarmFuryStampede.EditorTools
         private const string BarrierPrefabPath = RobotPrefabsDir + "/BarrierUnit.prefab";
         private const string WorldDataDir = "Assets/_Project/ScriptableObjects/Worlds";
 
+        // Real character art lives here (never overwritten by setup; the generated placeholders live in SpritesDir).
+        private const string ArtDir = "Assets/_Project/Sprites/Characters";
+        private const float ArtPixelsPerUnit = 480f;   // 500px frames -> about 1.04 units tall (the collider is 0.95)
+
         // Identical for every character by design (GDD/Phase 4 Section 1).
         private const float SharedMoveSpeed = 8f;
         private const float SharedJumpHeight = 3.5f;
@@ -147,6 +151,8 @@ namespace FarmFuryStampede.EditorTools
                 F(0, 8, 2, 14, 70, 45, 35), F(13, 6, 13, 7, 220, 40, 40), F(14, 8, 15, 9, 240, 200, 60), F(10, 10, 11, 11, 20, 20, 20)));
             CreateSprite("Char_Billy", Painter(new Color32(200, 200, 205, 255),
                 F(4, 13, 5, 15, 240, 230, 200), F(8, 13, 9, 15, 240, 230, 200), F(12, 1, 13, 4, 90, 90, 100), F(10, 10, 11, 11, 20, 20, 20)));
+
+            ImportCharacterArt();
 
             CreateTile("GroundTile", square, new Color(0.45f, 0.62f, 0.28f));
             CreateTile("PlatformTile", square, new Color(0.72f, 0.55f, 0.32f));
@@ -501,6 +507,8 @@ namespace FarmFuryStampede.EditorTools
             renderer.sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{SpritesDir}/Char_Cluck.png");
             renderer.sortingOrder = 10;
 
+            visualObject.AddComponent<CharacterSpriteAnimator>();   // swaps directional art frames when a character has them
+
             root.AddComponent<PlayerInputReader>();
             var controller = root.AddComponent<CharacterController2D>();
 
@@ -772,8 +780,95 @@ namespace FarmFuryStampede.EditorTools
             data.jumpHeight = SharedJumpHeight;
             data.uiColor = spec.ui;
             data.placeholderSprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{SpritesDir}/Char_{spec.type}.png");
+
+            // Real art overrides the generated placeholder (portraits use the idle frame).
+            var set = CreateCharacterSpriteSet(spec.type);
+            data.spriteSet = set;
+            if (set != null && set.idleRight != null)
+            {
+                data.placeholderSprite = set.idleRight;
+            }
+
             EditorUtility.SetDirty(data);
             return data;
+        }
+
+        // ---------------------------------------------------------------- real character art
+
+        // Frame files per character. Only characters listed here get real art; the rest keep placeholders.
+        private static readonly Dictionary<CharacterType, string[]> CharacterArtFiles = new()
+        {
+            // idleRight, runRight1, runRight2, jumpRight, idleLeft, runLeft1, runLeft2, jumpLeft, defeat
+            {
+                CharacterType.Cluck, new[]
+                {
+                    "Cluck_right.png", "Cluck_right1.png", "Cluck_right2.png", "Cluck_Right_Jump.png",
+                    "Clucky_Left_Stand.png", "Clucky_Left1.png", "Clucky_Left2.png", "Clucky_left_Jump.png",
+                    "Clucky_Defeat.png"
+                }
+            },
+        };
+
+        private static string ArtPath(string file) => $"{ArtDir}/{file}";
+
+        // Imports the art as smooth (bilinear) sprites at one common size. Idempotent.
+        private static void ImportCharacterArt()
+        {
+            foreach (var pair in CharacterArtFiles)
+            {
+                foreach (string file in pair.Value)
+                {
+                    string path = ArtPath(file);
+                    if (!File.Exists(path))
+                    {
+                        Debug.LogWarning($"[Phase5aSetup] Missing art file {path}; {pair.Key} falls back to its placeholder.");
+                        continue;
+                    }
+
+                    AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+                    var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+                    importer.textureType = TextureImporterType.Sprite;
+                    importer.spriteImportMode = SpriteImportMode.Single;
+                    importer.spritePixelsPerUnit = ArtPixelsPerUnit;
+                    importer.spritePivot = new Vector2(0.5f, 0.5f);
+                    importer.filterMode = FilterMode.Bilinear;
+                    importer.mipmapEnabled = false;
+                    importer.alphaIsTransparency = true;
+                    importer.textureCompression = TextureImporterCompression.Uncompressed;
+                    importer.SaveAndReimport();
+                }
+            }
+        }
+
+        // Returns the sprite set for the character, or null when it has no (complete) art.
+        private static CharacterSpriteSet CreateCharacterSpriteSet(CharacterType type)
+        {
+            if (!CharacterArtFiles.TryGetValue(type, out var files))
+            {
+                return null;
+            }
+
+            var sprites = new Sprite[files.Length];
+            for (int i = 0; i < files.Length; i++)
+            {
+                sprites[i] = AssetDatabase.LoadAssetAtPath<Sprite>(ArtPath(files[i]));
+                if (sprites[i] == null)
+                {
+                    Debug.LogWarning($"[Phase5aSetup] Art frame {files[i]} for {type} did not load; using the placeholder instead.");
+                    return null;
+                }
+            }
+
+            var set = LoadOrCreate<CharacterSpriteSet>($"{CharacterDataDir}/CharacterSprites_{type}.asset");
+            set.idleRight = sprites[0];
+            set.runRight = new[] { sprites[1], sprites[2] };
+            set.jumpRight = sprites[3];
+            set.idleLeft = sprites[4];
+            set.runLeft = new[] { sprites[5], sprites[6] };
+            set.jumpLeft = sprites[7];
+            set.defeat = sprites[8];
+            EditorUtility.SetDirty(set);
+            return set;
         }
 
         private static RobotData CreateRobotData(string robotName, RobotType type, float speed, string description, GameObject prefab,

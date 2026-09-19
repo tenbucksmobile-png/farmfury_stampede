@@ -61,9 +61,9 @@ namespace FarmFuryStampede.Core
         /// </summary>
         public void RespawnPlayer()
         {
-            if (CurrentState != GameState.Playing || LevelLoader.Instance == null)
+            if (CurrentState != GameState.Playing || LevelLoader.Instance == null || LevelLoader.Instance.IsRespawning)
             {
-                return;
+                return;   // not playing, or already in the defeat pose (repeat contacts must not cost extra lives)
             }
 
             RunState.deathsThisRun++;
@@ -72,6 +72,7 @@ namespace FarmFuryStampede.Core
             if (RunState.livesRemaining <= 0)
             {
                 Debug.Log("[GameManager] Out of lives.");
+                LevelLoader.Instance.FreezePlayerDefeated();
                 EndLevel(completed: false, stars: 0);
                 return;
             }

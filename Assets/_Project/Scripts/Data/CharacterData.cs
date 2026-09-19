@@ -29,6 +29,9 @@ namespace FarmFuryStampede.Data
 
         [Header("Placeholder Art")]
         public Sprite placeholderSprite;
+
+        [Tooltip("Optional real art (directional frames). When set, sprites are swapped by state instead of flipped.")]
+        public CharacterSpriteSet spriteSet;
         public Color uiColor = Color.white;
     }
 }

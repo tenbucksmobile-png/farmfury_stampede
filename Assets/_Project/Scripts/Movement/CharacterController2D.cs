@@ -73,6 +73,7 @@ namespace FarmFuryStampede.Movement
         private float _minJumpVelocity;
 
         private float _invulnerableUntil;
+        private float _dyingUntil;
 
         private CharacterAbility _ability;
         private bool _abilityQueued;
@@ -90,6 +91,12 @@ namespace FarmFuryStampede.Movement
 
         public bool IsGrounded => _grounded;
         public bool IsInvulnerable => Time.time < _invulnerableUntil;
+
+        /// <summary>True during the short defeat pose before a respawn: the character is frozen and harmless to touch.</summary>
+        public bool IsDying => Time.time < _dyingUntil;
+
+        /// <summary>True when the character has real directional art, so the facing is a frame choice, not a flip.</summary>
+        public bool HasDirectionalArt => Data != null && Data.spriteSet != null;
         public int Facing => _facing;
         public float CoyoteTimeRemaining => _coyoteTimer;
         public float JumpBufferRemaining => _jumpBufferTimer;
@@ -205,6 +212,10 @@ namespace FarmFuryStampede.Movement
                 {
                     visual.sprite = Data.placeholderSprite;
                 }
+                if (visual != null)
+                {
+                    visual.flipX = false;
+                }
             }
             else
             {
@@ -231,6 +242,7 @@ namespace FarmFuryStampede.Movement
             _jumpBufferTimer = 0f;
             _abilityQueued = false;
             _waterTime = 0f;
+            _dyingUntil = 0f;
             _ability?.Reset(this);
             transform.position = position;
             _body.position = position;
@@ -265,6 +277,16 @@ namespace FarmFuryStampede.Movement
             _invulnerableUntil = Time.time + seconds;
         }
 
+        /// <summary>Freezes the character in its defeat pose for a while (until Teleport). Also makes it harmless to touch.</summary>
+        public void BeginDeath(float seconds)
+        {
+            _dyingUntil = Time.time + seconds;
+            _velocity = Vector2.zero;
+            _abilityQueued = false;
+            _ability?.Reset(this);
+            GrantInvulnerability(seconds + 0.25f);
+        }
+
         /// <summary>Called every physics step by WaterZone while the player overlaps it.</summary>
         public void NotifyInWater()
         {
@@ -284,7 +306,7 @@ namespace FarmFuryStampede.Movement
             }
 
             // Presses are captured per rendered frame; buffers are consumed and aged in FixedUpdate.
-            if (IsPlaying)
+            if (IsPlaying && !IsDying)
             {
                 if (_input.JumpPressedThisFrame)
                 {
@@ -299,7 +321,7 @@ namespace FarmFuryStampede.Movement
 
         private void FixedUpdate()
         {
-            if (!IsPlaying)
+            if (!IsPlaying || IsDying)
             {
                 return;
             }
@@ -340,7 +362,7 @@ namespace FarmFuryStampede.Movement
                 if (Mathf.Abs(moveInput) > 0.01f)
                 {
                     _facing = moveInput > 0f ? 1 : -1;
-                    if (visual != null)
+                    if (visual != null && !HasDirectionalArt)
                     {
                         visual.flipX = _facing < 0;
                     }
