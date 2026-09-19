@@ -24,6 +24,11 @@ namespace FarmFuryStampede.EditorTools
         private const string PrefabsDir = "Assets/_Project/Prefabs";
         private const string CluckDataPath = "Assets/_Project/ScriptableObjects/Characters/CharacterData_Cluck.asset";
         private const string RootName = "Phase2Level";
+        private const string SquareSpritePath = SpritesDir + "/Square.png";
+        private const string GroundTilePath = SpritesDir + "/GroundTile.asset";
+        private const string PlatformTilePath = SpritesDir + "/PlatformTile.asset";
+        private const string CluckPrefabPath = PrefabsDir + "/Cluck.prefab";
+        private const string CropPrefabPath = PrefabsDir + "/Crop.prefab";
 
         private const float CluckMoveSpeed = 8f;
         private const float CluckJumpHeight = 3.5f;
@@ -57,13 +62,13 @@ namespace FarmFuryStampede.EditorTools
 
             TuneCluckData();
 
-            GameObject cluckPrefab = BuildCluckPrefab(cluckSprite, groundLayer, playerLayer);
-            GameObject cropPrefab = BuildCropPrefab(cropSprite);
+            BuildCluckPrefab(cluckSprite, groundLayer, playerLayer);
+            BuildCropPrefab(cropSprite);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            BuildScene(groundLayer, squareSprite, groundTile, platformTile, cluckPrefab, cropPrefab);
+            BuildScene(groundLayer);
         }
 
         // ---------------------------------------------------------------- layers
@@ -258,10 +263,22 @@ namespace FarmFuryStampede.EditorTools
 
         // ---------------------------------------------------------------- level
 
-        private static void BuildScene(int groundLayer, Sprite squareSprite, Tile groundTile, Tile platformTile,
-            GameObject cluckPrefab, GameObject cropPrefab)
+        private static void BuildScene(int groundLayer)
         {
             var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
+
+            // OpenScene unloads unused assets, which invalidates any object references held from before
+            // it (SetTile with a destroyed Tile silently places nothing). Always reload from disk here.
+            var squareSprite = AssetDatabase.LoadAssetAtPath<Sprite>(SquareSpritePath);
+            var groundTile = AssetDatabase.LoadAssetAtPath<Tile>(GroundTilePath);
+            var platformTile = AssetDatabase.LoadAssetAtPath<Tile>(PlatformTilePath);
+            var cluckPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(CluckPrefabPath);
+            var cropPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(CropPrefabPath);
+            if (squareSprite == null || groundTile == null || platformTile == null || cluckPrefab == null || cropPrefab == null)
+            {
+                Debug.LogError("[Phase2Setup] A generated asset failed to load; aborting scene build.");
+                return;
+            }
 
             DestroyIfPresent(RootName);
             DestroyIfPresent("Phase1Test"); // Phase 1 harness would fire fake EndLevel calls during play.
@@ -292,6 +309,12 @@ namespace FarmFuryStampede.EditorTools
 
             FinishTilemap(ground);
             FinishTilemap(platforms);
+
+            int tileCount = ground.GetUsedTilesCount() + platforms.GetUsedTilesCount();
+            if (tileCount == 0)
+            {
+                Debug.LogError("[Phase2Setup] Tilemaps are empty; level geometry was not created.");
+            }
 
             // Crops
             var cropsParent = new GameObject("Crops");
