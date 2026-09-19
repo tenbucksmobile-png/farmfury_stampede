@@ -4,13 +4,14 @@ using UnityEngine;
 namespace FarmFuryStampede.Utilities
 {
     /// <summary>
-    /// Scene-wide pool for frequently spawned/despawned objects (crops now; robots, projectiles later).
-    /// Objects are keyed by <see cref="PooledObject.PoolKey"/>. Hand-placed instances are released into
-    /// the pool the same way as spawned ones, so a collected crop is parked, never destroyed.
+    /// Scene-wide pool for frequently spawned/despawned objects (crops, robots, checkpoints, clouds,
+    /// projectiles...). Objects are keyed by <see cref="PooledObject.PoolKey"/>. Hand-placed instances are
+    /// released into the pool the same way as spawned ones, so nothing pooled is ever destroyed.
     /// </summary>
     public class ObjectPool : MonoSingleton<ObjectPool>
     {
         private readonly Dictionary<string, Stack<GameObject>> _pools = new();
+        private readonly Dictionary<string, HashSet<GameObject>> _active = new();
         private Transform _poolRoot;
 
         protected override void Awake()
@@ -40,11 +41,14 @@ namespace FarmFuryStampede.Utilities
 
             if (instance == null)
             {
-                instance = Instantiate(prefab);
+                // Instantiate at the target position so physics bodies never start at the prefab's origin.
+                instance = Instantiate(prefab, position, Quaternion.identity);
             }
 
-            instance.transform.SetParent(parent, false);
+            instance.transform.SetParent(parent, true);
             instance.transform.position = position;
+            instance.GetComponent<PooledObject>().InPool = false;
+            ActiveSet(pooled.PoolKey).Add(instance);
             instance.SetActive(true);
             return instance;
         }
@@ -59,20 +63,60 @@ namespace FarmFuryStampede.Utilities
                 return;
             }
 
+            if (pooled.InPool)
+            {
+                return;
+            }
+
             if (!_pools.TryGetValue(pooled.PoolKey, out var stack))
             {
                 stack = new Stack<GameObject>();
                 _pools[pooled.PoolKey] = stack;
             }
 
+            pooled.InPool = true;
+            ActiveSet(pooled.PoolKey).Remove(instance);
             instance.SetActive(false);
             instance.transform.SetParent(_poolRoot, false);
             stack.Push(instance);
         }
 
+        /// <summary>Returns every currently-active object with this key to the pool (e.g. leftover projectiles).</summary>
+        public void ReleaseAll(string poolKey)
+        {
+            if (!_active.TryGetValue(poolKey, out var active))
+            {
+                return;
+            }
+
+            foreach (var instance in new List<GameObject>(active))
+            {
+                if (instance != null)
+                {
+                    Release(instance);
+                }
+            }
+            active.Clear();
+        }
+
         public int PooledCount(string poolKey)
         {
             return _pools.TryGetValue(poolKey, out var stack) ? stack.Count : 0;
+        }
+
+        public int ActiveCount(string poolKey)
+        {
+            return _active.TryGetValue(poolKey, out var active) ? active.Count : 0;
+        }
+
+        private HashSet<GameObject> ActiveSet(string key)
+        {
+            if (!_active.TryGetValue(key, out var set))
+            {
+                set = new HashSet<GameObject>();
+                _active[key] = set;
+            }
+            return set;
         }
     }
 }

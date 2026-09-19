@@ -10,6 +10,12 @@ namespace FarmFuryStampede.Data
         public string displayName;
         public int levelCount;
 
+        [Tooltip("levelId of this world's boss level. Clearing it unlocks the next world.")]
+        public string bossLevelId;
+
+        [TextArea]
+        public string blurb;
+
         [Header("Unlock")]
         [Tooltip("Star threshold required to unlock this world. Purchase-gated worlds use purchaseRequired instead.")]
         public int unlockStarThreshold;

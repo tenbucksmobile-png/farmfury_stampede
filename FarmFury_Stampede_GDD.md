@@ -1,6 +1,6 @@
 # FARM FURY: STAMPEDE — Game Design Document
 
-**v1.0** · "Charge In. Break Through. Take It Back." · A Farm Fury Universe Game
+**v1.1** · "Charge In. Break Through. Take It Back." · A Farm Fury Universe Game
 Side-Scrolling Platformer · Mobile · Free-to-Play
 
 ---
@@ -104,6 +104,14 @@ All eight animals return. Each has exactly one platforming-relevant ability, tra
 
 **Design rule:** every main path through every level must be completable by *any* unlocked character — Billy's wall-break, Ducky's water-immunity, etc. gate secrets and bonus areas, never the critical path. This mirrors Arcade's own launch rule ("every level genuinely completable by a skilled free player") extended from monetisation-gating to character-gating.
 
+**As built (v1.1 — decisions made during Phases 4-5a):**
+- **Identical base movement for all eight characters** (move speed 8, jump height 3.5 units). Arcade shipped per-character speed variance and later unified it because it "read as arbitrary"; only abilities differ.
+- **Ability use limit: 3 uses per level attempt** (a playtest placeholder, tuned per character in `CharacterData.abilityUsesPerLevel`). Uses are not refunded on death and reset when a level starts.
+- **Once per airborne period:** Flutter Jump, Cloud Step, Roll Dash and Skip Dash re-arm on landing (each activation still spends a use). Ground Pound and Puff Glide only work in the air.
+- **Horace is contextual:** on the ground the button is a Rear Vault (5.5 units, against the shared 3.5); in the air it throws a horseshoe that defeats one robot. Throws fly level, so a low throw is needed to hit a ground-level target.
+- **Ducky** is passively immune to Water tiles (others are slowed to 40% and drown — a respawn — after about 1.2s) and her Skip Dash skims forward with reduced gravity.
+- **Billy** clears Breakable Walls and Barrier Units; Bessie's pound is the only thing that breaks Breakable Floor tiles. Neither affects the other's obstacle.
+
 **Unlock thresholds** reuse the exact cadence already established in both Arcade (mazes completed) and Rush (runs completed) for franchise consistency — a returning player recognises the rhythm immediately:
 
 | Character | Unlock requirement |
@@ -122,16 +130,21 @@ All eight animals return. Each has exactly one platforming-relevant ability, tra
 | Robot | Platformer behaviour |
 |---|---|
 | Harvester (ground patrol) | Walks a fixed patrol path; stomped like a classic ground enemy |
-| Scout (fast patrol) | Faster patrol, sometimes reverses on spotting the player |
+| Scout (fast patrol) | Patrols at roughly twice the Harvester's speed; turns to face a player who slips behind it (within sight range, with a clear line of sight) instead of walking a blind fixed path |
 | Drone (flying) | Hovers at a fixed height in a small patrol loop; must be jumped into from above or hit with Horace's horseshoe |
-| Barrier Unit (stationary) | Blocks a path outright; only Billy's Charge Break clears it — the platformer's version of Rush's "requires Billy or Bessie to destroy" barrier robots |
-| Chaser | Appears in specific levels, pursues at a fixed speed slightly slower than the player — pressure without being an instant-fail |
+| Barrier Unit (stationary) | Blocks a path outright; only Billy's Charge Break clears it — the platformer's version of Rush's "requires Billy or Bessie to destroy" barrier robots. It cannot be stomped, dashed through or shot. It is 3 tall, so on open ground a high jump can hop it: use it only to seal capped passages (e.g. a chamber entrance), never on a main path |
+| Chaser | Appears in specific levels; once the player is in range and on its level it pursues at a fixed 6.4 units/s against the player's 8 — pressure without being an instant-fail. Stops at walls and ledges, can be stomped |
+| Commander (boss) | The world boss: patrols its arena, needs several hits with a stagger window between them, speeds up per hit, and calls reinforcements (see Section 6) |
 
 ---
 
 ## 5. Gameplay Mechanics
 
 **Movement.** Run (auto-accelerate on hold), jump (with coyote time and a jump-buffer window — hold to jump higher, tap for a short hop), and each character's unique ability on a short per-level-use limit rather than a real-time cooldown (fits a level-based game better than Arcade/Rush's timer-based cooldowns — see Section 12 for why this needs a genuinely different controller from Rush's).
+
+**Lives.** Each level attempt starts with 3 lives (Arcade's "3 free respawns" convention). Every death — pit fall, robot contact, drowning — costs one and respawns the character at the last checkpoint touched (or the level start) with brief invulnerability. Losing the third ends the attempt (level failed) and returns to Level Select; a fresh attempt always starts with 3. Checkpoints, defeated robots and collected crops persist through a death within the attempt.
+
+**Robot contact.** Landing on a robot from above while falling (feet above its centre) is a stomp: the robot is defeated and the character bounces. Any other contact through its body costs a life. Percy's dash, Gerald's inflated glide and Bessie's pound defeat what they touch.
 
 **Crops & Coins.** Reuses Arcade's established "crop pellet" terminology and tiering for cross-game consistency: a common crop tier (small, everywhere) and a rarer crop tier (fewer, higher value), plus a universal coin pickup per level.
 
@@ -143,7 +156,7 @@ All eight animals return. Each has exactly one platforming-relevant ability, tra
 
 **Traversal feature — Irrigation Pipes.** Physical pipe/tunnel entrances that connect two points in a level or lead to a bonus area. Deliberately named differently from Arcade's "Warp Tunnel" glossary entry, even though both are Pac-Man/Mario-style teleportation devices — Arcade's is an instant maze-edge wraparound, this is a walked-into physical space, and giving them different names avoids the two mechanics blurring together across games that share a glossary.
 
-**Scoring.** 1–3 stars per level based on crops collected, time, and whether the character-gated secret was found — not a points-chase like Arcade's chain-scoring, since a platformer's satisfaction is completion and discovery, not combo maximisation.
+**Scoring.** 1–3 stars per level based on crops collected, time, and whether the character-gated secret was found — not a points-chase like Arcade's chain-scoring, since a platformer's satisfaction is completion and discovery, not combo maximisation. **As built:** 1 star for completing; +1 for collecting at least 75% of the level's normal crops; +1 for finding the level's character-gated secret (or, for a level with no gated secret, finishing without dying). Time is not scored yet — a par time needs playtest data first. A secret counts as found once any crop of its cluster has been collected, and that is remembered across attempts.
 
 ---
 
@@ -164,17 +177,22 @@ All eight animals return. Each has exactly one platforming-relevant ability, tra
 
 **Character-gated secrets.** Every level has at minimum one Billy-only wall-break secret or one Ducky-only water section or similar — the level design brief for each level should name which character(s) get a bonus area, so the content is deliberate rather than incidental.
 
+**Meadow Ruins secrets as built (Phase 4-5a).** Level 1: a high ledge 6 units up (Cluck's Flutter Jump or Woolly's Cloud Step). Level 2: a Breakable Floor hiding a hollow (Bessie). Level 3: a chamber sealed by a Breakable Wall (Billy). Level 4: an island across a 15-wide chasm behind the start (Gerald's Puff Glide, or Woolly's chained clouds). Level 5: a chamber sealed by a Barrier Unit (Billy). Levels 6-8 keep open bonus clusters. The level builder rejects any "secret" that the base jump could reach.
+
 **Boss levels.** One per world, ending in the world's own Robot Commander-tier fortress boss (reusing the "elaborate Robot Commander fortress" concept from the original Farm Fury's own World 1 boss language), culminating in the Robot Overlord finale in World 6.
+
+**Boss pattern (built for Meadow Ruins, reused by Worlds 2-6).** A boss level is a normal level with no goal marker: a run-in guarded by ordinary robots, a checkpoint at the gate, then an arena. The Commander needs 3 hits (stomps, or Percy's dash, Gerald's glide, Bessie's pound, Horace's horseshoe). Each hit staggers it for 1.5 seconds — it stops, flashes, cannot be hit again and cannot hurt the player, so it can't be chain-stomped — and it moves 35% faster afterwards. Reinforcement waves of the world's ordinary robots arrive after the first and second hits. There is no health bar, only a hit counter. Defeating it completes the level, unlocks the next world and shows "Boss defeated". Later bosses vary the arena, hazards, hit count and speed rather than rebuilding the structure.
 
 ---
 
 ## 7. User Interface
 
-- **World Select** — six world cards (matching the world table above), locked/unlocked state, stars earned
-- **Level Select (within world)** — grid of level tiles, lock state, star rating, a small icon marking any level with an as-yet-undiscovered character secret once a level's been completed with only one character
+- **World Select** — six world cards (matching the world table above), locked/unlocked state, stars earned. **Rule:** a world unlocks once the previous world's boss level has been completed; only Meadow Ruins is open on a fresh save.
+- **Level Select (within world)** — grid of level tiles, lock state, star rating, a small icon marking any level with an as-yet-undiscovered character secret once the level has been completed. **Rules:** the first level of a world is open; each later level opens when the previous one is completed; the boss level opens once every regular level is cleared. The icon shows on a completed level with a gated secret that has not been found yet (found = a crop of the secret cluster was collected)
 - **Character Select (before a level)** — grid of unlocked characters with their ability described; picking one is a level *attempt*, not a permanent choice — replay the same level with a different character freely
 - **Gameplay HUD** — crops/score (top-left), lives (top-right), character portrait + ability-uses-remaining (bottom-left), pause (top-centre)
-- **Level Complete** — stars earned, crops collected, whether this run found the character-gated secret
+- **Level Complete** — stars earned, crops collected, deaths, any character or world unlocked by this clear. **Level Failed** (out of lives) shows briefly, then returns to Level Select
+- **Pause** — Play, Settings (a stub until settings exist), Restart Level (reloads the level, same character, full lives), Quit (back to Level Select)
 - Reuses Arcade's proven navigation pattern where sensible (Shop hub off Settings, not off Main Menu) rather than inventing new IA for the same purchases
 
 ---
@@ -222,7 +240,7 @@ Reusing Arcade's exact, store-registered price points isn't just convenient — 
 
 **A genuinely different controller from Rush's, despite the shared engine.** Rush's Phase 2 learned a real lesson worth carrying over explicitly: Unity's Physics2D ignores the Z axis entirely for collision, and anything that needs to scroll or move reliably against colliders needs a **kinematic `Rigidbody2D` moved via `MovePosition`**, not `transform.Translate` (see Rush's `CLAUDE.md`, Phase 2 architecture notes). That lesson applies directly to Stampede's character controller too — a platformer needs precise, collision-reliable movement even more than a runner does. Where Stampede's controller genuinely differs from Rush's: Rush keeps the character fixed in X while the world scrolls past it; Stampede needs the more conventional platformer setup where the *character* actually traverses a level built in Tilemap space, with a Cinemachine-style camera following it — closer to a standard 2D platformer controller than to Rush's scrolling-world trick.
 
-**Level authoring:** Unity Tilemap + Composite Collider2D for level geometry, with level content still defined as data (ScriptableObject level descriptors referencing tilemap layouts) rather than 46 fully bespoke scenes — matching the franchise's established single-scene, data-driven convention (Arcade's `Resources.LoadAll` approach, Rush's Inspector-list approach) rather than breaking from it just because the genre changed.
+**Level authoring:** each level is a prefab (Tilemap + Composite Collider2D geometry plus marker objects for the player start, crops, robots, checkpoints, goal, breakable walls) referenced by a `LevelData` ScriptableObject, and loaded in place by a `LevelLoader` that spawns the pooled gameplay objects at the markers — rather than 46 fully bespoke scenes — matching the franchise's established single-scene, data-driven convention (Arcade's `Resources.LoadAll` approach, Rush's Inspector-list approach) rather than breaking from it just because the genre changed.
 
 **Backend:** plan for the same shared Supabase account as Rush and the franchise's stated cross-game intent — but build it the way Arcade actually proved out (Unity IAP's async `UnityIAPServices`/`StoreController` API, LevelPlay ad mediation), not the way Rush has only *planned* but not yet reached in its six-phase build order. Don't inherit Rush's unverified backend assumptions; inherit Arcade's verified ones.
 
@@ -234,11 +252,11 @@ Reusing Arcade's exact, store-registered price points isn't just convenient — 
 
 Mirrors the phase structure that's already worked for Rush (see its `CLAUDE.md`), adapted for a platformer. Each phase is its own Claude Code session, started only once the previous phase is verified working in the Unity editor.
 
-1. **Project foundation** — folder structure, core singletons (GameManager, DataManager, SaveManager, AudioManager), ScriptableObject definitions (CharacterData, RobotData, LevelData, WorldData), enums, empty scene, placeholder data. No gameplay. **Built; Play-mode verification still pending** — see `CLAUDE.md`.
-2. **Core movement & controls** — Cluck only. Kinematic Rigidbody2D + MovePosition movement, coyote time, jump buffering, one hand-built test level in Meadow Ruins. Priority is game feel — this is the phase most likely to need real iteration time, same as it was for Rush.
-3. **Level system & World 1** — Tilemap-based level loading from ScriptableObject descriptors, all 8 Meadow Ruins levels, ground-patrol and drone robot AI, checkpoint/level-complete flow, crop collection.
-4. **Characters & abilities** — remaining 7 characters and all 8 unique abilities, character-select-before-level UI, ability-gated secrets, the 5/10/15/20/30/40 unlock ladder.
-5. **Remaining worlds, bosses & progression UI** — Worlds 2–6, per-world bosses, Robot Overlord finale, World Select/Level Select screens, HUD, pause.
+1. **Project foundation** — folder structure, core singletons (GameManager, DataManager, SaveManager, AudioManager), ScriptableObject definitions (CharacterData, RobotData, LevelData, WorldData), enums, empty scene, placeholder data. No gameplay. **Built.**
+2. **Core movement & controls** — Cluck only. Kinematic Rigidbody2D + MovePosition movement, coyote time, jump buffering, one hand-built test level in Meadow Ruins. Priority is game feel — this is the phase most likely to need real iteration time, same as it was for Rush. **Built.**
+3. **Level system & World 1** — Tilemap-based level loading from ScriptableObject descriptors, all 8 Meadow Ruins levels, ground-patrol and drone robot AI, checkpoint/level-complete flow, crop collection. **Built; machine-verified, hand-playtest pending.**
+4. **Characters & abilities** — remaining 7 characters and all 8 unique abilities, character-select-before-level UI, ability-gated secrets, the 5/10/15/20/30/40 unlock ladder. **Built; machine-verified, hand-playtest pending.**
+5. **Remaining worlds, bosses & progression UI** — Worlds 2–6, per-world bosses, Robot Overlord finale, World Select/Level Select screens, HUD, pause. Split into one session per world: **5a done** (Scout/Barrier Unit/Chaser, the reusable boss pattern proven on Meadow Ruins, World/Level Select, HUD, pause, lives; machine-verified, hand-playtest pending); 5b Frozen Tundra (ice physics); 5c Watermill Village; 5d Sky Islands; 5e Sunken City; 5f Robot Mothership and the Robot Overlord.
 6. **Monetisation & polish** — Unity IAP (Arcade's proven product catalog, adapted), LevelPlay ad mediation, Firebase Analytics, Supabase cloud save, cross-promo, tutorial, launch polish.
 
 ---
@@ -264,6 +282,11 @@ Mirrors the phase structure that's already worked for Rush (see its `CLAUDE.md`)
 | Irrigation Pipe | A physical pipe/tunnel entrance connecting two points in a level or leading to a bonus area — Stampede's equivalent of a Mario warp pipe. Not the same mechanic as Arcade's "Warp Tunnel." |
 | Character-gated secret | A bonus area or shortcut reachable only by one specific character's ability |
 | Ability-uses-remaining | Stampede's per-level ability limiter, replacing Arcade/Rush's real-time cooldown model |
+| Breakable Floor | A tile layer only Bessie's Ground Pound can break, revealing a hollow beneath |
+| Breakable Wall | A robot-barrier-styled wall (1x3) only Billy's Charge Break can break |
+| Barrier Unit | A stationary robot that blocks a passage and can only be cleared by Charge Break |
+| Commander | The world-boss robot variant: several hits, stagger windows, reinforcement waves |
 
 **Document Version History:**
 - v1.0 — Initial GDD. Concept established: Mario-Bros-style platformer, deliberately differentiated from Rush's endless-runner mechanic and Arcade's mid-maze-swap mechanic. Reuses the shelved original Farm Fury's six unshipped worlds and its Robot Overlord as final boss. Monetisation and pricing deliberately copied from Arcade's tested, store-verified model rather than newly invented.
+- v1.1 — Updated to the as-built design after Phases 1-5a: unified base movement and the 3-uses-per-level ability limit; ability rules as implemented; refined Scout/Barrier Unit/Chaser and the Commander boss; lives (3 per attempt) and the star formula; the boss pattern; world/level unlock rules and the secret-found icon rule; prefab-based level loading; roadmap status with Phase 5 split into 5a-5f.

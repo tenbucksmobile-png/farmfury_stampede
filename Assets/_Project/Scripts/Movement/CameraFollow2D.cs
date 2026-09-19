@@ -55,7 +55,16 @@ namespace FarmFuryStampede.Movement
             SnapToTarget();
         }
 
-        private void SnapToTarget()
+        /// <summary>Sets the horizontal extent the camera may show (per loaded level).</summary>
+        public void SetBounds(float newMinX, float newMaxX)
+        {
+            useXBounds = true;
+            minX = newMinX;
+            maxX = newMaxX;
+        }
+
+        /// <summary>Jumps the camera straight to the target with no smoothing (level load, respawn).</summary>
+        public void SnapToTarget()
         {
             if (target == null)
             {
@@ -64,6 +73,9 @@ namespace FarmFuryStampede.Movement
 
             _focusY = target.position.y;
             _lookAhead = 0f;
+            _lookAheadVelocity = 0f;
+            _xVelocity = 0f;
+            _yVelocity = 0f;
             Vector3 p = transform.position;
             p.x = ClampX(target.position.x);
             p.y = _focusY + verticalOffset;

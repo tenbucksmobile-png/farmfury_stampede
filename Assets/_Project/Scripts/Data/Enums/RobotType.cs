@@ -7,6 +7,8 @@ namespace FarmFuryStampede.Data
         Scout,
         Drone,
         BarrierUnit,
-        Chaser
+        Chaser,
+        /// <summary>World boss variant (the "Robot Commander"). Appended so serialized values stay stable.</summary>
+        Commander
     }
 }

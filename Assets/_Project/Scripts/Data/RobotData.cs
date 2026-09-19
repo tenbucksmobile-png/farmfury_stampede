@@ -13,6 +13,9 @@ namespace FarmFuryStampede.Data
 
         public float moveSpeed = 3f;
 
+        [Tooltip("Pooled gameplay prefab LevelLoader spawns at each RobotSpawnPoint of this type.")]
+        public GameObject prefab;
+
         [Tooltip("Set when this robot can only be defeated/bypassed using a specific character's ability (e.g. BarrierUnit requires Billy's ChargeBreak). Leave unset for most robots.")]
         public AbilityType? requiresCharacterAbility;
     }

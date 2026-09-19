@@ -11,11 +11,15 @@ namespace FarmFuryStampede.Movement
     {
         private InputAction _move;
         private InputAction _jump;
+        private InputAction _ability;
 
         /// <summary>Horizontal axis, -1 to 1.</summary>
         public float Move => _move.ReadValue<float>();
 
         public bool JumpHeld => _jump.IsPressed();
+
+        /// <summary>True only on the frame the ability button went down. Read from Update.</summary>
+        public bool AbilityPressedThisFrame => _ability.WasPressedThisFrame();
 
         /// <summary>True only on the frame the jump button went down. Read from Update.</summary>
         public bool JumpPressedThisFrame => _jump.WasPressedThisFrame();
@@ -34,24 +38,32 @@ namespace FarmFuryStampede.Movement
             _jump = new InputAction("Jump", InputActionType.Button);
             _jump.AddBinding("<Keyboard>/space");
             _jump.AddBinding("<Gamepad>/buttonSouth");
+
+            _ability = new InputAction("Ability", InputActionType.Button);
+            _ability.AddBinding("<Keyboard>/leftShift");
+            _ability.AddBinding("<Keyboard>/e");
+            _ability.AddBinding("<Gamepad>/buttonWest");
         }
 
         private void OnEnable()
         {
             _move.Enable();
             _jump.Enable();
+            _ability.Enable();
         }
 
         private void OnDisable()
         {
             _move.Disable();
             _jump.Disable();
+            _ability.Disable();
         }
 
         private void OnDestroy()
         {
             _move.Dispose();
             _jump.Dispose();
+            _ability.Dispose();
         }
     }
 }

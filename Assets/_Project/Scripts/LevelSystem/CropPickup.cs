@@ -9,6 +9,9 @@ namespace FarmFuryStampede.LevelSystem
     [RequireComponent(typeof(Collider2D), typeof(PooledObject))]
     public class CropPickup : MonoBehaviour
     {
+        /// <summary>Set by LevelLoader on each spawn: this crop belongs to the level's secret cluster.</summary>
+        public bool isSecretCluster;
+
         private bool _collected;
 
         private void OnEnable()
@@ -25,9 +28,16 @@ namespace FarmFuryStampede.LevelSystem
 
             _collected = true;
 
-            if (GameManager.Instance != null)
+            var gm = GameManager.Instance;
+            if (gm != null)
             {
-                GameManager.Instance.RunState.CollectCrop();
+                gm.RunState.CollectCrop(isSecretCluster);
+
+                // Finding a character-gated secret is remembered for the Level Select "undiscovered secret" icon.
+                if (isSecretCluster && gm.CurrentLevel != null && gm.CurrentLevel.hasCharacterGatedSecret && SaveManager.Instance != null)
+                {
+                    SaveManager.Instance.MarkSecretFound(gm.CurrentLevel.levelId);
+                }
             }
 
             if (ObjectPool.Instance != null)

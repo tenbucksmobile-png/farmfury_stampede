@@ -8,5 +8,8 @@ namespace FarmFuryStampede.Utilities
         [SerializeField] private string poolKey;
 
         public string PoolKey => poolKey;
+
+        /// <summary>True while parked in the pool. Guards against double-release (e.g. level unload after pickup).</summary>
+        public bool InPool { get; internal set; }
     }
 }

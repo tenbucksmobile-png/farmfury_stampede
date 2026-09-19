@@ -5,12 +5,10 @@ using UnityEngine;
 
 namespace FarmFuryStampede.LevelSystem
 {
-    /// <summary>End-of-level trigger. Stars are a placeholder (always 1) until Phase 5 builds scoring.</summary>
+    /// <summary>End-of-level trigger. Completing scores the stars (StarCalculator) via GameManager.CompleteLevel.</summary>
     [RequireComponent(typeof(Collider2D))]
     public class LevelGoal : MonoBehaviour
     {
-        private const int PlaceholderStars = 1;
-
         private void OnTriggerEnter2D(Collider2D other)
         {
             var gm = GameManager.Instance;
@@ -20,7 +18,7 @@ namespace FarmFuryStampede.LevelSystem
                 return;
             }
 
-            gm.EndLevel(completed: true, stars: PlaceholderStars);
+            gm.CompleteLevel();
         }
     }
 }
