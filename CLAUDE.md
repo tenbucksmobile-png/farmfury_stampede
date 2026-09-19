@@ -10,7 +10,11 @@ Full design spec: `FarmFury_Stampede_GDD.md`
 
 ## Status
 
-Phase 1 (project foundation) built: folder structure, four core singletons, six enums, four ScriptableObject data classes, placeholder Cluck/MeadowRuins/Level01 assets, and an empty `Game.unity` scene with a `Phase1Test` harness. **Not yet verified in-editor** — the first Play-mode test was interrupted by a Unity Editor freeze/crash before the Phase1Test PASS/FAIL log could be confirmed. Open `Game.unity` and press Play before starting Phase 2; if anything fails, fix it in this same phase rather than carrying a broken foundation forward.
+Phase 1 (foundation) built. Phase 2 (core movement & controls) **built, compiles, and the setup script runs cleanly headless; not yet playtested by hand** — jump/movement feel is the phase's exit gate and needs a human in the Game tab (not Device Simulator).
+
+Phase 2 workflow: menu **Farm Fury Stampede → Phase 2 → Run Setup** regenerates placeholder sprites, tiles, `Cluck`/`Crop` prefabs and the test level under `Phase2Level` in `Game.unity` (safe to re-run; it also removes the Phase1Test object). Play: A/D or arrows, Space, **R restarts**; an on-screen debug overlay shows state, crops, grounded, coyote and jump-buffer timers. Tuning lives on the `CharacterController2D` component; `moveSpeed`/`jumpHeight` are pulled from `CharacterData_Cluck` at Start.
+
+Layers `Ground` (6) and `Player` (7) were added to TagManager. `com.unity.2d.tilemap.editor` was removed from the manifest (merged into `com.unity.2d.tilemap` in Unity 6.5; the dangling entry blocked package resolution).
 
 ## Stack
 

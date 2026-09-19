@@ -15,12 +15,16 @@ namespace FarmFuryStampede.Core
         public LevelData CurrentLevel { get; private set; }
         public CharacterType CurrentCharacter { get; private set; }
 
+        /// <summary>Runtime state of the level attempt in progress (crops collected, etc.).</summary>
+        public LevelRunState RunState { get; } = new();
+
         /// <summary>Begins a level attempt with the given level and character, moving to the Playing state.</summary>
         public void StartLevel(LevelData level, CharacterType character)
         {
             CurrentLevel = level;
             CurrentCharacter = character;
             CurrentState = GameState.Playing;
+            RunState.Reset();
 
             Debug.Log($"[GameManager] StartLevel: level={level?.levelId}, character={character}.");
         }
