@@ -60,6 +60,7 @@ namespace FarmFuryStampede.EditorTools
 
         // Real character art lives here (never overwritten by setup; the generated placeholders live in SpritesDir).
         private const string ArtDir = "Assets/_Project/Sprites/Characters";
+        private const string RobotArtDir = "Assets/_Project/Sprites/Robots";
         private const float ArtPixelsPerUnit = 480f;   // 500px frames -> about 1.04 units tall (the collider is 0.95)
 
         // Identical for every character by design (GDD/Phase 4 Section 1).
@@ -153,6 +154,7 @@ namespace FarmFuryStampede.EditorTools
                 F(4, 13, 5, 15, 240, 230, 200), F(8, 13, 9, 15, 240, 230, 200), F(12, 1, 13, 4, 90, 90, 100), F(10, 10, 11, 11, 20, 20, 20)));
 
             ImportCharacterArt();
+            ImportRobotArt();
 
             CreateTile("GroundTile", square, new Color(0.45f, 0.62f, 0.28f));
             CreateTile("PlatformTile", square, new Color(0.72f, 0.55f, 0.32f));
@@ -164,11 +166,16 @@ namespace FarmFuryStampede.EditorTools
             BuildBreakableWallPrefab(barrierSprite, groundLayer);
             BuildPlayerPrefab(groundLayer, playerLayer);
             BuildCropPrefab(cropSprite);
-            BuildRobotPrefab<HarvesterRobot>("Harvester", RobotType.Harvester, harvesterSprite, HarvesterPrefabPath);
-            BuildRobotPrefab<DroneRobot>("Drone", RobotType.Drone, droneSprite, DronePrefabPath);
-            BuildRobotPrefab<ScoutRobot>("Scout", RobotType.Scout, scoutSprite, ScoutPrefabPath);
-            BuildRobotPrefab<ChaserRobot>("Chaser", RobotType.Chaser, chaserSprite, ChaserPrefabPath);
-            BuildRobotPrefab<CommanderBoss>("Commander", RobotType.Commander, commanderSprite, CommanderPrefabPath, bossSize: true);
+            BuildRobotPrefab<HarvesterRobot>("Harvester", RobotType.Harvester, harvesterSprite, HarvesterPrefabPath,
+                art: RobotArt("Robot_Harvest_right.png", "Robot_Harvest_left.png", "Robot_defeated.png"));
+            BuildRobotPrefab<DroneRobot>("Drone", RobotType.Drone, droneSprite, DronePrefabPath,
+                art: RobotArt("Drone.png", null, null));
+            BuildRobotPrefab<ScoutRobot>("Scout", RobotType.Scout, scoutSprite, ScoutPrefabPath,
+                art: RobotArt("ScoutRobot_right.png", "ScoutRobot_left.png", "Robot_defeated.png"));
+            BuildRobotPrefab<ChaserRobot>("Chaser", RobotType.Chaser, chaserSprite, ChaserPrefabPath,
+                art: RobotArt("DriftRobot_right.png", "DriftRobot_left.png", "Robot_defeated.png"));
+            BuildRobotPrefab<CommanderBoss>("Commander", RobotType.Commander, commanderSprite, CommanderPrefabPath, bossSize: true,
+                art: RobotArt("Commander_Alert.png", null, "Commander_Defeated.png"));
             BuildBarrierUnitPrefab(barrierUnitSprite, groundLayer);
             BuildCheckpointPrefab(square);
             BuildGoalPrefab(square);
@@ -596,7 +603,8 @@ namespace FarmFuryStampede.EditorTools
             SavePrefab(root, CropPrefabPath);
         }
 
-        private static void BuildRobotPrefab<T>(string prefabName, RobotType type, Sprite sprite, string path, bool bossSize = false)
+        private static void BuildRobotPrefab<T>(string prefabName, RobotType type, Sprite sprite, string path, bool bossSize = false,
+            (Sprite right, Sprite left, Sprite defeat) art = default)
             where T : RobotController
         {
             var root = new GameObject(prefabName);
@@ -608,7 +616,7 @@ namespace FarmFuryStampede.EditorTools
             var visualObject = new GameObject("Visual");
             visualObject.transform.SetParent(root.transform, false);
             var renderer = visualObject.AddComponent<SpriteRenderer>();
-            renderer.sprite = sprite;
+            renderer.sprite = art.right != null ? art.right : sprite;
             renderer.sortingOrder = 8;
             if (bossSize)
             {
@@ -638,6 +646,9 @@ namespace FarmFuryStampede.EditorTools
             var robotSo = new SerializedObject(robot);
             robotSo.FindProperty("robotType").enumValueIndex = (int)type;
             robotSo.FindProperty("visual").objectReferenceValue = renderer;
+            robotSo.FindProperty("spriteRight").objectReferenceValue = art.right;
+            robotSo.FindProperty("spriteLeft").objectReferenceValue = art.left;
+            robotSo.FindProperty("defeatSprite").objectReferenceValue = art.defeat;
             if (bossSize)
             {
                 // GroundPatrolRobot wall/ledge probes use the robot half extents.
@@ -838,6 +849,39 @@ namespace FarmFuryStampede.EditorTools
                     importer.SaveAndReimport();
                 }
             }
+        }
+
+        // Imports every robot frame as a smooth sprite at the same scale as the characters. Idempotent.
+        private static void ImportRobotArt()
+        {
+            foreach (string path in Directory.GetFiles(RobotArtDir, "*.png"))
+            {
+                string assetPath = path.Replace('\\', '/');
+                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+                var importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.spritePixelsPerUnit = ArtPixelsPerUnit;
+                importer.spritePivot = new Vector2(0.5f, 0.5f);
+                importer.filterMode = FilterMode.Bilinear;
+                importer.mipmapEnabled = false;
+                importer.alphaIsTransparency = true;
+                importer.textureCompression = TextureImporterCompression.Uncompressed;
+                importer.SaveAndReimport();
+            }
+        }
+
+        // Right-facing, left-facing (null = flip the right frame) and defeat sprites; missing files come back null.
+        private static (Sprite right, Sprite left, Sprite defeat) RobotArt(string right, string left, string defeat)
+        {
+            Sprite Load(string file) => file == null ? null : AssetDatabase.LoadAssetAtPath<Sprite>($"{RobotArtDir}/{file}");
+            var r = Load(right);
+            var l = Load(left);
+            if (r == null || l == null)
+            {
+                l = null;   // art must be a complete pair, otherwise flip
+            }
+            return (r, l, Load(defeat));
         }
 
         // Returns the sprite set for the character, or null when it has no (complete) art.

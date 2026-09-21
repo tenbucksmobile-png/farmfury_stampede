@@ -77,10 +77,7 @@ namespace FarmFuryStampede.Robots
 
         private void UpdateFacing()
         {
-            if (visual != null)
-            {
-                visual.flipX = Direction < 0;
-            }
+            SetFacing(Direction >= 0);
         }
 
         protected bool WallAhead(int direction)

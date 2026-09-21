@@ -35,9 +35,9 @@ namespace FarmFuryStampede.Robots
             Position.y = _originY + Mathf.Sin(_time * bobSpeed) * bobAmplitude;
 
             float dx = Position.x - _lastX;
-            if (visual != null && Mathf.Abs(dx) > 0.0001f)
+            if (Mathf.Abs(dx) > 0.0001f)
             {
-                visual.flipX = dx < 0f;
+                SetFacing(dx >= 0f);
             }
             _lastX = Position.x;
         }

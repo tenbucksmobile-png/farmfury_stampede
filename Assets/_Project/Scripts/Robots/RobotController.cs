@@ -32,7 +32,34 @@ namespace FarmFuryStampede.Robots
         protected bool IsDefeated { get; private set; }
         public RobotType Type => robotType;
 
+        [Header("Art (optional; without it the visual is flipped)")]
+        [SerializeField] private Sprite spriteRight;
+        [SerializeField] private Sprite spriteLeft;
+        [SerializeField] private Sprite defeatSprite;
+
         private Vector3 _visualScale = Vector3.one;
+
+        /// <summary>
+        /// Points the visual left or right. Robots with separate left/right art swap sprites (the art is not a
+        /// mirror image); the rest flip.
+        /// </summary>
+        protected void SetFacing(bool faceRight)
+        {
+            if (visual == null)
+            {
+                return;
+            }
+
+            if (spriteRight != null && spriteLeft != null)
+            {
+                visual.flipX = false;
+                visual.sprite = faceRight ? spriteRight : spriteLeft;
+            }
+            else
+            {
+                visual.flipX = !faceRight;
+            }
+        }
 
         protected static bool IsPlaying =>
             GameManager.Instance != null && GameManager.Instance.CurrentState == GameState.Playing;
@@ -94,6 +121,10 @@ namespace FarmFuryStampede.Robots
             {
                 visual.transform.localScale = _visualScale;
                 visual.color = Color.white;
+                if (spriteRight != null)
+                {
+                    visual.sprite = spriteRight;
+                }
             }
 
             OnResetState();
@@ -184,6 +215,12 @@ namespace FarmFuryStampede.Robots
                 {
                     c.enabled = false;
                 }
+            }
+
+            if (visual != null && defeatSprite != null)
+            {
+                visual.flipX = false;
+                visual.sprite = defeatSprite;
             }
 
             StartCoroutine(DefeatEffect());
