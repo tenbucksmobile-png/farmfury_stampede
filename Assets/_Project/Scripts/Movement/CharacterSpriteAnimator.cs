@@ -13,6 +13,7 @@ namespace FarmFuryStampede.Movement
         private CharacterController2D _controller;
         private SpriteRenderer _renderer;
         private float _runTime;
+        private const float AirborneGrace = 0.08f;
 
         private void Awake()
         {
@@ -36,7 +37,8 @@ namespace FarmFuryStampede.Movement
             {
                 chosen = set.defeat != null ? set.defeat : idle;
             }
-            else if (!_controller.IsGrounded)
+            // Rising, or clearly airborne: a one-step ground-check blip mustn't flash the (bigger) jump frame.
+            else if (!_controller.IsGrounded && (_controller.Velocity.y > 0.1f || _controller.AirTime > AirborneGrace))
             {
                 Sprite jump = right ? set.jumpRight : set.jumpLeft;
                 chosen = jump != null ? jump : idle;

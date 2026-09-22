@@ -177,7 +177,7 @@ All eight animals return. Each has exactly one platforming-relevant ability, tra
 
 **Character-gated secrets.** Every level has at minimum one Billy-only wall-break secret or one Ducky-only water section or similar — the level design brief for each level should name which character(s) get a bonus area, so the content is deliberate rather than incidental.
 
-**Meadow Ruins secrets as built (Phase 4-5a).** Level 1: a high ledge 6 units up (Cluck's Flutter Jump or Woolly's Cloud Step). Level 2: a Breakable Floor hiding a hollow (Bessie). Level 3: a chamber sealed by a Breakable Wall (Billy). Level 4: an island across a 15-wide chasm behind the start (Gerald's Puff Glide, or Woolly's chained clouds). Level 5: a chamber sealed by a Barrier Unit (Billy). Levels 6-8 keep open bonus clusters. The level builder rejects any "secret" that the base jump could reach.
+**Meadow Ruins secrets as built (Phase 4-5a).** Level 1: a high ledge 4 units up (out of a single jump's reach; the double jump, Cluck's Flutter Jump or Woolly's Cloud Step reach it). Level 2: a Breakable Floor hiding a hollow (Bessie). Level 3: a chamber sealed by a Breakable Wall (Billy). Level 4: an island across a 15-wide chasm behind the start (Gerald's Puff Glide, or Woolly's chained clouds). Level 5: a chamber sealed by a Barrier Unit (Billy). Levels 6-8 keep open bonus clusters. The level builder rejects any "secret" that the base jump could reach.
 
 **Boss levels.** One per world, ending in the world's own Robot Commander-tier fortress boss (reusing the "elaborate Robot Commander fortress" concept from the original Farm Fury's own World 1 boss language), culminating in the Robot Overlord finale in World 6.
 

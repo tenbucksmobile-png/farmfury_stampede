@@ -20,6 +20,7 @@ namespace FarmFuryStampede.UI
         private GameObject _root;
         private Text _title;
         private readonly Dictionary<CharacterType, Button> _slots = new();
+        private const float CardSize = 270f;
 
         /// <summary>Builds the panel under the given canvas (once). Called by GameFlow.</summary>
         public void Build(Transform canvas)
@@ -43,9 +44,26 @@ namespace FarmFuryStampede.UI
                 var data = characters[i];
                 var captured = data.characterType;
                 int col = i % 4, row = i / 4;
+                var slotCentre = new Vector2((col - 1.5f) * 400f, 170f - row * 360f);
                 var button = UIKit.MakeButton(root, $"Slot_{data.characterType}", "", data.uiColor, () => TrySelect(captured), 30);
-                UIKit.Place(button.image.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2((col - 1.5f) * 400f, 150f - row * 340f), new Vector2(380f, 320f));
+
+                if (data.selectCard != null)
+                {
+                    // The card is the whole button (its name is baked in); ability / lock text is a caption under it.
+                    button.image.sprite = data.selectCard;
+                    button.image.preserveAspect = true;
+                    UIKit.Place(button.image.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                        slotCentre + new Vector2(0f, CardSize * 0.5f - 100f), new Vector2(CardSize, CardSize));
+
+                    var caption = button.GetComponentInChildren<Text>();
+                    caption.color = Color.white;
+                    caption.alignment = TextAnchor.UpperCenter;
+                    UIKit.Place(caption.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 1f), new Vector2(0f, -6f), new Vector2(380f, 64f));
+                    _slots[data.characterType] = button;
+                    continue;
+                }
+
+                UIKit.Place(button.image.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), slotCentre, new Vector2(380f, 320f));
 
                 var portrait = UIKit.Panel(button.transform, "Portrait", Color.white);
                 portrait.sprite = data.placeholderSprite;
@@ -140,6 +158,16 @@ namespace FarmFuryStampede.UI
                 bool unlocked = IsSelectable(data.characterType);
                 var button = _slots[data.characterType];
                 button.interactable = unlocked;
+                if (data.selectCard != null)
+                {
+                    // Card art stays untinted; the Button's disabled colour dims a locked card.
+                    button.image.color = Color.white;
+                    button.GetComponentInChildren<Text>().text = unlocked
+                        ? $"{data.abilityType}\n{data.abilityUsesPerLevel} uses per level"
+                        : $"LOCKED\nClear {data.unlockLevelsRequired} levels";
+                    continue;
+                }
+
                 button.image.color = unlocked ? data.uiColor : new Color(0.3f, 0.3f, 0.32f, 1f);
                 button.GetComponentInChildren<Text>().text = unlocked
                     ? $"{data.displayName}\n{data.abilityType}\n{data.abilityUsesPerLevel} uses per level"

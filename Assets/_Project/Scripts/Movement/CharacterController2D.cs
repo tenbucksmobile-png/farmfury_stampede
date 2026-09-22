@@ -44,6 +44,8 @@ namespace FarmFuryStampede.Movement
         [SerializeField] private float maxFallSpeed = 25f;
         [SerializeField] private float coyoteTime = 0.1f;
         [SerializeField] private float jumpBufferTime = 0.1f;
+        [Tooltip("Extra jumps allowed in mid-air before landing (1 = double jump). Each one relaunches at full jump velocity.")]
+        [SerializeField] private int airJumps = 1;
 
         [Header("Water (applies to everyone except water-immune characters)")]
         [SerializeField] private float waterSpeedMultiplier = 0.4f;
@@ -66,6 +68,7 @@ namespace FarmFuryStampede.Movement
         private bool _isJumping;
         private float _coyoteTimer;
         private float _jumpBufferTimer;
+        private int _airJumpsLeft;
         private int _facing = 1;
 
         private float _gravity;
@@ -90,6 +93,8 @@ namespace FarmFuryStampede.Movement
         public int UsesPerLevel { get; private set; }
 
         public bool IsGrounded => _grounded;
+        /// <summary>Seconds since the character last stood on the ground (0 while grounded).</summary>
+        public float AirTime { get; private set; }
         public bool IsInvulnerable => Time.time < _invulnerableUntil;
 
         /// <summary>True during the short defeat pose before a respawn: the character is frozen and harmless to touch.</summary>
@@ -101,6 +106,7 @@ namespace FarmFuryStampede.Movement
         public float CoyoteTimeRemaining => _coyoteTimer;
         public float JumpBufferRemaining => _jumpBufferTimer;
         public bool CoyoteAvailable => _coyoteTimer > 0f;
+        public int AirJumpsRemaining => _airJumpsLeft;
 
         public float MoveSpeed => moveSpeed;
         public float JumpHeight => jumpHeight;
@@ -240,9 +246,11 @@ namespace FarmFuryStampede.Movement
             _isJumping = false;
             _coyoteTimer = 0f;
             _jumpBufferTimer = 0f;
+            _airJumpsLeft = airJumps;
             _abilityQueued = false;
             _waterTime = 0f;
             _dyingUntil = 0f;
+            _invulnerableUntil = 0f;   // a respawn re-grants it; a fresh start must not inherit the failed attempt's 60s
             _ability?.Reset(this);
             transform.position = position;
             _body.position = position;
@@ -392,6 +400,14 @@ namespace FarmFuryStampede.Movement
                 _isJumping = true;
                 _grounded = false;
             }
+            else if (_jumpBufferTimer > 0f && !_grounded && _airJumpsLeft > 0 && !InputLocked)
+            {
+                // Double jump: a fresh full-velocity jump from wherever the player is, still variable-height.
+                _velocity.y = _jumpVelocity;
+                _jumpBufferTimer = 0f;
+                _airJumpsLeft--;
+                _isJumping = true;
+            }
 
             // Variable jump height: releasing early caps the rise at the tap velocity.
             if (_isJumping)
@@ -427,9 +443,11 @@ namespace FarmFuryStampede.Movement
             }
 
             _grounded = landed || (_velocity.y <= 0f && GroundCheck());
+            AirTime = _grounded ? 0f : AirTime + dt;
             if (_grounded)
             {
                 _isJumping = false;
+                _airJumpsLeft = airJumps;
             }
 
             _body.MovePosition(_position);

@@ -16,9 +16,21 @@ namespace FarmFuryStampede.EditorTools
         public Tile platformTile;
         public Tile breakableTile;
         public Tile waterTile;
+        /// <summary>Grass-topped variants for every exposed top cell of the ground; empty keeps groundTile everywhere.</summary>
+        public Tile[] groundSurfaceTiles = Array.Empty<Tile>();
         public int groundLayer;
         /// <summary>Optional decorative backdrop filling every Chamber() interior; left blank draws nothing (transparent).</summary>
         public Sprite chamberBackdrop;
+        /// <summary>Art for ground obstacles (feet-pivoted); each obstacle picks one at random. Empty places none.</summary>
+        public Sprite[] obstacleSprites = Array.Empty<Sprite>();
+        /// <summary>Obstacles per non-boss level, at seeded-random valid spots.</summary>
+        public int obstaclesPerLevel;
+        /// <summary>Stone slab art for SecretLedge() surfaces; null draws them with platformTile like any platform.</summary>
+        public Sprite ledgeSprite;
+        /// <summary>Collision-only tile (no sprite) under the stone ledge slabs.</summary>
+        public Tile invisibleTile;
+        /// <summary>Art for BarrelPyramid() barrels (feet-pivoted); null skips the pyramids' art but keeps them solid.</summary>
+        public Sprite barrelSprite;
     }
 
     /// <summary>
@@ -41,6 +53,7 @@ namespace FarmFuryStampede.EditorTools
             public int x0, x1, top, baseTop;
             public Kind kind;
             public bool secret;
+            public bool stone;   // drawn with LevelAssets.ledgeSprite slabs over invisible collision tiles
             public override string ToString() => $"{(secret ? "Secret" : "")}{kind}[{x0},{x1}) top={top}";
         }
 
@@ -53,6 +66,12 @@ namespace FarmFuryStampede.EditorTools
         private const float MaxFlatGap = 5f;
         private const float RiseGapPenalty = 0.7f;
         private const int GroundDepth = -6;
+        // Crop centre above whatever it rests on: the 0.6-unit icon then clears the 0.46-unit grass overhang of the
+        // surface tiles, while still overlapping the 0.95-tall player so walking past collects it.
+        private const float CropRestHeight = 0.9f;
+        // Closest two crops may sit (centre to centre) without their icons overlapping: the widest icon is the
+        // 1.2-tall corn cob at ~1.09 wide, and the pool is picked at random per crop, so every pair allows for it.
+        private const float MinCropSpacing = 1.25f;
 
         public readonly string Id;
         public readonly string Title;
@@ -67,6 +86,7 @@ namespace FarmFuryStampede.EditorTools
         private readonly List<BreakableRec> _breakables = new();
         private readonly List<ChamberRec> _chambers = new();
         private readonly List<RectInt> _water = new();
+        private readonly List<Vector2> _pyramids = new();
         private Vector2? _playerStart;
         private Vector2? _goal;
         private readonly List<float> _noPatrolCheck = new();
@@ -150,7 +170,7 @@ namespace FarmFuryStampede.EditorTools
         /// <summary>A floating ledge the base jump cannot reach: a gated secret needing extra height or range.</summary>
         public LevelBuilder SecretLedge(int x, int length, int top)
         {
-            _surfaces.Add(new Surface { x0 = x, x1 = x + length, top = top, baseTop = top - 1, kind = Kind.Floating, secret = true });
+            _surfaces.Add(new Surface { x0 = x, x1 = x + length, top = top, baseTop = top - 1, kind = Kind.Floating, secret = true, stone = true });
             return this;
         }
 
@@ -228,16 +248,20 @@ namespace FarmFuryStampede.EditorTools
         }
 
         /// <summary>Crop resting above the ground (or mound) at x.</summary>
-        public LevelBuilder Crop(float x, float above = 0.5f, bool secret = false)
+        public LevelBuilder Crop(float x, float above = CropRestHeight, bool secret = false)
         {
-            _crops.Add(new CropRec { x = x, y = GroundTop(x) + above, secret = secret });
+            AddCrop(x, GroundTop(x) + above, secret);
             return this;
         }
 
-        /// <summary>Evenly spaced crops above the ground from x0 to x1 inclusive.</summary>
-        public LevelBuilder CropRow(float x0, float x1, float step, float above = 0.5f)
+        /// <summary>
+        /// Crops above the ground from x0 to x1 inclusive, doubled up along the row: they're placed every step/2
+        /// (never closer than MinCropSpacing, so icons never overlap), so a row authored at step 4 gets corn every 2 units.
+        /// </summary>
+        public LevelBuilder CropRow(float x0, float x1, float step, float above = CropRestHeight)
         {
-            for (float x = x0; x <= x1 + 0.001f; x += step)
+            float spacing = Mathf.Max(step * 0.5f, MinCropSpacing);
+            for (float x = x0; x <= x1 + 0.001f; x += spacing)
             {
                 Crop(x, above);
             }
@@ -247,8 +271,16 @@ namespace FarmFuryStampede.EditorTools
         /// <summary>Crop at an absolute world position (over gaps, on floating platforms, in alcoves).</summary>
         public LevelBuilder CropAt(float x, float y, bool secret = false)
         {
-            _crops.Add(new CropRec { x = x, y = y, secret = secret });
+            AddCrop(x, y, secret);
             return this;
+        }
+
+        private void AddCrop(float x, float y, bool secret) => _crops.Add(new CropRec { x = x, y = y, secret = secret });
+
+        private static bool CropOverlaps(float x, float y, Surface s)
+        {
+            float bottom = s.kind == Kind.Floating ? s.baseTop : GroundDepth;
+            return x > s.x0 - 0.3f && x < s.x1 + 0.3f && y - 0.4f < s.top && y + 0.4f > bottom;
         }
 
         /// <summary>Row of secret-cluster crops at an absolute height.</summary>
@@ -269,6 +301,31 @@ namespace FarmFuryStampede.EditorTools
                 float t = n == 1 ? 0.5f : i / (float)(n - 1);
                 CropAt(Mathf.Lerp(x0, x1, t), baseY + peak * Mathf.Sin(Mathf.PI * t));
             }
+            return this;
+        }
+
+        /// <summary>
+        /// Three-barrel pyramid centred at x on flat ground: two barrels side by side with one on top, 6.0 units high.
+        /// Each base barrel sticks out a half-barrel past the top one, so it climbs in two 3.0 steps (each inside the
+        /// base jump's 3.5 apex), or one double jump. Ground corn under it is cleared and one corn sits on the top barrel.
+        /// </summary>
+        public LevelBuilder BarrelPyramid(float x)
+        {
+            int top = GroundTopAt(x, out bool found);
+            for (float dx = -(BarrelWidth + 0.5f); found && dx <= BarrelWidth + 0.5f; dx += 0.5f)
+            {
+                if (GroundTopAt(x + dx, out bool f) != top || !f)
+                {
+                    found = false;
+                }
+            }
+            if (!found)
+            {
+                Error($"Barrel pyramid at x={x} needs flat ground {BarrelWidth + 0.5f} units either side.");
+                return this;
+            }
+
+            _pyramids.Add(new Vector2(x, top));
             return this;
         }
 
@@ -495,8 +552,7 @@ namespace FarmFuryStampede.EditorTools
 
                 foreach (var s in _surfaces)
                 {
-                    float bottom = s.kind == Kind.Floating ? s.baseTop : GroundDepth;
-                    if (c.x > s.x0 - 0.3f && c.x < s.x1 + 0.3f && c.y - 0.4f < s.top && c.y + 0.4f > bottom)
+                    if (CropOverlaps(c.x, c.y, s))
                     {
                         Error($"Crop at ({c.x},{c.y}) overlaps {s}.");
                     }
@@ -545,7 +601,12 @@ namespace FarmFuryStampede.EditorTools
                         Fill(ground, assets.groundTile, s.x0, s.x1 - 1, s.baseTop, s.top - 1);
                         break;
                     case Kind.Floating:
-                        Fill(platforms, assets.platformTile, s.x0, s.x1 - 1, s.top - 1, s.top - 1);
+                        bool stoneArt = s.stone && assets.ledgeSprite != null && assets.invisibleTile != null;
+                        Fill(platforms, stoneArt ? assets.invisibleTile : assets.platformTile, s.x0, s.x1 - 1, s.top - 1, s.top - 1);
+                        if (stoneArt)
+                        {
+                            AddStoneSlabs(root.transform, assets.ledgeSprite, s);
+                        }
                         break;
                 }
             }
@@ -573,7 +634,10 @@ namespace FarmFuryStampede.EditorTools
             Fill(ground, assets.groundTile, _startX - 1, _startX - 1, GroundDepth, maxTop + 8); // left wall
             Fill(ground, assets.groundTile, endX, endX, GroundDepth, maxTop + 8);               // right wall
 
+            PaintSurface(ground, assets);
             Finish(ground);
+            BuildBarrelPyramids(root.transform, assets);
+            PlaceObstacles(root.transform, assets);
             Finish(platforms);
 
             if (_breakables.Count > 0)
@@ -606,6 +670,8 @@ namespace FarmFuryStampede.EditorTools
             pitBox.isTrigger = true;
             pitBox.size = new Vector2(endX - _startX + 60f, 4f);
             pit.AddComponent<PitDeathZone>();
+
+            RemoveOverlappingCrops();
 
             var markers = new GameObject("Markers");
             markers.transform.SetParent(root.transform, false);
@@ -683,6 +749,209 @@ namespace FarmFuryStampede.EditorTools
                         continue;
                     }
                     tilemap.SetTile(new Vector3Int(x, y, 0), tile);
+                }
+            }
+        }
+
+        // Drops any crop whose icon would overlap one already kept (hand-placed groups, arcs and secret rows are
+        // authored 1 unit apart). Secret-cluster crops are kept first so no secret loses its reward.
+        private void RemoveOverlappingCrops()
+        {
+            var kept = new List<CropRec>();
+            foreach (var c in _crops.Where(c => c.secret).Concat(_crops.Where(c => !c.secret)))
+            {
+                if (!kept.Any(k => Mathf.Abs(k.x - c.x) < MinCropSpacing - 0.001f && Mathf.Abs(k.y - c.y) < MinCropSpacing))
+                {
+                    kept.Add(c);
+                }
+            }
+            _crops.Clear();
+            _crops.AddRange(kept);
+        }
+
+        // ------------------------------------------------------------ obstacles
+
+        private const float ObstacleWidth = 2.8f;
+        private const float ObstacleHeight = 2.6f;   // under the base jump's 3.5 apex; a big step, not a wall
+        private const float ObstacleSpacing = 10f;
+        private const float ObstacleLiftRange = ObstacleWidth * 0.5f + 0.4f; // corn this close to an obstacle's centre sits on top of it
+
+        // Drops solid rock/haybale obstacles on the main-path ground at random spots, seeded by the level id so a
+        // re-run of setup places them identically. Only spots that keep the level fair are candidates: flat ground
+        // at least 2 units either side (never at a gap's take-off or landing), clear of the start/goal/checkpoints,
+        // robot patrols, breakable floors, water, low platforms and the secret areas. Corn resting on the ground
+        // where an obstacle lands is lifted to sit on top of it.
+        private void PlaceObstacles(Transform root, LevelAssets assets)
+        {
+            if (IsBoss || assets.obstaclesPerLevel <= 0 || assets.obstacleSprites == null || assets.obstacleSprites.Length == 0)
+            {
+                return;
+            }
+
+            var candidates = new List<(float x, int top)>();
+            foreach (var s in _surfaces.Where(s => s.kind == Kind.Ground && !s.secret))
+            {
+                for (int cx = s.x0 + 2; cx <= s.x1 - 3; cx++)
+                {
+                    float x = cx + 0.5f;
+                    if (IsObstacleSpotClear(x, s.top))
+                    {
+                        candidates.Add((x, s.top));
+                    }
+                }
+            }
+
+            var random = new System.Random(StableSeed(Id));
+            var placed = new List<float>();
+            while (placed.Count < assets.obstaclesPerLevel)
+            {
+                var open = candidates.Where(c => placed.All(p => Mathf.Abs(p - c.x) >= ObstacleSpacing)).ToList();
+                if (open.Count == 0)
+                {
+                    Debug.LogWarning($"[LevelBuilder] {Id}: only room for {placed.Count} of {assets.obstaclesPerLevel} obstacles.");
+                    break;
+                }
+
+                var (x, top) = open[random.Next(open.Count)];
+                placed.Add(x);
+                Sprite art = assets.obstacleSprites[random.Next(assets.obstacleSprites.Length)];
+
+                var obstacle = new GameObject($"Obstacle_{art.name}_{placed.Count}") { layer = assets.groundLayer };
+                obstacle.transform.SetParent(root, false);
+                obstacle.transform.position = new Vector3(x, top, 0f);
+                var box = obstacle.AddComponent<BoxCollider2D>();
+                box.size = new Vector2(ObstacleWidth, ObstacleHeight);
+                box.offset = new Vector2(0f, ObstacleHeight * 0.5f);
+                var renderer = obstacle.AddComponent<SpriteRenderer>();
+                renderer.sprite = art;
+                renderer.sortingOrder = 3; // in front of the ground tiles, behind robots (8) and the player (10)
+
+                for (int i = 0; i < _crops.Count; i++)
+                {
+                    var c = _crops[i];
+                    if (Mathf.Abs(c.x - x) < ObstacleLiftRange && c.y < top + ObstacleHeight + CropRestHeight)
+                    {
+                        c.y = top + ObstacleHeight + CropRestHeight;
+                        _crops[i] = c;
+                    }
+                }
+            }
+        }
+
+        private const float BarrelWidth = 2.2f;
+        private const float BarrelHeight = 3.0f;
+
+        private void BuildBarrelPyramids(Transform root, LevelAssets assets)
+        {
+            for (int p = 0; p < _pyramids.Count; p++)
+            {
+                Vector2 at = _pyramids[p];
+                AddBarrel(root, assets, $"BarrelPyramid_{p + 1}_Left", new Vector2(at.x - BarrelWidth * 0.5f, at.y), 3);
+                AddBarrel(root, assets, $"BarrelPyramid_{p + 1}_Right", new Vector2(at.x + BarrelWidth * 0.5f, at.y), 3);
+                AddBarrel(root, assets, $"BarrelPyramid_{p + 1}_Top", new Vector2(at.x, at.y + BarrelHeight), 4);
+
+                _crops.RemoveAll(c => !c.secret && Mathf.Abs(c.x - at.x) < BarrelWidth + 0.6f && c.y < at.y + 2f * BarrelHeight);
+                _crops.Add(new CropRec { x = at.x, y = at.y + 2f * BarrelHeight + CropRestHeight });
+            }
+        }
+
+        // Lays whole stone slabs across a one-tile-thick ledge: as many as fit at close to the art's own aspect,
+        // each stretched a little so they exactly span the ledge (no half slab at the end).
+        private static void AddStoneSlabs(Transform root, Sprite slab, Surface s)
+        {
+            Vector2 native = slab.bounds.size;
+            float aspect = native.x / Mathf.Max(native.y, 0.01f);
+            int length = s.x1 - s.x0;
+            int count = Mathf.Max(1, Mathf.RoundToInt(length / aspect));
+            float width = (float)length / count;
+
+            for (int i = 0; i < count; i++)
+            {
+                var go = new GameObject($"StoneLedge_{s.x0}_{i}");
+                go.transform.SetParent(root, false);
+                go.transform.position = new Vector3(s.x0 + width * (i + 0.5f), s.top - 0.5f, 0f);
+                go.transform.localScale = new Vector3(width / native.x, 1f / native.y, 1f);
+                var renderer = go.AddComponent<SpriteRenderer>();
+                renderer.sprite = slab;
+                renderer.sortingOrder = 1; // same layer as the Platforms tilemap
+            }
+        }
+
+        private static void AddBarrel(Transform root, LevelAssets assets, string barrelName, Vector2 feet, int sortingOrder)
+        {
+            var barrel = new GameObject(barrelName) { layer = assets.groundLayer };
+            barrel.transform.SetParent(root, false);
+            barrel.transform.position = new Vector3(feet.x, feet.y, 0f);
+            var box = barrel.AddComponent<BoxCollider2D>();
+            box.size = new Vector2(BarrelWidth, BarrelHeight);
+            box.offset = new Vector2(0f, BarrelHeight * 0.5f);
+            if (assets.barrelSprite != null)
+            {
+                var renderer = barrel.AddComponent<SpriteRenderer>();
+                renderer.sprite = assets.barrelSprite;
+                renderer.sortingOrder = sortingOrder; // the top barrel draws over the lids of the two below
+            }
+        }
+
+        private bool IsObstacleSpotClear(float x, int top)
+        {
+            if (_pyramids.Any(p => Mathf.Abs(p.x - x) < BarrelWidth + ObstacleWidth * 0.5f + 3f)) { return false; }
+            // Flat ground past both sides, so it never sits at a gap edge or against a step.
+            float flat = ObstacleWidth * 0.5f + 1f;
+            for (float dx = -flat; dx <= flat; dx += 0.5f)
+            {
+                int t = GroundTopAt(x + dx, out bool found);
+                if (!found || t != top) { return false; }
+            }
+
+            bool Near(Vector2? p, float range) => p.HasValue && Mathf.Abs(p.Value.x - x) < range;
+            if (Near(_playerStart, 6f) || Near(_goal, 4f)) { return false; }
+            if (_checkpoints.Any(c => Mathf.Abs(c.x - x) < 3f)) { return false; }
+            if (_robots.Any(r => Mathf.Abs(r.x - x) < r.patrol + ObstacleWidth * 0.5f + 1.2f)) { return false; }
+            if (_breakables.Any(b => x > b.x - 2f && x < b.x + b.length + 2f)) { return false; }
+            if (_water.Any(w => x > w.xMin - 2f && x < w.xMax + 2f)) { return false; }
+            if (_chambers.Any(c => x > c.x0 - 3f && x < c.x0 + c.interiorWidth + 5f)) { return false; }
+            // Keep off anything overhead (low platforms, secret ledges): an extra step up must not open a secret.
+            if (_surfaces.Any(s => s.kind == Kind.Floating && x > s.x0 - 3f && x < s.x1 + 3f)) { return false; }
+            if (_surfaces.Any(s => s.secret && x > s.x0 - 3f && x < s.x1 + 3f)) { return false; }
+            return true;
+        }
+
+        // string.GetHashCode isn't guaranteed stable between runs, so hash the id by hand (FNV-1a).
+        private static int StableSeed(string text)
+        {
+            unchecked
+            {
+                uint hash = 2166136261;
+                foreach (char c in text)
+                {
+                    hash = (hash ^ c) * 16777619;
+                }
+                return (int)hash;
+            }
+        }
+
+        // Swaps every ground cell with nothing above it (flat tops, mound tops, chamber ceilings, hollow floors)
+        // for a grass-topped variant, cycling variants by column so neighbours differ.
+        private static void PaintSurface(Tilemap ground, LevelAssets assets)
+        {
+            if (assets.groundSurfaceTiles == null || assets.groundSurfaceTiles.Length == 0)
+            {
+                return;
+            }
+
+            ground.CompressBounds();
+            BoundsInt bounds = ground.cellBounds;
+            for (int x = bounds.xMin; x < bounds.xMax; x++)
+            {
+                for (int y = bounds.yMin; y < bounds.yMax; y++)
+                {
+                    var cell = new Vector3Int(x, y, 0);
+                    if (ground.GetTile(cell) != null && ground.GetTile(cell + Vector3Int.up) == null)
+                    {
+                        int variant = ((x % assets.groundSurfaceTiles.Length) + assets.groundSurfaceTiles.Length) % assets.groundSurfaceTiles.Length;
+                        ground.SetTile(cell, assets.groundSurfaceTiles[variant]);
+                    }
                 }
             }
         }

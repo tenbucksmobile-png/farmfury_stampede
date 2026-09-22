@@ -10,11 +10,10 @@ namespace FarmFuryStampede.EditorTools
     /// only ever produced isometric block icons despite explicit "side elevation, not isometric" prompts -
     /// this generates a flat, correctly-projected tile directly instead of continuing to fight the model.
     ///
-    /// GroundTile deliberately has NO grass cap: it is the single repeating Tile used for the whole ground
-    /// mass (GroundDepth = 6 tiles deep, plus the tall level-boundary walls), so any cap baked into the
-    /// sprite would repeat as a visible striped artifact down the full depth of every buried/wall column.
-    /// A true grass-topped-surface-only look needs per-position autotiling (Unity's Rule Tile), which this
-    /// project's simple single-Tile-per-layer setup doesn't use; that would be a separate, bigger change.
+    /// GroundTile deliberately has NO grass cap: it fills the buried ground mass (GroundDepth = 6 tiles deep,
+    /// plus the tall level-boundary walls), where a cap would stripe down every column. The grass-topped look
+    /// comes from Sprites/Environment/FloorTile.png instead, which LevelBuilder.PaintSurface puts only on the
+    /// exposed top cell of each column.
     /// PlatformTile IS always exactly one tile thick (Floating surfaces are a single row), so its plank art
     /// has no equivalent stacking concern.
     /// </summary>

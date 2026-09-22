@@ -33,5 +33,8 @@ namespace FarmFuryStampede.Data
         [Tooltip("Optional real art (directional frames). When set, sprites are swapped by state instead of flipped.")]
         public CharacterSpriteSet spriteSet;
         public Color uiColor = Color.white;
+
+        [Tooltip("Optional framed character card (name baked in) shown on Character Select; without it the slot is a uiColor panel with the portrait.")]
+        public Sprite selectCard;
     }
 }

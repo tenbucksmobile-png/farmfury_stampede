@@ -40,16 +40,18 @@ namespace FarmFuryStampede.EditorTools
             b.Gap(3);                         // [30,33)
             b.Flat(85);                       // [33,118)
 
-            b.SecretLedge(24, 5, 6);          // 6 above the ground: the base jump tops out at 3.5
+            b.SecretLedge(24, 5, 4);          // 4 above the ground: out of a single jump's reach, easy with the double jump
 
-            b.Gate(CharacterType.Cluck, "High ledge 6 units up: needs extra height (Cluck's Flutter Jump, or Woolly's Cloud Step).", CharacterType.Woolly);
+            b.Gate(CharacterType.Cluck, "High ledge 4 units up: needs extra height (double jump, Cluck's Flutter Jump, or Woolly's Cloud Step).", CharacterType.Woolly);
             b.Start(0).Goal(112);
+            b.Scout(18, 3).Scout(55, 3).Scout(90, 3);   // robots introduced one type per level: the pink Scout first
+            b.BarrelPyramid(74).Scout(80, 2);             // barrel pyramid to climb over, with a Scout waiting on the landing side
             b.CropRow(6, 12, 2);
             b.CropRow(15, 21, 3);
             GapArc(b, 30, 3, 0);
             b.CropRow(37, 71, 4);
             b.CropRow(76, 106, 5);
-            b.SecretRow(24.5f, 28.5f, 1f, 6.5f);
+            b.SecretRow(24.5f, 28.5f, 1f, 4.5f);
             return b;
         }
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using FarmFuryStampede.Characters;
 using FarmFuryStampede.Core;
 using FarmFuryStampede.Data;
@@ -41,7 +42,9 @@ namespace FarmFuryStampede.EditorTools
         private const string GroundTilePath = SpritesDir + "/GroundTile.asset";
         private const string PlatformTilePath = SpritesDir + "/PlatformTile.asset";
         private const string BreakableTilePath = SpritesDir + "/BreakableTile.asset";
+        private const string GroundSurfaceTileName = "GroundSurfaceTile";
         private const string WaterTilePath = SpritesDir + "/WaterTile.asset";
+        private const string InvisibleTilePath = SpritesDir + "/InvisibleTile.asset";
         private const string OldClusterPrefabPath = PrefabsDir + "/Cluck.prefab";
         private const string PlayerPrefabPath = PrefabsDir + "/Player.prefab";
         private const string CropPrefabPath = PrefabsDir + "/Crop.prefab";
@@ -61,7 +64,24 @@ namespace FarmFuryStampede.EditorTools
         // Real character art lives here (never overwritten by setup; the generated placeholders live in SpritesDir).
         private const string ArtDir = "Assets/_Project/Sprites/Characters";
         private const string RobotArtDir = "Assets/_Project/Sprites/Robots";
-        private const float ArtPixelsPerUnit = 480f;   // 500px frames -> about 1.04 units tall (the collider is 0.95)
+        // Characters and robots share one on-screen size: every 500px art frame (and every 16px placeholder) is
+        // ActorVisualHeight units tall. Visual only - the colliders stay 0.95 (player) / ~1.1 (robots), which the
+        // level layouts are validated against. Ground-standing actors are pivoted at the feet and their Visual
+        // child sits on the collider's bottom edge, so the bigger art grows upwards instead of sinking into the floor.
+        private const float ActorVisualHeight = 1.5f;
+        private const float ArtFramePixels = 500f;
+        private const float ArtPixelsPerUnit = ArtFramePixels / ActorVisualHeight;
+        // Jump frames are spread-wing poses: the canvas is full but the body is much narrower, so at the shared
+        // scale the character looks like it shrinks mid-air. Frames named "*jump*" are drawn this much bigger.
+        private const float JumpFrameScale = 1.25f;
+
+        private const int ObstaclesPerLevel = 2;   // rock / haybale, placed at random (seeded) spots
+        private static readonly Vector2 FeetPivot = new Vector2(0.5f, 0f);
+        private static readonly Vector2 CentrePivot = new Vector2(0.5f, 0.5f);
+        private const float PlayerFeetY = -0.475f;     // bottom of the player's 0.95-tall collider
+        private const float RobotFeetY = -0.5f;        // ground robots spawn 0.5 above the ground (LevelBuilder)
+        private const float BossFeetY = -1.0f;         // the Commander spawns 1.0 above the ground
+        private const string DroneArtFile = "Drone.png"; // flies, so stays centre-pivoted
 
         // Identical for every character by design (GDD/Phase 4 Section 1).
         private const float SharedMoveSpeed = 8f;
@@ -125,32 +145,32 @@ namespace FarmFuryStampede.EditorTools
             // ---- Stage 1: generate assets on disk.
             Sprite square = CreateSprite("Square", SquarePixel);
             Sprite cropSprite = CreateSprite("Crop", CropPixel);
-            Sprite harvesterSprite = CreateSprite("Harvester", HarvesterPixel);
-            Sprite droneSprite = CreateSprite("Drone", DronePixel);
+            Sprite harvesterSprite = CreateActorSprite("Harvester", HarvesterPixel);
+            Sprite droneSprite = CreateActorSprite("Drone", DronePixel, CentrePivot);
             Sprite barrierSprite = CreateSprite("Barrier", BarrierPixel);
-            Sprite scoutSprite = CreateSprite("Scout", ScoutPixel);
-            Sprite chaserSprite = CreateSprite("Chaser", ChaserPixel);
-            Sprite commanderSprite = CreateSprite("Commander", CommanderPixel);
+            Sprite scoutSprite = CreateActorSprite("Scout", ScoutPixel);
+            Sprite chaserSprite = CreateActorSprite("Chaser", ChaserPixel);
+            Sprite commanderSprite = CreateActorSprite("Commander", CommanderPixel);
             Sprite barrierUnitSprite = CreateSprite("BarrierUnit", BarrierUnitPixel);
             Sprite horseshoeSprite = CreateSprite("Horseshoe", HorseshoePixel);
-            CreateSprite("Char_Cluck", Painter(new Color32(255, 225, 90, 255),
+            CreateActorSprite("Char_Cluck", Painter(new Color32(255, 225, 90, 255),
                 F(13, 6, 15, 8, 255, 130, 20), F(5, 13, 8, 14, 220, 40, 40), F(10, 10, 11, 11, 20, 20, 20)));
-            CreateSprite("Char_Bessie", Painter(new Color32(245, 245, 245, 255),
+            CreateActorSprite("Char_Bessie", Painter(new Color32(245, 245, 245, 255),
                 F(3, 3, 5, 5, 30, 30, 30), F(7, 6, 10, 8, 30, 30, 30), F(3, 13, 3, 14, 200, 170, 120), F(11, 13, 11, 14, 200, 170, 120),
                 F(13, 3, 15, 7, 245, 160, 170), F(10, 10, 11, 11, 20, 20, 20)));
-            CreateSprite("Char_Percy", Painter(new Color32(245, 160, 190, 255),
+            CreateActorSprite("Char_Percy", Painter(new Color32(245, 160, 190, 255),
                 F(3, 13, 4, 14, 230, 120, 160), F(9, 13, 10, 14, 230, 120, 160), F(13, 5, 15, 8, 225, 110, 150),
                 F(14, 6, 14, 6, 120, 40, 70), F(14, 8, 14, 8, 120, 40, 70), F(10, 10, 11, 11, 20, 20, 20)));
-            CreateSprite("Char_Woolly", Painter(new Color32(250, 245, 225, 255),
+            CreateActorSprite("Char_Woolly", Painter(new Color32(250, 245, 225, 255),
                 F(0, 3, 0, 9, 250, 245, 225), F(14, 0, 14, 0, 250, 245, 225), F(3, 13, 10, 13, 250, 245, 225), F(9, 4, 13, 11, 70, 55, 55),
                 F(10, 9, 11, 10, 250, 250, 250), F(11, 9, 11, 9, 20, 20, 20)));
-            CreateSprite("Char_Ducky", Painter(new Color32(90, 190, 170, 255),
+            CreateActorSprite("Char_Ducky", Painter(new Color32(90, 190, 170, 255),
                 F(13, 4, 15, 7, 255, 150, 30), F(5, 13, 8, 13, 60, 150, 130), F(3, 3, 8, 6, 70, 165, 145), F(10, 10, 11, 11, 20, 20, 20)));
-            CreateSprite("Char_Horace", Painter(new Color32(150, 100, 55, 255),
+            CreateActorSprite("Char_Horace", Painter(new Color32(150, 100, 55, 255),
                 F(2, 8, 4, 14, 70, 45, 25), F(13, 3, 15, 9, 205, 165, 110), F(8, 13, 9, 14, 120, 80, 40), F(10, 10, 11, 11, 20, 20, 20)));
-            CreateSprite("Char_Gerald", Painter(new Color32(110, 70, 50, 255),
+            CreateActorSprite("Char_Gerald", Painter(new Color32(110, 70, 50, 255),
                 F(0, 8, 2, 14, 70, 45, 35), F(13, 6, 13, 7, 220, 40, 40), F(14, 8, 15, 9, 240, 200, 60), F(10, 10, 11, 11, 20, 20, 20)));
-            CreateSprite("Char_Billy", Painter(new Color32(200, 200, 205, 255),
+            CreateActorSprite("Char_Billy", Painter(new Color32(200, 200, 205, 255),
                 F(4, 13, 5, 15, 240, 230, 200), F(8, 13, 9, 15, 240, 230, 200), F(12, 1, 13, 4, 90, 90, 100), F(10, 10, 11, 11, 20, 20, 20)));
 
             ImportCharacterArt();
@@ -160,16 +180,20 @@ namespace FarmFuryStampede.EditorTools
 
             CreateTile("GroundTile", StampedeProceduralTiles.CreateGroundTileSprite(), Color.white);
             CreateTile("PlatformTile", StampedeProceduralTiles.CreatePlatformTileSprite(), Color.white);
-            Sprite breakableFloorArt = StampedeEnvironmentArt.BreakableFloorArt();
-            if (breakableFloorArt != null)
+            Sprite[] floorArt = StampedeEnvironmentArt.FloorTileArt();
+            int surfaceTileCount = CreateGroundSurfaceTiles(floorArt);
+            if (floorArt.Length > 0)
             {
-                CreateTile("BreakableTile", breakableFloorArt, Color.white);
+                // Same grass-topped block as the surface around it, tinted a dry, cracked-looking orange-brown so
+                // Bessie's Ground Pound spots still read as different from the solid ground next to them.
+                CreateTile("BreakableTile", floorArt[0], BreakableFloorTint, FloorTileTransform(floorArt[0]));
             }
             else
             {
                 CreateTile("BreakableTile", barrierSprite, new Color(0.85f, 0.6f, 0.4f));
             }
             CreateTile("WaterTile", square, new Color(0.25f, 0.5f, 0.95f, 0.6f));
+            CreateTile("InvisibleTile", null, Color.white);   // collision only; art is drawn separately (stone ledges)
 
             BuildCloudPrefab(square, groundLayer);
             BuildHorseshoePrefab(horseshoeSprite);
@@ -203,9 +227,17 @@ namespace FarmFuryStampede.EditorTools
                 groundTile = AssetDatabase.LoadAssetAtPath<Tile>(GroundTilePath),
                 platformTile = AssetDatabase.LoadAssetAtPath<Tile>(PlatformTilePath),
                 breakableTile = AssetDatabase.LoadAssetAtPath<Tile>(BreakableTilePath),
+                groundSurfaceTiles = Enumerable.Range(0, surfaceTileCount)
+                    .Select(i => AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{GroundSurfaceTileName}_{i}.asset"))
+                    .ToArray(),
                 waterTile = AssetDatabase.LoadAssetAtPath<Tile>(WaterTilePath),
                 groundLayer = groundLayer,
-                chamberBackdrop = StampedeUIArt.ChamberBackdrop()
+                chamberBackdrop = StampedeUIArt.ChamberBackdrop(),
+                obstacleSprites = StampedeUIArt.Obstacles(),
+                barrelSprite = StampedeUIArt.Barrel(),
+                ledgeSprite = StampedeUIArt.LedgeStone(),
+                invisibleTile = AssetDatabase.LoadAssetAtPath<Tile>(InvisibleTilePath),
+                obstaclesPerLevel = ObstaclesPerLevel
             };
 
             var harvesterRobot = AssetDatabase.LoadAssetAtPath<GameObject>(HarvesterPrefabPath);
@@ -456,7 +488,12 @@ namespace FarmFuryStampede.EditorTools
             return BarrierPixel(x, y, size);
         }
 
-        private static Sprite CreateSprite(string spriteName, Func<int, int, int, Color32> pixel)
+        // Character/robot placeholder: same on-screen size and pivot as the real art it stands in for.
+        private static Sprite CreateActorSprite(string spriteName, Func<int, int, int, Color32> pixel, Vector2? pivot = null) =>
+            CreateSprite(spriteName, pixel, ActorVisualHeight, pivot ?? FeetPivot);
+
+        private static Sprite CreateSprite(string spriteName, Func<int, int, int, Color32> pixel,
+            float worldSize = 1f, Vector2? pivot = null)
         {
             const int size = 16;
             string path = $"{SpritesDir}/{spriteName}.png";
@@ -479,7 +516,8 @@ namespace FarmFuryStampede.EditorTools
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
-            importer.spritePixelsPerUnit = size; // every placeholder is exactly 1 world unit
+            importer.spritePixelsPerUnit = size / worldSize; // 1 world unit unless it's an actor placeholder
+            StampedeUIArt.SetPivot(importer, pivot ?? CentrePivot);
             importer.filterMode = FilterMode.Point;
             importer.mipmapEnabled = false;
             importer.alphaIsTransparency = true;
@@ -489,7 +527,28 @@ namespace FarmFuryStampede.EditorTools
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
-        private static void CreateTile(string tileName, Sprite sprite, Color color)
+        private static readonly Color BreakableFloorTint = new Color(1f, 0.7f, 0.5f);
+
+        // Stretches a floor variant so its dirt body fills the cell exactly; the grass overhangs the cell above.
+        private static Matrix4x4 FloorTileTransform(Sprite variant) =>
+            Matrix4x4.Scale(new Vector3(1f, StampedeEnvironmentArt.FloorTileScaleY(variant), 1f));
+
+        // One tile per grass-topped floor variant (GroundSurfaceTile_0..n-1); stale extras from earlier art are removed.
+        private static int CreateGroundSurfaceTiles(Sprite[] floorArt)
+        {
+            for (int i = floorArt.Length; AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{GroundSurfaceTileName}_{i}.asset") != null; i++)
+            {
+                AssetDatabase.DeleteAsset($"{SpritesDir}/{GroundSurfaceTileName}_{i}.asset");
+            }
+
+            for (int i = 0; i < floorArt.Length; i++)
+            {
+                CreateTile($"{GroundSurfaceTileName}_{i}", floorArt[i], Color.white, FloorTileTransform(floorArt[i]));
+            }
+            return floorArt.Length;
+        }
+
+        private static void CreateTile(string tileName, Sprite sprite, Color color, Matrix4x4? transform = null)
         {
             string path = $"{SpritesDir}/{tileName}.asset";
             var tile = AssetDatabase.LoadAssetAtPath<Tile>(path);
@@ -502,6 +561,8 @@ namespace FarmFuryStampede.EditorTools
             tile.sprite = sprite;
             tile.color = color;
             tile.colliderType = Tile.ColliderType.Grid;
+            tile.transform = transform ?? Matrix4x4.identity;
+            tile.flags = TileFlags.LockColor | TileFlags.LockTransform;
             EditorUtility.SetDirty(tile);
         }
 
@@ -521,6 +582,7 @@ namespace FarmFuryStampede.EditorTools
 
             var visualObject = new GameObject("Visual") { layer = playerLayer };
             visualObject.transform.SetParent(root.transform, false);
+            visualObject.transform.localPosition = new Vector3(0f, PlayerFeetY, 0f);
             var renderer = visualObject.AddComponent<SpriteRenderer>();
             renderer.sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{SpritesDir}/Char_Cluck.png");
             renderer.sortingOrder = 10;
@@ -643,6 +705,10 @@ namespace FarmFuryStampede.EditorTools
             var renderer = visualObject.AddComponent<SpriteRenderer>();
             renderer.sprite = art.right != null ? art.right : sprite;
             renderer.sortingOrder = 8;
+            if (type != RobotType.Drone)
+            {
+                visualObject.transform.localPosition = new Vector3(0f, bossSize ? BossFeetY : RobotFeetY, 0f);
+            }
             if (bossSize)
             {
                 visualObject.transform.localScale = new Vector3(2f, 2f, 1f);
@@ -837,6 +903,7 @@ namespace FarmFuryStampede.EditorTools
             data.moveSpeed = SharedMoveSpeed;
             data.jumpHeight = SharedJumpHeight;
             data.uiColor = spec.ui;
+            data.selectCard = StampedeUIArt.CharacterCard(spec.type);
             data.placeholderSprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{SpritesDir}/Char_{spec.type}.png");
 
             // Real art overrides the generated placeholder (portraits use the idle frame).
@@ -887,8 +954,9 @@ namespace FarmFuryStampede.EditorTools
                     var importer = (TextureImporter)AssetImporter.GetAtPath(path);
                     importer.textureType = TextureImporterType.Sprite;
                     importer.spriteImportMode = SpriteImportMode.Single;
-                    importer.spritePixelsPerUnit = ArtPixelsPerUnit;
-                    importer.spritePivot = new Vector2(0.5f, 0.5f);
+                    bool jumpFrame = file.IndexOf("jump", StringComparison.OrdinalIgnoreCase) >= 0;
+                    importer.spritePixelsPerUnit = jumpFrame ? ArtPixelsPerUnit / JumpFrameScale : ArtPixelsPerUnit;
+                    StampedeUIArt.SetPivot(importer, FeetPivot);
                     importer.filterMode = FilterMode.Bilinear;
                     importer.mipmapEnabled = false;
                     importer.alphaIsTransparency = true;
@@ -909,7 +977,7 @@ namespace FarmFuryStampede.EditorTools
                 importer.textureType = TextureImporterType.Sprite;
                 importer.spriteImportMode = SpriteImportMode.Single;
                 importer.spritePixelsPerUnit = ArtPixelsPerUnit;
-                importer.spritePivot = new Vector2(0.5f, 0.5f);
+                StampedeUIArt.SetPivot(importer, Path.GetFileName(assetPath) == DroneArtFile ? CentrePivot : FeetPivot);
                 importer.filterMode = FilterMode.Bilinear;
                 importer.mipmapEnabled = false;
                 importer.alphaIsTransparency = true;

@@ -1,7 +1,9 @@
 using System.IO;
+using System.Linq;
 using FarmFuryStampede.LevelSystem;
 using UnityEditor;
 using UnityEditor.SceneManagement;
+using UnityEditor.U2D.Sprites;
 using UnityEngine;
 
 namespace FarmFuryStampede.EditorTools
@@ -19,10 +21,16 @@ namespace FarmFuryStampede.EditorTools
         private const float ArtPixelsPerUnit = 200f;
         private const float BaseY = 3f;
 
-        // Cracked dirt with grass tufts and jagged broken edges - its own border reads as "about to give way",
-        // which is why it's used for the BreakableFloor tile rather than the main (seamless) GroundTile.
-        private const string BreakableFloorFile = "FloorTile.png";
-        private const float BreakableFloorPixelsPerUnit = 411f; // native width -> 1 tile = 1 world unit
+        // A 456x184 strip of three grass-topped dirt blocks (152px wide each). Sliced into three variants that
+        // LevelBuilder puts on every exposed top cell of the ground; the procedural GroundTile fills below.
+        // Each block's dirt body (the bottom FloorDirtPixels rows) is stretched to exactly one cell and the
+        // grass (the rows above it) overhangs into the empty cell above - visual only, the tiles use Grid colliders.
+        private const string FloorTileFile = "FloorTile.png";
+        private const int FloorVariants = 3;
+        private const int FloorDirtPixels = 126;
+
+        /// <summary>Tile transform Y scale that stretches a floor variant's dirt body to exactly one cell tall.</summary>
+        public static float FloorTileScaleY(Sprite variant) => variant.rect.width / Mathf.Min(FloorDirtPixels, variant.rect.height);
 
         // Far -> near. DistantBarn.png is intentionally excluded: its softer painterly style doesn't match
         // Layer1-3's flat-cartoon look yet - drop it in here once it's regenerated to match.
@@ -95,27 +103,66 @@ namespace FarmFuryStampede.EditorTools
                 importer.SaveAndReimport();
             }
 
-            string breakablePath = $"{EnvironmentDir}/{BreakableFloorFile}";
-            if (File.Exists(breakablePath))
-            {
-                AssetDatabase.ImportAsset(breakablePath, ImportAssetOptions.ForceSynchronousImport);
-                var importer = (TextureImporter)AssetImporter.GetAtPath(breakablePath);
-                importer.textureType = TextureImporterType.Sprite;
-                importer.spriteImportMode = SpriteImportMode.Single;
-                importer.spritePixelsPerUnit = BreakableFloorPixelsPerUnit;
-                importer.spritePivot = new Vector2(0.5f, 0.5f);
-                importer.filterMode = FilterMode.Bilinear;
-                importer.mipmapEnabled = false;
-                importer.alphaIsTransparency = true; // jagged broken edges - the corners are transparent
-                importer.SaveAndReimport();
-            }
-            else
-            {
-                Debug.LogWarning($"[EnvironmentArt] Missing art file {breakablePath}; BreakableTile falls back to its placeholder.");
-            }
+            ImportFloorTileArt();
         }
 
-        public static Sprite BreakableFloorArt() => AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/{BreakableFloorFile}");
+        // Slices FloorTile.png into FloorVariants equal-width sprites, each pivoted on the centre of its dirt body.
+        private static void ImportFloorTileArt()
+        {
+            string path = $"{EnvironmentDir}/{FloorTileFile}";
+            if (!File.Exists(path))
+            {
+                Debug.LogWarning($"[EnvironmentArt] Missing art file {path}; the ground surface falls back to the procedural GroundTile.");
+                return;
+            }
+
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.GetSourceTextureWidthAndHeight(out int width, out int height);
+            int sliceWidth = width / FloorVariants;
+            int dirt = Mathf.Min(FloorDirtPixels, height);
+
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Multiple;
+            importer.spritePixelsPerUnit = sliceWidth; // one block = one cell wide
+            importer.filterMode = FilterMode.Bilinear;
+            importer.mipmapEnabled = false;
+            importer.alphaIsTransparency = true;
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.SaveAndReimport();
+
+            var factory = new SpriteDataProviderFactories();
+            factory.Init();
+            var provider = factory.GetSpriteEditorDataProviderFromObject(importer);
+            provider.InitSpriteEditorDataProvider();
+            var existing = provider.GetSpriteRects();
+
+            var rects = new SpriteRect[FloorVariants];
+            for (int i = 0; i < FloorVariants; i++)
+            {
+                string spriteName = $"FloorTile_{i}";
+                var previous = System.Array.Find(existing, r => r.name == spriteName);
+                rects[i] = new SpriteRect
+                {
+                    name = spriteName,
+                    rect = new Rect(i * sliceWidth, 0, sliceWidth, height),
+                    alignment = SpriteAlignment.Custom,
+                    pivot = new Vector2(0.5f, dirt * 0.5f / height),
+                    spriteID = previous != null ? previous.spriteID : GUID.Generate(),
+                };
+            }
+            provider.SetSpriteRects(rects);
+            var nameIds = provider.GetDataProvider<ISpriteNameFileIdDataProvider>();
+            nameIds?.SetNameFileIdPairs(rects.Select(r => new SpriteNameFileIdPair(r.name, r.spriteID)));
+            provider.Apply();
+            importer.SaveAndReimport();
+        }
+
+        /// <summary>The sliced grass-topped floor variants, in left-to-right order; empty if the art is missing.</summary>
+        public static Sprite[] FloorTileArt() => AssetDatabase.LoadAllAssetsAtPath($"{EnvironmentDir}/{FloorTileFile}")
+            .OfType<Sprite>()
+            .OrderBy(s => s.name)
+            .ToArray();
 
         /// <summary>
         /// (Re)builds the "Background" child under <paramref name="root"/> with one ParallaxLayer per
