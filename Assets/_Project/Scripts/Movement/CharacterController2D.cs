@@ -93,6 +93,7 @@ namespace FarmFuryStampede.Movement
         public int UsesPerLevel { get; private set; }
 
         public bool IsGrounded => _grounded;
+        public LayerMask GroundMask => groundMask;
         /// <summary>Seconds since the character last stood on the ground (0 while grounded).</summary>
         public float AirTime { get; private set; }
         public bool IsInvulnerable => Time.time < _invulnerableUntil;

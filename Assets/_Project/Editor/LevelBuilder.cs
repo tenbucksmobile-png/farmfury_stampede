@@ -29,6 +29,11 @@ namespace FarmFuryStampede.EditorTools
         public Sprite ledgeSprite;
         /// <summary>Collision-only tile (no sprite) under the stone ledge slabs.</summary>
         public Tile invisibleTile;
+        /// <summary>Which obstacle art gets a barn behind it (see PlaceScenery).</summary>
+        public Sprite haybaleSprite;
+        /// <summary>Background scenery (no collider): a barn behind each haybale, a windmill behind each barrel pyramid.</summary>
+        public Sprite barnSprite;
+        public Sprite windmillSprite;
         /// <summary>Art for BarrelPyramid() barrels (feet-pivoted); null skips the pyramids' art but keeps them solid.</summary>
         public Sprite barrelSprite;
     }
@@ -305,8 +310,8 @@ namespace FarmFuryStampede.EditorTools
         }
 
         /// <summary>
-        /// Three-barrel pyramid centred at x on flat ground: two barrels side by side with one on top, 6.0 units high.
-        /// Each base barrel sticks out a half-barrel past the top one, so it climbs in two 3.0 steps (each inside the
+        /// Three-barrel pyramid centred at x on flat ground: two barrels side by side with one on top, 4.5 units high.
+        /// Each base barrel sticks out a half-barrel past the top one, so it climbs in two 2.25 steps (each inside the
         /// base jump's 3.5 apex), or one double jump. Ground corn under it is cleared and one corn sits on the top barrel.
         /// </summary>
         public LevelBuilder BarrelPyramid(float x)
@@ -637,7 +642,8 @@ namespace FarmFuryStampede.EditorTools
             PaintSurface(ground, assets);
             Finish(ground);
             BuildBarrelPyramids(root.transform, assets);
-            PlaceObstacles(root.transform, assets);
+            var haybales = PlaceObstacles(root.transform, assets);
+            PlaceScenery(root.transform, assets, haybales);
             Finish(platforms);
 
             if (_breakables.Count > 0)
@@ -771,8 +777,8 @@ namespace FarmFuryStampede.EditorTools
 
         // ------------------------------------------------------------ obstacles
 
-        private const float ObstacleWidth = 2.8f;
-        private const float ObstacleHeight = 2.6f;   // under the base jump's 3.5 apex; a big step, not a wall
+        private const float ObstacleWidth = 2.1f;
+        private const float ObstacleHeight = 1.95f;  // under the base jump's 3.5 apex; a step, not a wall
         private const float ObstacleSpacing = 10f;
         private const float ObstacleLiftRange = ObstacleWidth * 0.5f + 0.4f; // corn this close to an obstacle's centre sits on top of it
 
@@ -781,11 +787,13 @@ namespace FarmFuryStampede.EditorTools
         // at least 2 units either side (never at a gap's take-off or landing), clear of the start/goal/checkpoints,
         // robot patrols, breakable floors, water, low platforms and the secret areas. Corn resting on the ground
         // where an obstacle lands is lifted to sit on top of it.
-        private void PlaceObstacles(Transform root, LevelAssets assets)
+        // Returns the ground position of every haybale placed (PlaceScenery puts a barn behind each).
+        private List<Vector2> PlaceObstacles(Transform root, LevelAssets assets)
         {
+            var haybales = new List<Vector2>();
             if (IsBoss || assets.obstaclesPerLevel <= 0 || assets.obstacleSprites == null || assets.obstacleSprites.Length == 0)
             {
-                return;
+                return haybales;
             }
 
             var candidates = new List<(float x, int top)>();
@@ -825,6 +833,10 @@ namespace FarmFuryStampede.EditorTools
                 var renderer = obstacle.AddComponent<SpriteRenderer>();
                 renderer.sprite = art;
                 renderer.sortingOrder = 3; // in front of the ground tiles, behind robots (8) and the player (10)
+                if (art == assets.haybaleSprite)
+                {
+                    haybales.Add(new Vector2(x, top));
+                }
 
                 for (int i = 0; i < _crops.Count; i++)
                 {
@@ -836,10 +848,58 @@ namespace FarmFuryStampede.EditorTools
                     }
                 }
             }
+            return haybales;
         }
 
-        private const float BarrelWidth = 2.2f;
-        private const float BarrelHeight = 3.0f;
+        // Background scenery: purely visual (no collider), so the player runs straight past it. A damaged barn
+        // stands behind each haybale (the bale at its front corner) and a windmill behind each barrel pyramid,
+        // leaning left or right by a seeded coin flip. Drawn behind the ground tiles so the grass covers the base,
+        // and slightly dimmed so the gameplay layer in front reads first. A piece that would overlap scenery
+        // already placed tries the other side, then is skipped.
+        private const float BarnOffset = 2.4f;
+        private const float WindmillOffset = 3.2f;
+        private static readonly Color SceneryTint = new Color(0.86f, 0.86f, 0.9f);
+
+        private void PlaceScenery(Transform root, LevelAssets assets, List<Vector2> haybales)
+        {
+            var random = new System.Random(StableSeed(Id) ^ 0x5CE9E);
+            var placed = new List<(float x, float halfWidth)>();
+
+            void Place(Sprite art, Vector2 anchor, float offset, string label)
+            {
+                if (art == null) { return; }
+                float half = art.bounds.size.x * 0.5f;
+                int first = random.Next(2) == 0 ? -1 : 1;
+                foreach (int side in new[] { first, -first })
+                {
+                    float x = anchor.x + side * offset;
+                    int top = (int)anchor.y;
+                    bool grounded = true;
+                    for (float dx = -half * 0.7f; dx <= half * 0.7f; dx += 0.5f)
+                    {
+                        if (GroundTopAt(x + dx, out bool found) != top || !found) { grounded = false; break; }
+                    }
+                    if (!grounded) { continue; }   // never hang a building out over a gap or a step
+                    if (placed.Any(p => Mathf.Abs(p.x - x) < p.halfWidth + half)) { continue; }
+
+                    var go = new GameObject($"Scenery_{label}_{placed.Count + 1}");
+                    go.transform.SetParent(root, false);
+                    go.transform.position = new Vector3(x, top, 0f);
+                    var renderer = go.AddComponent<SpriteRenderer>();
+                    renderer.sprite = art;
+                    renderer.color = SceneryTint;
+                    renderer.sortingOrder = -5; // in front of the parallax (-30..-10), behind the ground tiles (0)
+                    placed.Add((x, half));
+                    return;
+                }
+            }
+
+            foreach (var p in _pyramids) { Place(assets.windmillSprite, p, WindmillOffset, "Windmill"); }
+            foreach (var h in haybales) { Place(assets.barnSprite, h, BarnOffset, "Barn"); }
+        }
+
+        private const float BarrelWidth = 1.65f;
+        private const float BarrelHeight = 2.25f;
 
         private void BuildBarrelPyramids(Transform root, LevelAssets assets)
         {

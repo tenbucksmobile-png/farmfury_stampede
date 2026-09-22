@@ -58,11 +58,11 @@ namespace FarmFuryStampede.EditorTools
 
         // Ground obstacles (LevelBuilder.PlaceObstacles). Pivot y = where the art meets the ground (the rock has
         // transparent padding below it, the bale's straw skirt reaches almost to the bottom); pixels-per-unit set
-        // so each is about the height of the 1.5-unit characters (rock ~1.4, bale ~1.5 including loose straw).
+        // so the rock is ~2.1 and the bale ~2.25 (including loose straw) tall, matching the 2.1x1.95 collider.
         private static readonly (string file, float pivotY, float pixelsPerUnit)[] ObstacleFiles =
         {
-            ("Rock.png", 0.15f, 125.5f),
-            ("Haybail.png", 0.04f, 139.5f),
+            ("Rock.png", 0.15f, 167.3f),
+            ("Haybail.png", 0.04f, 186f),
         };
 
         /// <summary>Imports every file this class uses, with settings matched to how it's used. Idempotent; missing files warn and are skipped.</summary>
@@ -86,6 +86,15 @@ namespace FarmFuryStampede.EditorTools
 
             ImportCentered(LedgeFile, 253f); // 253px tall -> 1 unit, one tile
 
+            foreach (var (file, pivotY, pixelsPerUnit) in SceneryFiles)
+            {
+                var importer = BeginImport(file);
+                if (importer == null) { continue; }
+                importer.spritePixelsPerUnit = pixelsPerUnit;
+                SetPivot(importer, new Vector2(0.5f, pivotY));
+                FinishImport(importer);
+            }
+
             var barrelImporter = BeginImport(BarrelFile);
             if (barrelImporter != null)
             {
@@ -95,13 +104,24 @@ namespace FarmFuryStampede.EditorTools
             }
         }
 
-        // Barrel for LevelBuilder.BarrelPyramid: 420px of barrel -> 1.55 units tall on a 1.5-tall collider, so each
+        // Barrel for LevelBuilder.BarrelPyramid: 420px of barrel -> 2.3 units tall on a 2.25-tall collider, so each
         // barrel's lid tucks slightly under the one stacked on it. Pivot y = the barrel's base (34px of padding).
         private const string BarrelFile = "Wooden Barrel.png";
-        private const float BarrelPixelsPerUnit = 135.5f;
+        private const float BarrelPixelsPerUnit = 180.7f;
         private const float BarrelPivotY = 0.068f;
 
         public static Sprite Barrel() => Load(BarrelFile);
+        public static Sprite Haybale() => Load("Haybail.png");
+
+        // Background scenery (no collider) set behind obstacles by LevelBuilder.PlaceScenery. Pivot y = where the
+        // building meets the ground (the barn has debris/straw drawn in front of its base, which the grass covers).
+        private static readonly (string file, float pivotY, float pixelsPerUnit)[] SceneryFiles =
+        {
+            ("DamagedBarn.png", 0.12f, 119f),   // 500px -> ~4.2 units tall
+            ("Windmill.png", 0.02f, 78.5f),     // 432px -> ~5.5 units tall
+        };
+        public static Sprite Barn() => Load("DamagedBarn.png");
+        public static Sprite Windmill() => Load("Windmill.png");
 
         // Slab art for SecretLedge platforms (LevelBuilder.AddStoneSlabs rescales each slab to its slot).
         private const string LedgeFile = "Stone_Block.png";

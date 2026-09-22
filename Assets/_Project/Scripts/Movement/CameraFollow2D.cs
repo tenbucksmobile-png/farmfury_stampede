@@ -1,10 +1,12 @@
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 namespace FarmFuryStampede.Movement
 {
     /// <summary>
     /// Simple follow camera: tracks the target's X with a smoothed look-ahead in the direction of
-    /// travel; Y only moves when the target leaves a vertical dead zone. Runs in LateUpdate against the
+    /// travel; Y only moves when the target leaves a vertical dead zone, and never so high that the level floor
+    /// under the target (tilemap ground, not obstacles) drops out of the bottom of the view. Runs in LateUpdate against the
     /// target's interpolated transform, so it stays smooth even though physics steps at a fixed rate.
     /// </summary>
     [RequireComponent(typeof(Camera))]
@@ -24,6 +26,10 @@ namespace FarmFuryStampede.Movement
         [Tooltip("How far above the target the camera centres, so more of the path above is visible.")]
         [SerializeField] private float verticalOffset = 2.5f;
         [SerializeField] private float ySmoothTime = 0.25f;
+        [Tooltip("The level floor under the target (ignoring obstacles) stays at least this far above the bottom edge.")]
+        [SerializeField] private float floorMargin = 2f;
+        [Tooltip("How far below the target to look for the level floor.")]
+        [SerializeField] private float floorSearchDistance = 12f;
 
         [Header("Level Bounds (X)")]
         [SerializeField] private bool useXBounds;
@@ -78,7 +84,7 @@ namespace FarmFuryStampede.Movement
             _yVelocity = 0f;
             Vector3 p = transform.position;
             p.x = ClampX(target.position.x);
-            p.y = _focusY + verticalOffset;
+            p.y = ClampToFloor(_focusY + verticalOffset, target.position);
             transform.position = p;
         }
 
@@ -110,8 +116,28 @@ namespace FarmFuryStampede.Movement
 
             Vector3 p = transform.position;
             p.x = Mathf.SmoothDamp(p.x, ClampX(targetPos.x + _lookAhead), ref _xVelocity, xSmoothTime);
-            p.y = Mathf.SmoothDamp(p.y, _focusY + verticalOffset, ref _yVelocity, ySmoothTime);
+            p.y = Mathf.SmoothDamp(p.y, ClampToFloor(_focusY + verticalOffset, targetPos), ref _yVelocity, ySmoothTime);
             transform.position = p;
+        }
+
+        // Caps the camera height so the first tilemap surface below the target (ground, platform, ledge - but
+        // not rock/haybale/barrel obstacles, which are plain colliders) stays in view. Over a pit, no cap.
+        private float ClampToFloor(float desiredY, Vector3 targetPos)
+        {
+            if (controller == null)
+            {
+                return desiredY;
+            }
+
+            var hits = Physics2D.RaycastAll(targetPos, Vector2.down, floorSearchDistance, controller.GroundMask);
+            foreach (var hit in hits)
+            {
+                if (hit.collider.GetComponent<Tilemap>() != null)
+                {
+                    return Mathf.Min(desiredY, hit.point.y + _camera.orthographicSize - floorMargin);
+                }
+            }
+            return desiredY;
         }
 
         private float ClampX(float x)

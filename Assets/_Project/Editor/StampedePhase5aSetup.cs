@@ -235,6 +235,9 @@ namespace FarmFuryStampede.EditorTools
                 chamberBackdrop = StampedeUIArt.ChamberBackdrop(),
                 obstacleSprites = StampedeUIArt.Obstacles(),
                 barrelSprite = StampedeUIArt.Barrel(),
+                haybaleSprite = StampedeUIArt.Haybale(),
+                barnSprite = StampedeUIArt.Barn(),
+                windmillSprite = StampedeUIArt.Windmill(),
                 ledgeSprite = StampedeUIArt.LedgeStone(),
                 invisibleTile = AssetDatabase.LoadAssetAtPath<Tile>(InvisibleTilePath),
                 obstaclesPerLevel = ObstaclesPerLevel
@@ -1221,7 +1224,7 @@ namespace FarmFuryStampede.EditorTools
             }
 
             camera.orthographic = true;
-            camera.orthographicSize = 6f;
+            camera.orthographicSize = 7.5f; // zoomed out so the ground and nearby robots stay in view from obstacle tops
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(0.53f, 0.78f, 0.95f);
             camera.transform.position = new Vector3(0f, 3f, -10f);
