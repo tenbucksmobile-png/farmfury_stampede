@@ -155,10 +155,20 @@ namespace FarmFuryStampede.EditorTools
 
             ImportCharacterArt();
             ImportRobotArt();
+            StampedeEnvironmentArt.ImportBackgroundArt();
+            StampedeUIArt.ImportUIArt();
 
-            CreateTile("GroundTile", square, new Color(0.45f, 0.62f, 0.28f));
-            CreateTile("PlatformTile", square, new Color(0.72f, 0.55f, 0.32f));
-            CreateTile("BreakableTile", barrierSprite, new Color(0.85f, 0.6f, 0.4f));
+            CreateTile("GroundTile", StampedeProceduralTiles.CreateGroundTileSprite(), Color.white);
+            CreateTile("PlatformTile", StampedeProceduralTiles.CreatePlatformTileSprite(), Color.white);
+            Sprite breakableFloorArt = StampedeEnvironmentArt.BreakableFloorArt();
+            if (breakableFloorArt != null)
+            {
+                CreateTile("BreakableTile", breakableFloorArt, Color.white);
+            }
+            else
+            {
+                CreateTile("BreakableTile", barrierSprite, new Color(0.85f, 0.6f, 0.4f));
+            }
             CreateTile("WaterTile", square, new Color(0.25f, 0.5f, 0.95f, 0.6f));
 
             BuildCloudPrefab(square, groundLayer);
@@ -194,7 +204,8 @@ namespace FarmFuryStampede.EditorTools
                 platformTile = AssetDatabase.LoadAssetAtPath<Tile>(PlatformTilePath),
                 breakableTile = AssetDatabase.LoadAssetAtPath<Tile>(BreakableTilePath),
                 waterTile = AssetDatabase.LoadAssetAtPath<Tile>(WaterTilePath),
-                groundLayer = groundLayer
+                groundLayer = groundLayer,
+                chamberBackdrop = StampedeUIArt.ChamberBackdrop()
             };
 
             var harvesterRobot = AssetDatabase.LoadAssetAtPath<GameObject>(HarvesterPrefabPath);
@@ -598,9 +609,23 @@ namespace FarmFuryStampede.EditorTools
             circle.radius = 0.4f;
 
             AddPooled(root, "Crop");
-            root.AddComponent<CropPickup>();
+            var crop = root.AddComponent<CropPickup>();
+            var so = new SerializedObject(crop);
+            so.FindProperty("visual").objectReferenceValue = renderer;
+            AssignSpriteArray(so.FindProperty("normalSprites"), StampedeUIArt.NormalCrops());
+            AssignSpriteArray(so.FindProperty("secretSprites"), StampedeUIArt.SecretCrops());
+            so.ApplyModifiedPropertiesWithoutUndo();
 
             SavePrefab(root, CropPrefabPath);
+        }
+
+        private static void AssignSpriteArray(SerializedProperty arrayProperty, Sprite[] sprites)
+        {
+            arrayProperty.arraySize = sprites.Length;
+            for (int i = 0; i < sprites.Length; i++)
+            {
+                arrayProperty.GetArrayElementAtIndex(i).objectReferenceValue = sprites[i];
+            }
         }
 
         private static void BuildRobotPrefab<T>(string prefabName, RobotType type, Sprite sprite, string path, bool bossSize = false,
@@ -707,13 +732,26 @@ namespace FarmFuryStampede.EditorTools
             trigger.size = new Vector2(1.2f, 4f);
             trigger.offset = new Vector2(0f, 2f);
 
-            AddVisual(root.transform, "Pole", square, new Color(0.85f, 0.85f, 0.85f), new Vector3(0f, 1.5f, 0f), new Vector3(0.12f, 3f, 1f), 3);
-            var flag = AddVisual(root.transform, "Flag", square, Color.gray, new Vector3(0.45f, 2.6f, 0f), new Vector3(0.8f, 0.5f, 1f), 3);
+            Sprite idle = StampedeUIArt.CheckpointIdle();
+            Sprite active = StampedeUIArt.CheckpointActive();
+            SpriteRenderer flag;
+            if (idle != null)
+            {
+                // Real art is a complete signpost (pole + flag) with a bottom-centre pivot, so it drops straight onto the marker.
+                flag = AddVisual(root.transform, "Flag", idle, Color.white, Vector3.zero, Vector3.one, 3);
+            }
+            else
+            {
+                AddVisual(root.transform, "Pole", square, new Color(0.85f, 0.85f, 0.85f), new Vector3(0f, 1.5f, 0f), new Vector3(0.12f, 3f, 1f), 3);
+                flag = AddVisual(root.transform, "Flag", square, Color.gray, new Vector3(0.45f, 2.6f, 0f), new Vector3(0.8f, 0.5f, 1f), 3);
+            }
 
             AddPooled(root, "Checkpoint");
             var checkpoint = root.AddComponent<Checkpoint>();
             var so = new SerializedObject(checkpoint);
             so.FindProperty("flag").objectReferenceValue = flag;
+            so.FindProperty("inactiveSprite").objectReferenceValue = idle;
+            so.FindProperty("activeSprite").objectReferenceValue = active;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             SavePrefab(root, CheckpointPrefabPath);
@@ -728,8 +766,17 @@ namespace FarmFuryStampede.EditorTools
             trigger.size = new Vector2(1.5f, 10f);
             trigger.offset = new Vector2(0f, 4f);
 
-            AddVisual(root.transform, "Pole", square, new Color(0.9f, 0.9f, 0.9f), new Vector3(0f, 2.5f, 0f), new Vector3(0.15f, 5f, 1f), 2);
-            AddVisual(root.transform, "Flag", square, new Color(1f, 0.85f, 0.2f), new Vector3(0.5f, 4.4f, 0f), new Vector3(0.9f, 0.6f, 1f), 2);
+            Sprite goal = StampedeUIArt.GoalFlag();
+            if (goal != null)
+            {
+                // Real art is a complete pole + checkered flag with a bottom-centre pivot; drops straight onto the marker.
+                AddVisual(root.transform, "Flag", goal, Color.white, Vector3.zero, Vector3.one, 2);
+            }
+            else
+            {
+                AddVisual(root.transform, "Pole", square, new Color(0.9f, 0.9f, 0.9f), new Vector3(0f, 2.5f, 0f), new Vector3(0.15f, 5f, 1f), 2);
+                AddVisual(root.transform, "Flag", square, new Color(1f, 0.85f, 0.2f), new Vector3(0.5f, 4.4f, 0f), new Vector3(0.9f, 0.6f, 1f), 2);
+            }
 
             AddPooled(root, "Goal");
             root.AddComponent<LevelGoal>();
@@ -1017,6 +1064,7 @@ namespace FarmFuryStampede.EditorTools
             var controller = player.GetComponent<CharacterController2D>();
 
             CameraFollow2D follow = SetUpCamera(player.transform, controller);
+            var background = StampedeEnvironmentArt.BuildBackground(root.transform, follow.GetComponent<Camera>());
 
             var loaderObject = new GameObject("LevelLoader");
             loaderObject.transform.SetParent(root.transform, false);
@@ -1025,6 +1073,7 @@ namespace FarmFuryStampede.EditorTools
             loaderSo.FindProperty("levelContainer").objectReferenceValue = container.transform;
             loaderSo.FindProperty("player").objectReferenceValue = controller;
             loaderSo.FindProperty("cameraFollow").objectReferenceValue = follow;
+            loaderSo.FindProperty("background").objectReferenceValue = background;
             loaderSo.FindProperty("cropPrefab").objectReferenceValue = cropPrefab;
             loaderSo.FindProperty("checkpointPrefab").objectReferenceValue = checkpointPrefab;
             loaderSo.FindProperty("goalPrefab").objectReferenceValue = goalPrefab;

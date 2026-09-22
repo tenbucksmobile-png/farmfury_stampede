@@ -14,6 +14,9 @@ namespace FarmFuryStampede.LevelSystem
     public class Checkpoint : MonoBehaviour
     {
         [SerializeField] private SpriteRenderer flag;
+        [Tooltip("Real art swap for the idle/active states; if either is unassigned, falls back to tinting the placeholder square.")]
+        [SerializeField] private Sprite inactiveSprite;
+        [SerializeField] private Sprite activeSprite;
         [SerializeField] private Color inactiveColor = new Color(0.6f, 0.6f, 0.6f);
         [SerializeField] private Color activeColor = new Color(0.3f, 0.9f, 0.35f);
         [Tooltip("Height above the pole base where the player reappears.")]
@@ -24,10 +27,7 @@ namespace FarmFuryStampede.LevelSystem
         private void OnEnable()
         {
             _active = false;
-            if (flag != null)
-            {
-                flag.color = inactiveColor;
-            }
+            SetFlagState(inactiveSprite, inactiveColor);
         }
 
         private void OnTriggerEnter2D(Collider2D other)
@@ -40,14 +40,29 @@ namespace FarmFuryStampede.LevelSystem
             }
 
             _active = true;
-            if (flag != null)
-            {
-                flag.color = activeColor;
-            }
+            SetFlagState(activeSprite, activeColor);
 
             Vector2 respawn = (Vector2)transform.position + Vector2.up * respawnHeight;
             gm.RunState.SetCheckpoint(respawn);
             Debug.Log($"[Checkpoint] Activated at {respawn}.");
+        }
+
+        private void SetFlagState(Sprite sprite, Color fallbackColor)
+        {
+            if (flag == null)
+            {
+                return;
+            }
+
+            if (sprite != null)
+            {
+                flag.sprite = sprite;
+                flag.color = Color.white;
+            }
+            else
+            {
+                flag.color = fallbackColor;
+            }
         }
     }
 }

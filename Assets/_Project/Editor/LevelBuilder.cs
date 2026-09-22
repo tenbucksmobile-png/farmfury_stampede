@@ -17,6 +17,8 @@ namespace FarmFuryStampede.EditorTools
         public Tile breakableTile;
         public Tile waterTile;
         public int groundLayer;
+        /// <summary>Optional decorative backdrop filling every Chamber() interior; left blank draws nothing (transparent).</summary>
+        public Sprite chamberBackdrop;
     }
 
     /// <summary>
@@ -553,6 +555,19 @@ namespace FarmFuryStampede.EditorTools
                 int right = c.x0 + c.interiorWidth + 1;
                 Fill(ground, assets.groundTile, c.x0, right, c.floorTop + 3, c.floorTop + 3);   // ceiling
                 Fill(ground, assets.groundTile, right, right, c.floorTop, c.floorTop + 3);      // right wall
+
+                if (assets.chamberBackdrop != null)
+                {
+                    var backdrop = new GameObject($"ChamberBackdrop_{c.x0}");
+                    backdrop.transform.SetParent(root.transform, false);
+                    backdrop.transform.position = new Vector3(c.x0 + 1f + c.interiorWidth / 2f, c.floorTop + 1.5f, 0f);
+                    var backdropRenderer = backdrop.AddComponent<SpriteRenderer>();
+                    backdropRenderer.sprite = assets.chamberBackdrop;
+                    backdropRenderer.sortingOrder = -2; // behind the ground/platform tilemaps (0/1), in front of the parallax background
+                    Vector2 native = assets.chamberBackdrop.bounds.size;
+                    backdrop.transform.localScale = new Vector3(
+                        c.interiorWidth / Mathf.Max(native.x, 0.01f), 3f / Mathf.Max(native.y, 0.01f), 1f);
+                }
             }
 
             Fill(ground, assets.groundTile, _startX - 1, _startX - 1, GroundDepth, maxTop + 8); // left wall

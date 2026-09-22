@@ -20,6 +20,7 @@ namespace FarmFuryStampede.LevelSystem
         [SerializeField] private Transform levelContainer;
         [SerializeField] private CharacterController2D player;
         [SerializeField] private CameraFollow2D cameraFollow;
+        [SerializeField] private ParallaxBackground background;
 
         [Header("Pooled Prefabs (robots come from RobotData.prefab)")]
         [SerializeField] private GameObject cropPrefab;
@@ -149,6 +150,7 @@ namespace FarmFuryStampede.LevelSystem
             {
                 cameraFollow.SetBounds(root.cameraMinX, root.cameraMaxX);
                 cameraFollow.SnapToTarget();
+                background?.Configure(root.cameraMinX, root.cameraMaxX);
             }
 
             Debug.Log($"[LevelLoader] Loaded '{data.levelId}': {_spawned.Count} spawned objects ({robots} robots).");

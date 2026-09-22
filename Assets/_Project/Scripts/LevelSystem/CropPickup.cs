@@ -9,14 +9,44 @@ namespace FarmFuryStampede.LevelSystem
     [RequireComponent(typeof(Collider2D), typeof(PooledObject))]
     public class CropPickup : MonoBehaviour
     {
-        /// <summary>Set by LevelLoader on each spawn: this crop belongs to the level's secret cluster.</summary>
-        public bool isSecretCluster;
+        [SerializeField] private SpriteRenderer visual;
+        [Tooltip("Picked at random for a normal crop when real art is assigned; falls back to the placeholder sprite if empty.")]
+        [SerializeField] private Sprite[] normalSprites;
+        [Tooltip("Picked at random for a secret-cluster crop when real art is assigned.")]
+        [SerializeField] private Sprite[] secretSprites;
 
+        private bool _isSecretCluster;
         private bool _collected;
+
+        /// <summary>Set by LevelLoader on each spawn: this crop belongs to the level's secret cluster.</summary>
+        public bool isSecretCluster
+        {
+            get => _isSecretCluster;
+            set
+            {
+                _isSecretCluster = value;
+                ApplyVisual();
+            }
+        }
 
         private void OnEnable()
         {
             _collected = false;
+            ApplyVisual();
+        }
+
+        private void ApplyVisual()
+        {
+            if (visual == null)
+            {
+                return;
+            }
+
+            Sprite[] pool = _isSecretCluster && secretSprites != null && secretSprites.Length > 0 ? secretSprites : normalSprites;
+            if (pool != null && pool.Length > 0)
+            {
+                visual.sprite = pool[Random.Range(0, pool.Length)];
+            }
         }
 
         private void OnTriggerEnter2D(Collider2D other)
