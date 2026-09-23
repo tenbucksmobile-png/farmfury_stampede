@@ -117,7 +117,6 @@ namespace FarmFuryStampede.Movement
         public Vector2 Position => _position;
         public Vector2 FeetPosition => _position + _collider.offset + Vector2.down * (_collider.size.y * 0.5f);
         public Bounds ColliderBounds => _collider.bounds;
-        public LayerMask GroundMask => groundMask;
         public AbilityPrefabs Prefabs => abilityPrefabs;
 
         public CharacterAbility Ability => _ability;
