@@ -36,7 +36,32 @@ namespace FarmFuryStampede.EditorTools
         public Sprite windmillSprite;
         /// <summary>Art for BarrelPyramid() barrels (feet-pivoted); null skips the pyramids' art but keeps them solid.</summary>
         public Sprite barrelSprite;
+        /// <summary>Art for the hand-authored farm backdrop (CornField / Fence / Wildflowers / Backdrop / Biplane).</summary>
+        public FarmBackdropArt farmArt = new();
+        /// <summary>Square block art for StoneBlocks() bonus platforms; null draws them with platformTile.</summary>
+        public Sprite stoneBlockSprite;
+        /// <summary>Art for BonusCoin() crops (CropSpawnPoint.visualOverride).</summary>
+        public Sprite coinSprite;
     }
+
+    /// <summary>Background-only farm art (no colliders). Any missing piece is skipped where a level asks for it.</summary>
+    internal sealed class FarmBackdropArt
+    {
+        public Sprite[] cornStalks = Array.Empty<Sprite>();
+        public Sprite barn;
+        public Sprite windmill;
+        public Sprite silo;
+        public Sprite gnarledTree;
+        public Sprite oak;
+        public Sprite waterWheel;
+        public Sprite cart;
+        public Sprite fence;
+        public Sprite wildflowers;
+        public Sprite plane;
+    }
+
+    /// <summary>Single background props a level can place with <see cref="LevelBuilder.Backdrop"/>.</summary>
+    internal enum FarmProp { Silo, Oak, WaterWheel, Cart, Barn, Windmill, GnarledTree }
 
     /// <summary>
     /// Authoring DSL for a level. Lay out geometry left to right (Flat / Gap / Mound / Floating / Secret*),
@@ -59,15 +84,19 @@ namespace FarmFuryStampede.EditorTools
             public Kind kind;
             public bool secret;
             public bool stone;   // drawn with LevelAssets.ledgeSprite slabs over invisible collision tiles
+            public bool blocks;  // StoneBlocks(): drawn with LevelAssets.stoneBlockSprite squares instead
+            public bool bonus;   // optional platform validated against the double jump, not the base jump
             public override string ToString() => $"{(secret ? "Secret" : "")}{kind}[{x0},{x1}) top={top}";
         }
 
-        private struct CropRec { public float x, y; public bool secret; }
+        private struct CropRec { public float x, y; public bool secret, coin; }
         private struct RobotRec { public RobotType type; public float x, y, patrol; public int wave; }
         private struct BreakableRec { public int x, length, top; }
         private struct ChamberRec { public int x0, floorTop, interiorWidth; public bool barrierSeal; }
 
         private const float MaxRise = 2.5f;
+        // Rise a bonus (StoneBlocks) platform may need: every character has a full-height double jump (3.5 + 3.5).
+        private const float MaxBonusRise = 5f;
         private const float MaxFlatGap = 5f;
         private const float RiseGapPenalty = 0.7f;
         private const int GroundDepth = -6;
@@ -92,6 +121,12 @@ namespace FarmFuryStampede.EditorTools
         private readonly List<ChamberRec> _chambers = new();
         private readonly List<RectInt> _water = new();
         private readonly List<Vector2> _pyramids = new();
+        private readonly List<Vector2> _haystacks = new();
+        private bool _manualScenery;
+        private readonly List<(FarmProp prop, float x, bool flip)> _props = new();
+        private readonly List<Vector2> _cornFields = new();   // (x0, x1)
+        private readonly List<Vector2> _fences = new();
+        private float? _biplaneHeight;
         private Vector2? _playerStart;
         private Vector2? _goal;
         private readonly List<float> _noPatrolCheck = new();
@@ -169,6 +204,18 @@ namespace FarmFuryStampede.EditorTools
         public LevelBuilder Floating(int x, int length, int top)
         {
             _surfaces.Add(new Surface { x0 = x, x1 = x + length, top = top, baseTop = top - 1, kind = Kind.Floating });
+            return this;
+        }
+
+        /// <summary>
+        /// Optional floating stone-block platform (bonus crops, not the critical path), drawn one square block per
+        /// tile. Validated against the double jump every character has, so it may sit up to MaxBonusRise above what
+        /// it is reached from. Keep bonus blocks well away from a gated secret, or the validator will (rightly)
+        /// report the secret as reachable through them.
+        /// </summary>
+        public LevelBuilder StoneBlocks(int x, int length, int top)
+        {
+            _surfaces.Add(new Surface { x0 = x, x1 = x + length, top = top, baseTop = top - 1, kind = Kind.Floating, stone = true, blocks = true, bonus = true });
             return this;
         }
 
@@ -280,6 +327,13 @@ namespace FarmFuryStampede.EditorTools
             return this;
         }
 
+        /// <summary>A normal crop drawn as the gold coin (LevelAssets.coinSprite), resting on the surface whose top is given.</summary>
+        public LevelBuilder BonusCoin(float x, int surfaceTop)
+        {
+            _crops.Add(new CropRec { x = x, y = surfaceTop + CropRestHeight, coin = true });
+            return this;
+        }
+
         private void AddCrop(float x, float y, bool secret) => _crops.Add(new CropRec { x = x, y = y, secret = secret });
 
         private static bool CropOverlaps(float x, float y, Surface s)
@@ -310,14 +364,14 @@ namespace FarmFuryStampede.EditorTools
         }
 
         /// <summary>
-        /// Three-barrel pyramid centred at x on flat ground: two barrels side by side with one on top, 4.5 units high.
-        /// Each base barrel sticks out a half-barrel past the top one, so it climbs in two 2.25 steps (each inside the
-        /// base jump's 3.5 apex), or one double jump. Ground corn under it is cleared and one corn sits on the top barrel.
+        /// Six-barrel pyramid (rows of 3-2-1) centred at x on flat ground, 4.5 units high, climbed in 1.5 steps.
+        /// The barrels are to the shared world scale. Ground corn under it is cleared and one corn sits on the top barrel.
         /// </summary>
         public LevelBuilder BarrelPyramid(float x)
         {
             int top = GroundTopAt(x, out bool found);
-            for (float dx = -(BarrelWidth + 0.5f); found && dx <= BarrelWidth + 0.5f; dx += 0.5f)
+            float reach = BarrelRows * BarrelWidth * 0.5f + 0.5f;
+            for (float dx = -reach; found && dx <= reach; dx += 0.25f)
             {
                 if (GroundTopAt(x + dx, out bool f) != top || !f)
                 {
@@ -326,11 +380,58 @@ namespace FarmFuryStampede.EditorTools
             }
             if (!found)
             {
-                Error($"Barrel pyramid at x={x} needs flat ground {BarrelWidth + 0.5f} units either side.");
+                Error($"Barrel pyramid at x={x} needs flat ground {reach} units either side.");
                 return this;
             }
 
             _pyramids.Add(new Vector2(x, top));
+            return this;
+        }
+
+        // ------------------------------------------------------------ farm backdrop (visual only, no colliders)
+
+        /// <summary>A two-row corn field behind the play area over [x0, x1); stalks over a gap are skipped.</summary>
+        public LevelBuilder CornField(float x0, float x1) { _cornFields.Add(new Vector2(x0, x1)); return this; }
+
+        /// <summary>
+        /// A wooden fence run over [x0, x1), in front of the corn, with a bunch of wildflowers at each end; sections
+        /// over a gap or step are skipped.
+        /// </summary>
+        public LevelBuilder Fence(float x0, float x1) { _fences.Add(new Vector2(x0, x1)); return this; }
+
+        /// <summary>
+        /// This level's scenery is fully hand-placed: no random rock/haybale obstacles and no automatic barn/windmill
+        /// behind them (use Backdrop(FarmProp.Barn/Windmill) and HayStack instead).
+        /// </summary>
+        public LevelBuilder ManualScenery() { _manualScenery = true; return this; }
+
+        /// <summary>One background prop standing on the ground at x (skipped if it would hang over a gap or cover a barn/windmill).</summary>
+        public LevelBuilder Backdrop(FarmProp prop, float x, bool flip = false) { _props.Add((prop, x, flip)); return this; }
+
+        /// <summary>A biplane flying across the sky this high above y=0, looping over the whole level.</summary>
+        public LevelBuilder Biplane(float height) { _biplaneHeight = height; return this; }
+
+        /// <summary>
+        /// Three to-scale hay bales stacked (two side by side, one on top) at x on flat ground: a solid, climbable
+        /// 3-high step (two 1.5 steps). Ground corn under it is cleared.
+        /// </summary>
+        public LevelBuilder HayStack(float x)
+        {
+            int top = GroundTopAt(x, out bool found);
+            for (float dx = -(BaleWidth + 0.5f); found && dx <= BaleWidth + 0.5f; dx += 0.5f)
+            {
+                if (GroundTopAt(x + dx, out bool f) != top || !f)
+                {
+                    found = false;
+                }
+            }
+            if (!found)
+            {
+                Error($"Hay stack at x={x} needs flat ground {BaleWidth + 0.5f} units either side.");
+                return this;
+            }
+
+            _haystacks.Add(new Vector2(x, top));
             return this;
         }
 
@@ -443,6 +544,10 @@ namespace FarmFuryStampede.EditorTools
 
             int dx = Mathf.Max(0, Mathf.Max(to.x0 - from.x1, from.x0 - to.x1));
             float rise = to.top - from.top;
+            if (to.bonus)
+            {
+                return rise <= MaxBonusRise && dx <= MaxFlatGap;
+            }
             if (rise > MaxRise)
             {
                 return false;
@@ -606,11 +711,12 @@ namespace FarmFuryStampede.EditorTools
                         Fill(ground, assets.groundTile, s.x0, s.x1 - 1, s.baseTop, s.top - 1);
                         break;
                     case Kind.Floating:
-                        bool stoneArt = s.stone && assets.ledgeSprite != null && assets.invisibleTile != null;
+                        Sprite stoneSprite = !s.stone ? null : s.blocks ? assets.stoneBlockSprite : assets.ledgeSprite;
+                        bool stoneArt = stoneSprite != null && assets.invisibleTile != null;
                         Fill(platforms, stoneArt ? assets.invisibleTile : assets.platformTile, s.x0, s.x1 - 1, s.top - 1, s.top - 1);
                         if (stoneArt)
                         {
-                            AddStoneSlabs(root.transform, assets.ledgeSprite, s);
+                            AddStoneSlabs(root.transform, stoneSprite, s);
                         }
                         break;
                 }
@@ -642,8 +748,10 @@ namespace FarmFuryStampede.EditorTools
             PaintSurface(ground, assets);
             Finish(ground);
             BuildBarrelPyramids(root.transform, assets);
-            var haybales = PlaceObstacles(root.transform, assets);
-            PlaceScenery(root.transform, assets, haybales);
+            BuildHayStacks(root.transform, assets);
+            var haybales = _manualScenery ? new List<Vector2>() : PlaceObstacles(root.transform, assets);
+            var scenery = _manualScenery ? new List<(float x, float halfWidth)>() : PlaceScenery(root.transform, assets, haybales);
+            PlaceFarmBackdrop(root.transform, assets.farmArt, scenery, endX);
             Finish(platforms);
 
             if (_breakables.Count > 0)
@@ -710,8 +818,9 @@ namespace FarmFuryStampede.EditorTools
 
             for (int i = 0; i < _crops.Count; i++)
             {
-                var crop = AddMarker<CropSpawnPoint>(markers.transform, $"Crop_{i:00}", new Vector2(_crops[i].x, _crops[i].y));
+                var crop = AddMarker<CropSpawnPoint>(markers.transform, _crops[i].coin ? $"Crop_{i:00}_Coin" : $"Crop_{i:00}", new Vector2(_crops[i].x, _crops[i].y));
                 crop.secretCluster = _crops[i].secret;
+                if (_crops[i].coin) { crop.visualOverride = assets.coinSprite; }
             }
 
             for (int i = 0; i < _robots.Count; i++)
@@ -824,26 +933,33 @@ namespace FarmFuryStampede.EditorTools
                 placed.Add(x);
                 Sprite art = assets.obstacleSprites[random.Next(assets.obstacleSprites.Length)];
 
-                var obstacle = new GameObject($"Obstacle_{art.name}_{placed.Count}") { layer = assets.groundLayer };
-                obstacle.transform.SetParent(root, false);
-                obstacle.transform.position = new Vector3(x, top, 0f);
-                var box = obstacle.AddComponent<BoxCollider2D>();
-                box.size = new Vector2(ObstacleWidth, ObstacleHeight);
-                box.offset = new Vector2(0f, ObstacleHeight * 0.5f);
-                var renderer = obstacle.AddComponent<SpriteRenderer>();
-                renderer.sprite = art;
-                renderer.sortingOrder = 3; // in front of the ground tiles, behind robots (8) and the player (10)
+                float height = ObstacleHeight;
                 if (art == assets.haybaleSprite)
                 {
+                    // One to-scale bale (1.9 x 1.5) is obstacle-sized on its own.
+                    AddBale(root, assets, $"Obstacle_HayBale_{placed.Count}", new Vector2(x, top), 3);
                     haybales.Add(new Vector2(x, top));
+                    height = BaleHeight;
+                }
+                else
+                {
+                    var obstacle = new GameObject($"Obstacle_{art.name}_{placed.Count}") { layer = assets.groundLayer };
+                    obstacle.transform.SetParent(root, false);
+                    obstacle.transform.position = new Vector3(x, top, 0f);
+                    var box = obstacle.AddComponent<BoxCollider2D>();
+                    box.size = new Vector2(ObstacleWidth, ObstacleHeight);
+                    box.offset = new Vector2(0f, ObstacleHeight * 0.5f);
+                    var renderer = obstacle.AddComponent<SpriteRenderer>();
+                    renderer.sprite = art;
+                    renderer.sortingOrder = 3; // in front of the ground tiles, behind robots (8) and the player (10)
                 }
 
                 for (int i = 0; i < _crops.Count; i++)
                 {
                     var c = _crops[i];
-                    if (Mathf.Abs(c.x - x) < ObstacleLiftRange && c.y < top + ObstacleHeight + CropRestHeight)
+                    if (Mathf.Abs(c.x - x) < ObstacleLiftRange && c.y < top + height + CropRestHeight)
                     {
-                        c.y = top + ObstacleHeight + CropRestHeight;
+                        c.y = top + height + CropRestHeight;
                         _crops[i] = c;
                     }
                 }
@@ -860,7 +976,8 @@ namespace FarmFuryStampede.EditorTools
         private const float WindmillOffset = 3.2f;
         private static readonly Color SceneryTint = new Color(0.86f, 0.86f, 0.9f);
 
-        private void PlaceScenery(Transform root, LevelAssets assets, List<Vector2> haybales)
+        // Returns the footprint (centre x, half width) of every piece placed.
+        private List<(float x, float halfWidth)> PlaceScenery(Transform root, LevelAssets assets, List<Vector2> haybales)
         {
             var random = new System.Random(StableSeed(Id) ^ 0x5CE9E);
             var placed = new List<(float x, float halfWidth)>();
@@ -896,22 +1013,207 @@ namespace FarmFuryStampede.EditorTools
 
             foreach (var p in _pyramids) { Place(assets.windmillSprite, p, WindmillOffset, "Windmill"); }
             foreach (var h in haybales) { Place(assets.barnSprite, h, BarnOffset, "Barn"); }
+            return placed;
         }
 
-        private const float BarrelWidth = 1.65f;
-        private const float BarrelHeight = 2.25f;
+        // Hand-authored farm backdrop (see CornField/Fence/Wildflowers/Backdrop/Biplane), laid out and sized after
+        // the Level 1 mockups. Everything is visual only and drawn behind the ground tiles (0), back to front:
+        //   -9 biplane, -8 silo/oak/gnarled tree/water wheel, -7 barn/windmill (the silo tucks behind the barn),
+        //   -6/-5 back/front corn rows (in front of the trees' trunks), -4 cart and fence, -3 wildflowers.
+        // Crops stay readable because the pickup is the smiling kernel (no cobs) and most sit up on stone blocks.
+        // Seeded from the level id, so a re-run of setup lays it out identically.
+        private static readonly Color BackdropTint = new Color(0.9f, 0.9f, 0.94f);
+        // The surface tiles' grass overhangs the cell above by ~0.46, so pieces stood at the ground top look buried;
+        // lifting them this much stands them on the grass line like the mockups.
+        private const float BackdropLift = 0.3f;
+        private static readonly Color CornBackTint = new Color(0.78f, 0.82f, 0.78f);
+        private static readonly Color CornFrontTint = new Color(0.92f, 0.94f, 0.92f);
+
+        private void PlaceFarmBackdrop(Transform root, FarmBackdropArt art, List<(float x, float halfWidth)> scenery, int endX)
+        {
+            if (art == null || (_props.Count == 0 && _cornFields.Count == 0 && _fences.Count == 0
+                && !_biplaneHeight.HasValue)) { return; }
+            var random = new System.Random(StableSeed(Id) ^ 0xFA23);
+            float Range(float a, float b) => a + (float)random.NextDouble() * (b - a);
+            var parent = new GameObject("FarmBackdrop").transform;
+            parent.SetParent(root, false);
+
+            // Ground top under the whole span [x - half, x + half], or null over a gap or a change of height.
+            int? FlatTop(float x, float half)
+            {
+                int top = GroundTopAt(x, out bool found);
+                if (!found) { return null; }
+                for (float dx = -half; dx <= half; dx += 0.25f)
+                {
+                    if (GroundTopAt(x + dx, out bool f) != top || !f) { return null; }
+                }
+                return top;
+            }
+
+            GameObject Spawn(string label, Sprite sprite, Vector2 at, float scale, bool flip, Color tint, int order)
+            {
+                var go = new GameObject(label);
+                go.transform.SetParent(parent, false);
+                go.transform.position = new Vector3(at.x, at.y + BackdropLift, 0f);
+                go.transform.localScale = new Vector3(scale, scale, 1f);
+                var renderer = go.AddComponent<SpriteRenderer>();
+                renderer.sprite = sprite;
+                renderer.flipX = flip;
+                renderer.color = tint;
+                renderer.sortingOrder = order;
+                return go;
+            }
+
+            foreach (var (prop, x, flip) in _props)
+            {
+                // Every prop is imported to the shared world scale (StampedeUIArt.UnitsPerMetre), so none is rescaled here.
+                const float scale = 1f;
+                (Sprite sprite, int order) = prop switch
+                {
+                    FarmProp.Silo => (art.silo, -8),
+                    FarmProp.Oak => (art.oak, -8),
+                    FarmProp.GnarledTree => (art.gnarledTree, -8),
+                    FarmProp.WaterWheel => (art.waterWheel, -8),
+                    FarmProp.Barn => (art.barn, -7),
+                    FarmProp.Windmill => (art.windmill, -7),
+                    _ => (art.cart, -4),
+                };
+                if (sprite == null) { continue; }
+                float half = sprite.bounds.size.x * 0.5f * scale;
+                int? top = FlatTop(x, half * 0.6f);
+                if (top == null || scenery.Any(p => Mathf.Abs(p.x - x) < p.halfWidth + half * 0.8f))
+                {
+                    Debug.LogWarning($"[LevelBuilder] {Id}: skipped backdrop {prop} at x={x} (over a gap/step or covering a barn/windmill).");
+                    continue;
+                }
+                Spawn($"{prop}_{x}", sprite, new Vector2(x, top.Value), scale, flip, BackdropTint, order);
+            }
+
+            if (art.cornStalks.Length > 0)
+            {
+                // Back row: shorter, darker, tighter; front row offset so the gaps interleave.
+                var rows = new[]
+                {
+                    (step: 0.5f, minScale: 0.85f, maxScale: 0.95f, tint: CornBackTint, order: -6, offset: 0f),
+                    (step: 0.65f, minScale: 0.95f, maxScale: 1.1f, tint: CornFrontTint, order: -5, offset: 0.3f),
+                };
+                foreach (var field in _cornFields)
+                {
+                    foreach (var row in rows)
+                    {
+                        for (float x = field.x + row.offset; x < field.y; x += row.step)
+                        {
+                            float sx = x + Range(-0.12f, 0.12f);
+                            int? top = FlatTop(sx, 0.3f);
+                            if (top == null) { continue; }
+                            Sprite stalk = art.cornStalks[random.Next(art.cornStalks.Length)];
+                            Spawn($"CornStalk_{sx:0.00}", stalk, new Vector2(sx, top.Value), Range(row.minScale, row.maxScale),
+                                random.Next(2) == 0, row.tint, row.order);
+                        }
+                    }
+                }
+            }
+
+            if (art.fence != null)
+            {
+                float width = art.fence.bounds.size.x;
+                foreach (var run in _fences)
+                {
+                    // Sections overlap slightly so the rails join without a seam.
+                    float? first = null, last = null;
+                    for (float x = run.x + width * 0.5f; x + width * 0.5f <= run.y + 0.01f; x += width * 0.97f)
+                    {
+                        int? top = FlatTop(x, width * 0.5f);
+                        if (top == null) { continue; }
+                        Spawn($"Fence_{x:0.00}", art.fence, new Vector2(x, top.Value), 1f, false, BackdropTint, -4);
+                        first ??= x - width * 0.5f;
+                        last = x + width * 0.5f;
+                    }
+
+                    // A bunch of wildflowers (a big clump with a smaller one tucked beside it) at each end of the run.
+                    if (art.wildflowers == null || first == null) { continue; }
+                    foreach (var (end, outward) in new[] { (first.Value, -1f), (last.Value, 1f) })
+                    {
+                        int? top = FlatTop(end, 0.3f);
+                        if (top == null) { continue; }
+                        Spawn($"Wildflowers_{end:0.00}", art.wildflowers, new Vector2(end, top.Value), Range(1.05f, 1.2f),
+                            random.Next(2) == 0, Color.white, -3);
+                        Spawn($"Wildflowers_{end:0.00}_b", art.wildflowers, new Vector2(end + outward * 0.45f, top.Value),
+                            Range(0.75f, 0.9f), random.Next(2) == 0, Color.white, -3);
+                    }
+                }
+            }
+
+            if (art.plane != null && _biplaneHeight.HasValue)
+            {
+                var plane = Spawn("Biplane", art.plane, new Vector2(_startX + 6f, _biplaneHeight.Value), 1f, false, Color.white, -9);
+                plane.AddComponent<SkyDrifter>().Configure(_startX - 12f, endX + 12f, 2.2f);
+            }
+        }
+
+        // To the shared world scale (StampedeUIArt.UnitsPerMetre): barrels and bales are both 1.5 units tall.
+        private const float BarrelWidth = 1.1f;      // the barrel art's 0.73 aspect
+        private const float BarrelHeight = 1.5f;
+        private const int BarrelRows = 3;            // 3-2-1 pyramid, 4.5 high in 1.5 steps
+        private const float BaleWidth = 1.9f;        // the bale body's 1.28 aspect (lying on its side)
+        private const float BaleHeight = 1.5f;
+
+        private void BuildHayStacks(Transform root, LevelAssets assets)
+        {
+            for (int h = 0; h < _haystacks.Count; h++)
+            {
+                BuildHayStack(root, assets, $"HayStack_{h + 1}", _haystacks[h]);
+                Vector2 at = _haystacks[h];
+                _crops.RemoveAll(c => !c.secret && Mathf.Abs(c.x - at.x) < BaleWidth + 0.6f && c.y < at.y + 2f * BaleHeight);
+            }
+        }
+
+        private static void BuildHayStack(Transform root, LevelAssets assets, string stackName, Vector2 at)
+        {
+            AddBale(root, assets, $"{stackName}_Left", new Vector2(at.x - BaleWidth * 0.5f, at.y), 3);
+            AddBale(root, assets, $"{stackName}_Right", new Vector2(at.x + BaleWidth * 0.5f, at.y), 3);
+            AddBale(root, assets, $"{stackName}_Top", new Vector2(at.x, at.y + BaleHeight), 4);
+        }
+
+        // One bale: solid box on the Ground layer. The art is imported so the bale body matches the box, its straw
+        // skirt and wisps spill past the edges; drawn 6% bigger so neighbouring bales touch with no seam.
+        private static void AddBale(Transform root, LevelAssets assets, string baleName, Vector2 feet, int sortingOrder)
+        {
+            var bale = new GameObject(baleName) { layer = assets.groundLayer };
+            bale.transform.SetParent(root, false);
+            bale.transform.position = new Vector3(feet.x, feet.y, 0f);
+            var box = bale.AddComponent<BoxCollider2D>();
+            box.size = new Vector2(BaleWidth, BaleHeight);
+            box.offset = new Vector2(0f, BaleHeight * 0.5f);
+            if (assets.haybaleSprite != null)
+            {
+                var art = new GameObject("Art");
+                art.transform.SetParent(bale.transform, false);
+                art.transform.localScale = new Vector3(1.06f, 1.06f, 1f);
+                var renderer = art.AddComponent<SpriteRenderer>();
+                renderer.sprite = assets.haybaleSprite;
+                renderer.sortingOrder = sortingOrder; // the top bale draws over the two below
+            }
+        }
 
         private void BuildBarrelPyramids(Transform root, LevelAssets assets)
         {
             for (int p = 0; p < _pyramids.Count; p++)
             {
                 Vector2 at = _pyramids[p];
-                AddBarrel(root, assets, $"BarrelPyramid_{p + 1}_Left", new Vector2(at.x - BarrelWidth * 0.5f, at.y), 3);
-                AddBarrel(root, assets, $"BarrelPyramid_{p + 1}_Right", new Vector2(at.x + BarrelWidth * 0.5f, at.y), 3);
-                AddBarrel(root, assets, $"BarrelPyramid_{p + 1}_Top", new Vector2(at.x, at.y + BarrelHeight), 4);
+                for (int row = 0; row < BarrelRows; row++)
+                {
+                    int count = BarrelRows - row;
+                    for (int i = 0; i < count; i++)
+                    {
+                        float x = at.x + (i - (count - 1) * 0.5f) * BarrelWidth;
+                        AddBarrel(root, assets, $"BarrelPyramid_{p + 1}_R{row}_{i}", new Vector2(x, at.y + row * BarrelHeight), 3 + row);
+                    }
+                }
 
-                _crops.RemoveAll(c => !c.secret && Mathf.Abs(c.x - at.x) < BarrelWidth + 0.6f && c.y < at.y + 2f * BarrelHeight);
-                _crops.Add(new CropRec { x = at.x, y = at.y + 2f * BarrelHeight + CropRestHeight });
+                float halfBase = BarrelRows * BarrelWidth * 0.5f;
+                _crops.RemoveAll(c => !c.secret && Mathf.Abs(c.x - at.x) < halfBase + 0.6f && c.y < at.y + BarrelRows * BarrelHeight);
+                _crops.Add(new CropRec { x = at.x, y = at.y + BarrelRows * BarrelHeight + CropRestHeight });
             }
         }
 
@@ -947,15 +1249,21 @@ namespace FarmFuryStampede.EditorTools
             box.offset = new Vector2(0f, BarrelHeight * 0.5f);
             if (assets.barrelSprite != null)
             {
-                var renderer = barrel.AddComponent<SpriteRenderer>();
+                // Drawn 12% bigger than the to-scale collider so each lid tucks under the barrel stacked on it
+                // (higher rows sort in front) instead of leaving a gap between the rounded rims.
+                var art = new GameObject("Art");
+                art.transform.SetParent(barrel.transform, false);
+                art.transform.localScale = new Vector3(1.12f, 1.12f, 1f);
+                var renderer = art.AddComponent<SpriteRenderer>();
                 renderer.sprite = assets.barrelSprite;
-                renderer.sortingOrder = sortingOrder; // the top barrel draws over the lids of the two below
+                renderer.sortingOrder = sortingOrder;
             }
         }
 
         private bool IsObstacleSpotClear(float x, int top)
         {
-            if (_pyramids.Any(p => Mathf.Abs(p.x - x) < BarrelWidth + ObstacleWidth * 0.5f + 3f)) { return false; }
+            if (_pyramids.Any(p => Mathf.Abs(p.x - x) < BarrelRows * BarrelWidth * 0.5f + ObstacleWidth * 0.5f + 3f)) { return false; }
+            if (_haystacks.Any(p => Mathf.Abs(p.x - x) < BaleWidth + ObstacleWidth * 0.5f + 3f)) { return false; }
             // Flat ground past both sides, so it never sits at a gap edge or against a step.
             float flat = ObstacleWidth * 0.5f + 1f;
             for (float dx = -flat; dx <= flat; dx += 0.5f)

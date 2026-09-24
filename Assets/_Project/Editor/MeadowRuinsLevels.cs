@@ -44,14 +44,50 @@ namespace FarmFuryStampede.EditorTools
 
             b.Gate(CharacterType.Cluck, "High ledge 4 units up: needs extra height (double jump, Cluck's Flutter Jump, or Woolly's Cloud Step).", CharacterType.Woolly);
             b.Start(0).Goal(112);
-            b.Scout(18, 3).Scout(55, 3).Scout(90, 3);   // robots introduced one type per level: the pink Scout first
-            b.BarrelPyramid(74).Scout(80, 2);             // barrel pyramid to climb over, with a Scout waiting on the landing side
+            b.ManualScenery();                // every obstacle and backdrop piece below is placed by hand (the mockups)
+            b.SecretRow(24.5f, 28.5f, 1f, 4.5f);
+
+            // Everything is to the shared world scale (StampedeUIArt.UnitsPerMetre). The farmstead appears once, mid-level,
+            // and each landmark (oak, gnarled tree, barn, silo, windmill, water wheel) only once; the rest is corn fields.
+
+            // Opening field [-4,30): fenced corn from the start, the first Scout in front of it, and the stone
+            // secret ledge above the far end of the corn.
+            b.CornField(3f, 29f).Fence(3f, 29f);
+            b.Scout(18, 3);                   // robots introduced one type per level: the pink Scout first
             b.CropRow(6, 12, 2);
             b.CropRow(15, 21, 3);
             GapArc(b, 30, 3, 0);
-            b.CropRow(37, 71, 4);
-            b.CropRow(76, 106, 5);
-            b.SecretRow(24.5f, 28.5f, 1f, 4.5f);
+
+            // Mockup 1 [33,57): a hay stack to climb, stone blocks stepping up over a fenced corn field with kernels
+            // on them and a coin on the top block, two Scouts patrolling in front of the fence, the gnarled tree.
+            b.HayStack(37.5f);
+            b.StoneBlocks(39, 3, 3).StoneBlocks(43, 1, 4).StoneBlocks(45, 1, 6).StoneBlocks(47, 2, 3);
+            b.CropAt(39.4f, 3.9f).CropAt(40.65f, 3.9f).CropAt(41.9f, 3.9f);
+            b.CropAt(43.5f, 4.9f);
+            b.BonusCoin(45.5f, 6);
+            b.CropAt(47.4f, 3.9f).CropAt(48.65f, 3.9f);
+            b.Scout(42, 2).Scout(51, 2);
+            b.CornField(40f, 54f).Fence(40f, 54f);
+            b.Backdrop(FarmProp.GnarledTree, 55.5f);
+
+            // Mockup 2 [58,92): the one farmstead the chicken runs past - water wheel, windmill and cart together,
+            // the silo tucked behind the barn, a fenced corn patch with the oak behind it, then the barrel pyramid.
+            b.Backdrop(FarmProp.WaterWheel, 60f).Backdrop(FarmProp.Windmill, 63f).Backdrop(FarmProp.Cart, 66.3f);
+            b.Backdrop(FarmProp.Silo, 69.5f).Backdrop(FarmProp.Barn, 74.5f);
+            b.CornField(79f, 86f).Fence(79f, 86.5f);
+            b.Backdrop(FarmProp.Oak, 83f);
+            b.BarrelPyramid(89).Scout(93.5f, 1.5f);      // barrel pyramid to climb over, with a Scout waiting on the landing side
+
+            // Fields to the goal [92,118): a second stone-block run over fenced corn, kernels in front of the last stretch.
+            b.StoneBlocks(97, 3, 3).StoneBlocks(101, 1, 5).StoneBlocks(103, 2, 3);
+            b.CropAt(97.4f, 3.9f).CropAt(98.65f, 3.9f).CropAt(99.9f, 3.9f);
+            b.CropAt(101.5f, 5.9f);
+            b.CropAt(103.4f, 3.9f).CropAt(104.65f, 3.9f);
+            b.Scout(102, 3);
+            b.CornField(95f, 117f).Fence(95f, 117f);
+            b.CropRow(106, 110, 3);
+
+            b.Biplane(8.5f);
             return b;
         }
 

@@ -7,6 +7,8 @@ namespace FarmFuryStampede.LevelSystem
     {
         [Tooltip("Part of an out-of-the-way cluster reserved for a character-gated secret (gating arrives in Phase 4).")]
         public bool secretCluster;
+        [Tooltip("Optional art for this one crop instead of the random pool pick (e.g. the bonus coin on a tower top).")]
+        public Sprite visualOverride;
 
         private void OnDrawGizmos()
         {

@@ -238,6 +238,9 @@ namespace FarmFuryStampede.EditorTools
                 haybaleSprite = StampedeUIArt.Haybale(),
                 barnSprite = StampedeUIArt.Barn(),
                 windmillSprite = StampedeUIArt.Windmill(),
+                farmArt = StampedeUIArt.FarmBackdrop(),
+                stoneBlockSprite = StampedeUIArt.StoneBlock(),
+                coinSprite = StampedeUIArt.Coin(),
                 ledgeSprite = StampedeUIArt.LedgeStone(),
                 invisibleTile = AssetDatabase.LoadAssetAtPath<Tile>(InvisibleTilePath),
                 obstaclesPerLevel = ObstaclesPerLevel

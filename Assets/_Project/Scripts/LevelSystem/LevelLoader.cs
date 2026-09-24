@@ -101,7 +101,9 @@ namespace FarmFuryStampede.LevelSystem
                 var crop = Spawn(cropPrefab, marker.transform.position);
                 if (crop != null)
                 {
-                    crop.GetComponent<CropPickup>().isSecretCluster = marker.secretCluster;
+                    var pickup = crop.GetComponent<CropPickup>();
+                    pickup.visualOverride = marker.visualOverride;
+                    pickup.isSecretCluster = marker.secretCluster;
                 }
 
                 if (marker.secretCluster) { run.totalSecretCrops++; } else { run.totalNormalCrops++; }

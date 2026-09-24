@@ -29,17 +29,21 @@ namespace FarmFuryStampede.EditorTools
         // Centred icons, scaled per-file so every crop reads at roughly the same on-screen size regardless
         // of its source resolution.
         private const float CropTargetWorldSize = 0.6f;   // well under the 1.5-unit characters/robots
-        // Corn only. The other crop art (carrot, cabbage, cherry, grain sack, loaf, apple, sunflower pellet,
-        // rare apple pellet) stays in Sprites/UI unused.
-        private static readonly string[] NormalCropFiles = { "CornCob.png", "CornKernel.png" };
-        private static readonly string[] SecretCropFiles = { "RarePellets_maize.png" };
+        // The smiling corn kernel only: the cob was camouflaged against the cobs on the backdrop corn stalks as an
+        // everyday pickup, so it is kept for the (rarer, off-path) secret crops. The other crop art (maize pellet, carrot, cabbage, cherry, grain sack, loaf, apple, sunflower pellet, rare apple
+        // pellet) stays in Sprites/UI unused.
+        private static readonly string[] NormalCropFiles = { "CornKernel.png" };
+        // Per-marker art override (CropSpawnPoint.visualOverride): the bonus coin on a stone tower top.
+        private const string CoinFile = "Collectable Coin.png";
+        private static readonly string[] SecretCropFiles = { "CornCob.png" };   // the golden cob marks a gated secret
 
         // Crops drawn bigger than CropTargetWorldSize. Their pivot is lowered so every crop's bottom edge sits at
         // the same height as a standard one, keeping the big icons clear of the grass too.
         private static readonly Dictionary<string, float> CropSizeOverrides = new()
         {
+            { "CornKernel.png", 0.9f },          // mockup size: reads clearly on the stone blocks
+            { CoinFile, 0.9f },
             { "CornCob.png", 1.2f },
-            { "RarePellets_maize.png", 1.2f },
         };
 
         // Framed Character Select cards (name baked into the art).
@@ -56,13 +60,25 @@ namespace FarmFuryStampede.EditorTools
             { CharacterType.Billy, "Billy_Goat.png" },
         };
 
+        // ---- World scale -------------------------------------------------------------------------------------
+        // Every world prop (obstacles, barrels, bales, buildings, trees, crops-in-the-field, fences) is sized from ONE
+        // table of real-world heights, so nothing is out of proportion with anything else: a barrel can never
+        // out-grow a tree. The sprite's pixels-per-unit is worked out from the height of its opaque pixels, so
+        // transparent padding in the source doesn't skew it, and replacement art keeps the same world size.
+        // Only the playable actors (characters/robots, 1.5 units, cartoon-proportioned), pickups and 1-unit stone
+        // blocks sit outside the table. At 0.65 units a metre the tallest props (~8.5) still fit under the camera's
+        // ~13 units of sky above the floor.
+        public const float UnitsPerMetre = 0.65f;
+
         // Ground obstacles (LevelBuilder.PlaceObstacles). Pivot y = where the art meets the ground (the rock has
-        // transparent padding below it, the bale's straw skirt reaches almost to the bottom); pixels-per-unit set
-        // so the rock is ~2.1 and the bale ~2.25 (including loose straw) tall, matching the 2.1x1.95 collider.
-        private static readonly (string file, float pivotY, float pixelsPerUnit)[] ObstacleFiles =
+        // transparent padding below it, the bale's straw skirt reaches almost to the bottom).
+        private static readonly (string file, float pivotY, float metres)[] ObstacleFiles =
         {
-            ("Rock.png", 0.15f, 167.3f),
-            ("Haybail.png", 0.04f, 186f),
+            ("Rock.png", 0.15f, 3.2f),      // a boulder: ~2.1 units, its 2.1x1.95 collider
+            // Round bale on its side, 1.5 units tall like a barrel. The opaque art includes a loose straw skirt and
+            // wisps: the bale body is ~77% of that height (320 of 418px), so 3 m of art gives a 1.5-unit body. Pivot
+            // y = the body's base (the skirt below it tucks into the ground or the bale underneath).
+            ("Haybail.png", 0.16f, 3.0f),
         };
 
         /// <summary>Imports every file this class uses, with settings matched to how it's used. Idempotent; missing files warn and are skipped.</summary>
@@ -74,58 +90,114 @@ namespace FarmFuryStampede.EditorTools
             ImportCentered(ChamberBackdropFile, ChamberPixelsPerUnit);
             foreach (string file in NormalCropFiles) { ImportCropIcon(file); }
             foreach (string file in SecretCropFiles) { ImportCropIcon(file); }
+            ImportCropIcon(CoinFile);
             foreach (string file in CharacterCardFiles.Values) { ImportCentered(file, CardPixelsPerUnit); }
-            foreach (var (file, pivotY, pixelsPerUnit) in ObstacleFiles)
-            {
-                var importer = BeginImport(file);
-                if (importer == null) { continue; }
-                importer.spritePixelsPerUnit = pixelsPerUnit;
-                SetPivot(importer, new Vector2(0.5f, pivotY));
-                FinishImport(importer);
-            }
+            foreach (var (file, pivotY, metres) in ObstacleFiles) { ImportToScale(file, pivotY, metres); }
 
             ImportCentered(LedgeFile, 253f); // 253px tall -> 1 unit, one tile
+            ImportCentered(StoneBlockFile, 292f); // 292px tall -> 1 unit, one tile
 
-            foreach (var (file, pivotY, pixelsPerUnit) in SceneryFiles)
+            foreach (var (file, pivotY, metres) in SceneryFiles) { ImportToScale(file, pivotY, metres); }
+            ImportToScale(BarrelFile, BarrelPivotY, BarrelMetres);
+        }
+
+        /// <summary>World height in units of a piece of art whose opaque pixels span the given real-world height.</summary>
+        public static float WorldHeight(float metres) => metres * UnitsPerMetre;
+
+        // Imports a feet-pivoted prop so its opaque pixels are exactly WorldHeight(metres) tall.
+        private static void ImportToScale(string file, float pivotY, float metres)
+        {
+            var importer = BeginImport(file);
+            if (importer == null) { return; }
+            int opaque = OpaqueHeightPixels($"{UIDir}/{file}");
+            importer.spritePixelsPerUnit = Mathf.Max(opaque, 1) / WorldHeight(metres);
+            SetPivot(importer, new Vector2(0.5f, pivotY));
+            FinishImport(importer);
+        }
+
+        // Rows between the first and last with any pixel over ~8% alpha, read from the source PNG.
+        private static int OpaqueHeightPixels(string path)
+        {
+            var texture = new Texture2D(2, 2);
+            try
             {
-                var importer = BeginImport(file);
-                if (importer == null) { continue; }
-                importer.spritePixelsPerUnit = pixelsPerUnit;
-                SetPivot(importer, new Vector2(0.5f, pivotY));
-                FinishImport(importer);
+                if (!texture.LoadImage(File.ReadAllBytes(path))) { return 0; }
+                Color32[] pixels = texture.GetPixels32();
+                int w = texture.width, h = texture.height, top = -1, bottom = -1;
+                for (int y = 0; y < h; y++)
+                {
+                    for (int x = 0; x < w; x++)
+                    {
+                        if (pixels[y * w + x].a > 20)
+                        {
+                            if (bottom < 0) { bottom = y; }
+                            top = y;
+                            break;
+                        }
+                    }
+                }
+                return bottom < 0 ? h : top - bottom + 1;
             }
-
-            var barrelImporter = BeginImport(BarrelFile);
-            if (barrelImporter != null)
+            finally
             {
-                barrelImporter.spritePixelsPerUnit = BarrelPixelsPerUnit;
-                SetPivot(barrelImporter, new Vector2(0.5f, BarrelPivotY));
-                FinishImport(barrelImporter);
+                Object.DestroyImmediate(texture);
             }
         }
 
-        // Barrel for LevelBuilder.BarrelPyramid: 420px of barrel -> 2.3 units tall on a 2.25-tall collider, so each
-        // barrel's lid tucks slightly under the one stacked on it. Pivot y = the barrel's base (34px of padding).
+        // Barrel for LevelBuilder.BarrelPyramid: a 2.3 m tun, 1.5 units - the same height as a hay bale - on a
+        // matching collider. Pivot y = the barrel's base (34px of padding).
         private const string BarrelFile = "Wooden Barrel.png";
-        private const float BarrelPixelsPerUnit = 180.7f;
+        private const float BarrelMetres = 2.3f;
         private const float BarrelPivotY = 0.068f;
 
         public static Sprite Barrel() => Load(BarrelFile);
         public static Sprite Haybale() => Load("Haybail.png");
 
-        // Background scenery (no collider) set behind obstacles by LevelBuilder.PlaceScenery. Pivot y = where the
-        // building meets the ground (the barn has debris/straw drawn in front of its base, which the grass covers).
-        private static readonly (string file, float pivotY, float pixelsPerUnit)[] SceneryFiles =
+        // Background scenery (no collider): the automatic barn/windmill of LevelBuilder.PlaceScenery and the
+        // hand-authored farm backdrop of PlaceFarmBackdrop. Pivot y = where the art meets the ground (the barn has
+        // debris/straw drawn in front of its base, which the grass covers). Real-world heights -> units at 0.65/m.
+        private static readonly (string file, float pivotY, float metres)[] SceneryFiles =
         {
-            ("DamagedBarn.png", 0.12f, 119f),   // 500px -> ~4.2 units tall
-            ("Windmill.png", 0.02f, 78.5f),     // 432px -> ~5.5 units tall
+            ("DamagedBarn.png", 0.12f, 9f),     // ~5.9 units
+            ("Windmill.png", 0.02f, 12f),       // ~7.8 (sail tips)
+            ("FarmSilo.png", 0.02f, 12f),       // ~7.8
+            ("OakTree.png", 0.08f, 13f),        // ~8.5; pivot where the roots meet the ground
+            ("GnarledTree.png", 0.01f, 8f),     // ~5.2
+            ("WaterWheel.png", 0.12f, 5f),      // ~3.3
+            ("CornStalk_1.png", 0.01f, 2.6f),   // ~1.7; pivot at the cut stem (per-stalk random scale on top)
+            ("CornStalk_2.png", 0.01f, 2.6f),
+            ("WoodenCart.png", 0.13f, 3.4f),    // ~2.2, bigger than a barrel; pivot at the wheel bottoms
+            ("WoodenFence.png", 0.22f, 1.2f),   // ~0.8 tall (sections tile edge to edge)
+            ("WildFlowers.png", 0.08f, 0.9f),   // ~0.6
+            ("Plane.png", 0.5f, 2.2f),          // not to scale: a distant plane, drawn ~1.4 units across the sky
         };
         public static Sprite Barn() => Load("DamagedBarn.png");
         public static Sprite Windmill() => Load("Windmill.png");
 
+        /// <summary>The farm backdrop art that imported successfully (missing pieces are null / left out).</summary>
+        internal static FarmBackdropArt FarmBackdrop() => new()
+        {
+            cornStalks = Load(new[] { "CornStalk_1.png", "CornStalk_2.png" }),
+            barn = Load("DamagedBarn.png"),
+            windmill = Load("Windmill.png"),
+            silo = Load("FarmSilo.png"),
+            gnarledTree = Load("GnarledTree.png"),
+            oak = Load("OakTree.png"),
+            waterWheel = Load("WaterWheel.png"),
+            cart = Load("WoodenCart.png"),
+            fence = Load("WoodenFence.png"),
+            wildflowers = Load("WildFlowers.png"),
+            plane = Load("Plane.png"),
+        };
+
         // Slab art for SecretLedge platforms (LevelBuilder.AddStoneSlabs rescales each slab to its slot).
         private const string LedgeFile = "Stone_Block.png";
         public static Sprite LedgeStone() => Load(LedgeFile);
+
+        // Square block art for LevelBuilder.StoneBlocks() bonus platforms, one block per tile.
+        private const string StoneBlockFile = "Stone_Square.png";
+        public static Sprite StoneBlock() => Load(StoneBlockFile);
+        public static Sprite Coin() => Load(CoinFile);
 
         /// <summary>The obstacle art that imported successfully.</summary>
         public static Sprite[] Obstacles()

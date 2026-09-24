@@ -16,6 +16,18 @@ namespace FarmFuryStampede.LevelSystem
         [SerializeField] private Sprite[] secretSprites;
 
         private bool _isSecretCluster;
+        private Sprite _visualOverride;
+
+        /// <summary>Set by LevelLoader on each spawn (null for the normal random pick); pooled crops are reused, so it is always reassigned.</summary>
+        public Sprite visualOverride
+        {
+            get => _visualOverride;
+            set
+            {
+                _visualOverride = value;
+                ApplyVisual();
+            }
+        }
         private bool _collected;
 
         /// <summary>Set by LevelLoader on each spawn: this crop belongs to the level's secret cluster.</summary>
@@ -39,6 +51,12 @@ namespace FarmFuryStampede.LevelSystem
         {
             if (visual == null)
             {
+                return;
+            }
+
+            if (_visualOverride != null)
+            {
+                visual.sprite = _visualOverride;
                 return;
             }
 
