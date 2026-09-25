@@ -8,9 +8,15 @@ using UnityEngine.UI;
 namespace FarmFuryStampede.UI
 {
     /// <summary>
-    /// Level Select for one world: a grid of level tiles (regular levels, then the boss) showing lock state and
-    /// stars, plus a small "?" icon on any COMPLETED level whose character-gated secret has not been found yet
-    /// (found = a crop of the secret cluster was collected, not merely the level cleared).
+    /// Level Select for one world: a grid of level tiles (regular levels, then the boss).
+    ///
+    /// Two looks. A world with a <see cref="WorldData.levelSelectBackground"/> follows the Level Select mockup: the
+    /// backdrop (world name baked in along the top) and wooden plaques, six per row - padlock when locked, question
+    /// mark for the next level to play, the Cluck board with 1-3 gold stars once completed - and the boss shield in
+    /// the slot after the last level. No numbers or secret icons on the art look. The grid is sized for 12 slots
+    /// (11 levels + boss, two rows of six) inside the device safe area and below the backdrop's title, so tiles never
+    /// overlap each other, the title or a notch; a short last row is centred.
+    /// A world without a backdrop keeps the plain code-built card grid (numbers, names, stars, the secret "?" icon).
     /// </summary>
     public class LevelSelectScreen
     {
@@ -22,8 +28,10 @@ namespace FarmFuryStampede.UI
             public bool unlocked;
             public bool completed;
             public int stars;
-            public GameObject secretIcon;
-            public GameObject lockLabel;
+            public GameObject secretIcon;   // plain look only
+            public GameObject lockLabel;    // plain look only
+            public float artScale;          // art rect size / tile size (art look)
+            public RectTransform art;       // art look
         }
 
         public GameObject Root { get; private set; }
@@ -35,24 +43,66 @@ namespace FarmFuryStampede.UI
         private readonly Text _title;
         private readonly Text _empty;
         private readonly Action<LevelData> _onPick;
+        private readonly MenuArt _art;
+        private readonly Image _backdrop;
+        private readonly Button _plainBack;
+        private readonly Button _artBack;
+        private bool _artLook;
 
-        public LevelSelectScreen(Transform canvas, Action<LevelData> onPick, Action onBack)
+        // Plain look: 5 cards per row under the text title.
+        private const int PlainColumns = 5;
+        private const float PlainTileWidth = 320f, PlainTileHeight = 240f, PlainTopRowY = 110f, PlainRowStep = 270f;
+
+        // Art look. Every world backdrop has its title in the top ~37% of the image; the grid starts below that.
+        private const int ArtColumns = 6;
+        private const int ArtMinRows = 2;              // sized for 12 slots even while a world has fewer levels
+        private const float TitleBand = 0.37f;
+        private const float EdgeMargin = 16f;          // inside the safe area
+        private const float TileFill = 0.8f;           // tile size as a fraction of its cell: the rest is the gap
+        // Art rect relative to the tile: the padlock / question plaques fill their frame; the Cluck boards have a
+        // transparent margin (the board is ~64% of the frame wide, ~70% tall), so their rect is bigger to draw a
+        // board about as big as a plaque; the shield fills its frame like the plaques.
+        private const float PlaqueScale = 1f;
+        private const float BoardScale = 1f / 0.68f;
+        private const float ShieldScale = 1f;
+        private const float BackButtonSize = 120f;
+
+        public LevelSelectScreen(Transform canvas, Action<LevelData> onPick, Action onBack, MenuArt art)
         {
             _onPick = onPick;
+            _art = art ?? new MenuArt();
 
             var root = UIKit.NewRect("LevelSelect", canvas);
             UIKit.Stretch(root);
             Root = root.gameObject;
             Root.AddComponent<Image>().color = UIKit.Dark;
+            _backdrop = UIKit.Backdrop(root);
 
             _title = UIKit.Label(root, "Title", "", 60, TextAnchor.MiddleCenter, UIKit.Accent);
             UIKit.Place(_title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(1300f, 90f));
 
-            var back = UIKit.MakeButton(root, "BackButton", "< Worlds", new Color(0.25f, 0.3f, 0.45f, 1f), () => onBack?.Invoke(), 34);
-            UIKit.Place(back.image.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(40f, -40f), new Vector2(240f, 70f));
-
             _gridParent = UIKit.NewRect("Grid", root);
             UIKit.Stretch((RectTransform)_gridParent);
+
+            // Buttons stay inside the device safe area.
+            var safe = UIKit.NewRect("SafeArea", root);
+            var fitter = safe.gameObject.AddComponent<SafeAreaFitter>();
+            fitter.Changed += Layout;
+
+            _plainBack = UIKit.MakeButton(safe, "BackButton", "< Worlds", new Color(0.25f, 0.3f, 0.45f, 1f), () => onBack?.Invoke(), 34);
+            UIKit.Place(_plainBack.image.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(40f, -40f), new Vector2(240f, 70f));
+
+            // Mockup back button: round wooden button in the top-left corner of the safe area.
+            _artBack = UIKit.MakeButton(safe, "BackButtonRound", _art.backButton != null ? "" : "<",
+                new Color(0.62f, 0.38f, 0.17f, 1f), () => onBack?.Invoke(), 72);
+            UIKit.Place(_artBack.image.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(EdgeMargin, -EdgeMargin),
+                new Vector2(BackButtonSize, BackButtonSize));
+            if (_art.backButton != null)
+            {
+                _artBack.image.sprite = _art.backButton;
+                _artBack.image.color = Color.white;
+                _artBack.image.preserveAspect = true;
+            }
 
             _empty = UIKit.Label(root, "Empty", "No levels in this world yet", 44, TextAnchor.MiddleCenter, UIKit.Muted);
             UIKit.Place(_empty.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(900f, 80f));
@@ -66,6 +116,12 @@ namespace FarmFuryStampede.UI
             World = world;
             var data = DataManager.Instance.GetWorldData(world);
             _title.text = data != null ? data.displayName : world.ToString();
+            var background = data != null ? data.levelSelectBackground : null;
+            _artLook = background != null && _art.levelTileLocked != null;
+            UIKit.SetBackdrop(_backdrop, background);
+            _title.gameObject.SetActive(background == null);   // the backdrop has the world name baked in
+            _plainBack.gameObject.SetActive(!_artLook);
+            _artBack.gameObject.SetActive(_artLook);
 
             foreach (var tile in _tiles)
             {
@@ -80,54 +136,170 @@ namespace FarmFuryStampede.UI
             for (int i = 0; i < levels.Count; i++)
             {
                 var level = levels[i];
-                int col = i % 5, row = i / 5;
-                bool unlocked = save.IsLevelUnlocked(level);
-                bool completed = save.IsLevelCompleted(level.levelId);
-                int stars = save.GetLevelStars(level.levelId);
-                bool secretUnfound = completed && level.hasCharacterGatedSecret && !save.IsSecretFound(level.levelId);
-
-                var tile = UIKit.Panel(_gridParent, $"Tile_{level.levelId}", unlocked ? (level.isBossLevel ? new Color(0.45f, 0.2f, 0.2f, 1f) : UIKit.Card) : UIKit.CardLocked);
-                UIKit.Place(tile.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2((col - 2) * 340f, 110f - row * 270f), new Vector2(320f, 240f));
-
-                string number = level.isBossLevel ? "BOSS" : (i + 1).ToString();
-                var numberLabel = UIKit.Label(tile.transform, "Number", number, level.isBossLevel ? 46 : 64, TextAnchor.MiddleCenter);
-                UIKit.Place(numberLabel.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(300f, 80f));
-                var nameLabel = UIKit.Label(tile.transform, "Name", level.displayName, 26, TextAnchor.MiddleCenter, unlocked ? Color.white : UIKit.Muted);
-                UIKit.Place(nameLabel.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(300f, 70f));
-
-                var bar = UIKit.StarBar(tile.transform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(-45f, 18f), 30f);
-                UIKit.SetStars(bar, stars);
-
-                var lockLabel = UIKit.Label(tile.transform, "Lock", "LOCKED", 34, TextAnchor.MiddleCenter, new Color(1f, 0.5f, 0.5f));
-                UIKit.Place(lockLabel.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 12f), new Vector2(300f, 44f));
-                lockLabel.gameObject.SetActive(!unlocked);
-                if (!unlocked)
+                var tile = new Tile
                 {
-                    foreach (var star in bar)
-                    {
-                        star.gameObject.SetActive(false);
-                    }
+                    level = level,
+                    unlocked = save.IsLevelUnlocked(level),
+                    completed = save.IsLevelCompleted(level.levelId),
+                    stars = save.GetLevelStars(level.levelId),
+                };
+                bool secretUnfound = tile.completed && level.hasCharacterGatedSecret && !save.IsSecretFound(level.levelId);
+
+                if (_artLook)
+                {
+                    BuildArtTile(tile);
+                }
+                else
+                {
+                    BuildPlainTile(tile, i, secretUnfound, background != null);
                 }
 
-                var icon = UIKit.Panel(tile.transform, "SecretIcon", new Color(0.85f, 0.3f, 0.9f, 1f));
-                UIKit.Place(icon.rectTransform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-10f, -10f), new Vector2(50f, 50f));
-                var mark = UIKit.Label(icon.transform, "Mark", "?", 36);
-                UIKit.Stretch(mark.rectTransform);
-                icon.gameObject.SetActive(secretUnfound);
-
                 var captured = level;
-                var button = tile.gameObject.AddComponent<Button>();
-                button.targetGraphic = tile;
-                button.interactable = unlocked;
-                button.onClick.AddListener(() => _onPick?.Invoke(captured));
-
-                _tiles.Add(new Tile
-                {
-                    level = level, root = tile.gameObject, button = button, unlocked = unlocked, completed = completed,
-                    stars = stars, secretIcon = icon.gameObject, lockLabel = lockLabel.gameObject
-                });
+                tile.button.interactable = tile.unlocked;
+                tile.button.onClick.AddListener(() => _onPick?.Invoke(captured));
+                _tiles.Add(tile);
             }
+
+            Layout();
+        }
+
+        // ------------------------------------------------------------ art look
+
+        private void BuildArtTile(Tile tile)
+        {
+            var level = tile.level;
+            Sprite sprite;
+            if (level.isBossLevel && _art.bossShield != null)
+            {
+                sprite = _art.bossShield;
+                tile.artScale = ShieldScale;
+            }
+            else if (!tile.unlocked)
+            {
+                sprite = _art.levelTileLocked;
+                tile.artScale = PlaqueScale;
+            }
+            else
+            {
+                sprite = _art.LevelTile(tile.completed, tile.stars);
+                tile.artScale = tile.completed && tile.stars > 0 ? BoardScale : PlaqueScale;
+            }
+
+            // The tile root is an invisible, tile-sized hit area; the art is a non-raycast child that may be drawn
+            // bigger (transparent margins), so one tile's margin can never swallow a tap meant for its neighbour.
+            var hit = UIKit.Panel(_gridParent, $"Tile_{level.levelId}", new Color(1f, 1f, 1f, 0f));
+            var art = UIKit.Picture(hit.transform, "Art", sprite);
+            art.gameObject.SetActive(true);
+            if (sprite == null)
+            {
+                art.color = tile.unlocked ? UIKit.Card : UIKit.CardLocked;   // missing art: still a visible tile
+            }
+
+            var button = hit.gameObject.AddComponent<Button>();
+            button.targetGraphic = art;
+            var colors = button.colors;
+            colors.highlightedColor = new Color(1.1f, 1.1f, 1.1f, 1f);
+            colors.pressedColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+            colors.disabledColor = Color.white;   // the padlock art already says "locked"; don't grey it too
+            button.colors = colors;
+
+            tile.root = hit.gameObject;
+            tile.button = button;
+            tile.art = art.rectTransform;
+        }
+
+        /// <summary>
+        /// Positions the art tiles for the current screen and safe area: a 6-wide grid (at least two rows) filling
+        /// the space between the backdrop title and the bottom of the safe area. Runs on Show and whenever the
+        /// safe area changes.
+        /// </summary>
+        private void Layout()
+        {
+            if (!_artLook || _tiles.Count == 0)
+            {
+                return;
+            }
+
+            var size = ((RectTransform)Root.transform).rect.size;
+            float w = size.x, h = size.y;
+            var (safeMin, safeMax) = SafeAreaFitter.Normalized();
+            float left = -w * 0.5f + safeMin.x * w + EdgeMargin;
+            float right = -w * 0.5f + safeMax.x * w - EdgeMargin;
+            float bottom = -h * 0.5f + safeMin.y * h + EdgeMargin;
+            float safeTop = -h * 0.5f + safeMax.y * h;
+
+            // The backdrop covers the screen (cropping the overflow), centred, so its title band scales with it.
+            var sprite = _backdrop.sprite;
+            float aspect = sprite != null ? sprite.rect.width / sprite.rect.height : 16f / 9f;
+            float imageHeight = Mathf.Max(h, w / aspect);
+            float titleBottom = imageHeight * (0.5f - TitleBand);
+            float top = Mathf.Min(titleBottom, safeTop - EdgeMargin);
+
+            int rows = Mathf.Max(ArtMinRows, Mathf.CeilToInt(_tiles.Count / (float)ArtColumns));
+            float cellW = (right - left) / ArtColumns;
+            float cellH = (top - bottom) / rows;
+            float tileSize = Mathf.Min(cellW, cellH) * TileFill;
+            float centreX = (left + right) * 0.5f;
+
+            for (int i = 0; i < _tiles.Count; i++)
+            {
+                int row = i / ArtColumns, col = i % ArtColumns;
+                int inRow = Mathf.Min(ArtColumns, _tiles.Count - row * ArtColumns);
+                var centre = new Vector2(centreX + (col - (inRow - 1) * 0.5f) * cellW, top - cellH * (row + 0.5f));
+
+                var tile = _tiles[i];
+                UIKit.Place((RectTransform)tile.root.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), centre,
+                    new Vector2(tileSize, tileSize));
+                UIKit.Place(tile.art, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero,
+                    Vector2.one * tileSize * tile.artScale);
+            }
+        }
+
+        // ------------------------------------------------------------ plain look
+
+        private void BuildPlainTile(Tile tile, int index, bool secretUnfound, bool overArt)
+        {
+            var level = tile.level;
+            int col = index % PlainColumns, row = index / PlainColumns;
+            var tileColor = tile.unlocked ? (level.isBossLevel ? new Color(0.45f, 0.2f, 0.2f, 1f) : UIKit.Card) : UIKit.CardLocked;
+            tileColor.a = overArt ? 0.88f : 1f;
+            var panel = UIKit.Panel(_gridParent, $"Tile_{level.levelId}", tileColor);
+            UIKit.Place(panel.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                new Vector2((col - 2) * (PlainTileWidth + 20f), PlainTopRowY - row * PlainRowStep), new Vector2(PlainTileWidth, PlainTileHeight));
+
+            string number = level.isBossLevel ? "BOSS" : (index + 1).ToString();
+            var numberLabel = UIKit.Label(panel.transform, "Number", number, level.isBossLevel ? 46 : 64, TextAnchor.MiddleCenter);
+            UIKit.Place(numberLabel.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(300f, 80f));
+            var nameLabel = UIKit.Label(panel.transform, "Name", level.displayName, 26, TextAnchor.MiddleCenter, tile.unlocked ? Color.white : UIKit.Muted);
+            UIKit.Place(nameLabel.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(300f, 70f));
+
+            var bar = UIKit.StarBar(panel.transform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(-45f, 18f), 30f);
+            UIKit.SetStars(bar, tile.stars);
+
+            var lockLabel = UIKit.Label(panel.transform, "Lock", "LOCKED", 34, TextAnchor.MiddleCenter, new Color(1f, 0.5f, 0.5f));
+            UIKit.Place(lockLabel.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 12f), new Vector2(300f, 44f));
+            lockLabel.gameObject.SetActive(!tile.unlocked);
+            if (!tile.unlocked)
+            {
+                foreach (var star in bar)
+                {
+                    star.gameObject.SetActive(false);
+                }
+            }
+
+            var icon = UIKit.Panel(panel.transform, "SecretIcon", new Color(0.85f, 0.3f, 0.9f, 1f));
+            UIKit.Place(icon.rectTransform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-10f, -10f), new Vector2(50f, 50f));
+            var mark = UIKit.Label(icon.transform, "Mark", "?", 36);
+            UIKit.Stretch(mark.rectTransform);
+            icon.gameObject.SetActive(secretUnfound);
+
+            var button = panel.gameObject.AddComponent<Button>();
+            button.targetGraphic = panel;
+
+            tile.root = panel.gameObject;
+            tile.button = button;
+            tile.secretIcon = icon.gameObject;
+            tile.lockLabel = lockLabel.gameObject;
         }
     }
 }

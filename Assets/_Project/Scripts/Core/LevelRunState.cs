@@ -26,6 +26,8 @@ namespace FarmFuryStampede.Core
 
         public int starsEarned;
         public bool bossCleared;
+        /// <summary>True when this boss clear opened the next world for the first time (not a replay, not the finale).</summary>
+        public bool worldUnlocked;
 
         /// <summary>True once a checkpoint has been touched this run.</summary>
         public bool hasCheckpoint;
@@ -49,6 +51,7 @@ namespace FarmFuryStampede.Core
             livesRemaining = 0;
             starsEarned = 0;
             bossCleared = false;
+            worldUnlocked = false;
             hasCheckpoint = false;
             respawnPosition = Vector2.zero;
         }

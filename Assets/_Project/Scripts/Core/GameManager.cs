@@ -111,6 +111,8 @@ namespace FarmFuryStampede.Core
                 if (CurrentLevel.isBossLevel)
                 {
                     RunState.bossCleared = true;
+                    RunState.worldUnlocked = CurrentLevel.worldType != WorldType.RobotMothership
+                        && !SaveManager.Instance.IsWorldBossCleared(CurrentLevel.worldType);
                     SaveManager.Instance.SetWorldBossCleared(CurrentLevel.worldType, true);
                 }
                 SaveManager.Instance.SaveProgress();

@@ -132,6 +132,46 @@ namespace FarmFuryStampede.UI
             return button;
         }
 
+        /// <summary>
+        /// A full-screen image behind a screen's content, scaled to cover the parent (cropping the overflow rather
+        /// than stretching) whatever the device aspect. Inserted as the first child so everything draws over it.
+        /// Hidden while it has no sprite.
+        /// </summary>
+        public static Image Backdrop(Transform parent)
+        {
+            var image = Panel(parent, "Backdrop", Color.white);
+            image.raycastTarget = false;
+            image.transform.SetAsFirstSibling();
+            Stretch(image.rectTransform);
+            var fitter = image.gameObject.AddComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+            image.gameObject.SetActive(false);
+            return image;
+        }
+
+        /// <summary>Shows the sprite in a backdrop made by <see cref="Backdrop"/> (null hides it), tinted by brightness.</summary>
+        public static void SetBackdrop(Image backdrop, Sprite sprite, float brightness = 1f)
+        {
+            backdrop.sprite = sprite;
+            backdrop.color = new Color(brightness, brightness, brightness, 1f);
+            backdrop.gameObject.SetActive(sprite != null);
+            if (sprite != null)
+            {
+                backdrop.GetComponent<AspectRatioFitter>().aspectRatio = sprite.rect.width / sprite.rect.height;
+            }
+        }
+
+        /// <summary>A non-interactive image that keeps the sprite's aspect inside its rect. Hidden when the sprite is null.</summary>
+        public static Image Picture(Transform parent, string pictureName, Sprite sprite)
+        {
+            var image = Panel(parent, pictureName, Color.white);
+            image.sprite = sprite;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            image.gameObject.SetActive(sprite != null);
+            return image;
+        }
+
         /// <summary>Three square "stars": gold when earned, dim when not. (Avoids glyphs the built-in font lacks.)</summary>
         public static Image[] StarBar(Transform parent, Vector2 anchor, Vector2 pivot, Vector2 position, float starSize)
         {

@@ -19,24 +19,50 @@ namespace FarmFuryStampede.UI
 
         private GameObject _root;
         private Text _title;
+        private RawImage _backdrop;
+        private const float BackdropBrightness = 0.45f;   // dimmed so the cards stand out
+        // Only the part of the world backdrop below its baked-in title (top 37%) is shown, so the title doesn't peek
+        // out around the header banner: sky and hills without the name.
+        private const float BackdropVisibleFraction = 0.62f;
         private readonly Dictionary<CharacterType, Button> _slots = new();
-        private const float CardSize = 270f;
+        // Card art: no caption under the card (the name is baked in). Cards are anchored to the top, under the banner,
+        // in two rows that fit the shortest phone canvas (~980 reference px tall).
+        private const float CardSize = 310f, CardColumnStep = 380f;
+        private const float CardFirstRowFromTop = 445f, CardRowStep = 340f;
+        // Banner wide enough to cover the world title baked into the (dimmed) backdrop behind it.
+        private static readonly Vector2 BannerSize = new(620f, 259f);
+        private const float BackButtonSize = 120f, EdgeMargin = 16f;   // matches Level Select
 
         /// <summary>Builds the panel under the given canvas (once). Called by GameFlow.</summary>
-        public void Build(Transform canvas)
+        public void Build(Transform canvas, MenuArt art = null)
         {
             if (_root != null)
             {
                 return;
             }
 
+            art ??= new MenuArt();
+
             var root = UIKit.NewRect("CharacterSelect", canvas);
             UIKit.Stretch(root);
             _root = root.gameObject;
             _root.AddComponent<Image>().color = UIKit.Dark;
+            _backdrop = UIKit.NewRect("Backdrop", root).gameObject.AddComponent<RawImage>();
+            _backdrop.raycastTarget = false;
+            _backdrop.transform.SetAsFirstSibling();
+            UIKit.Stretch(_backdrop.rectTransform);
+            _backdrop.gameObject.AddComponent<AspectRatioFitter>().aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+            _backdrop.gameObject.SetActive(false);
 
             _title = UIKit.Label(root, "Title", "", 52, TextAnchor.MiddleCenter, UIKit.Accent);
             UIKit.Place(_title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(1500f, 80f));
+            if (art.characterSelectBanner != null)
+            {
+                // The wooden banner replaces the "Choose a character for ..." text.
+                var banner = UIKit.Picture(root, "HeaderBanner", art.characterSelectBanner);
+                UIKit.Place(banner.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -12f), BannerSize);
+                _title.gameObject.SetActive(false);
+            }
 
             var characters = DataManager.Instance.GetAllCharacters();
             for (int i = 0; i < characters.Count; i++)
@@ -49,16 +75,13 @@ namespace FarmFuryStampede.UI
 
                 if (data.selectCard != null)
                 {
-                    // The card is the whole button (its name is baked in); ability / lock text is a caption under it.
+                    // The card is the whole button (its name is baked in), with no caption; a locked card is dimmed by
+                    // the Button's disabled colour.
                     button.image.sprite = data.selectCard;
                     button.image.preserveAspect = true;
-                    UIKit.Place(button.image.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                        slotCentre + new Vector2(0f, CardSize * 0.5f - 100f), new Vector2(CardSize, CardSize));
-
-                    var caption = button.GetComponentInChildren<Text>();
-                    caption.color = Color.white;
-                    caption.alignment = TextAnchor.UpperCenter;
-                    UIKit.Place(caption.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 1f), new Vector2(0f, -6f), new Vector2(380f, 64f));
+                    UIKit.Place(button.image.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f),
+                        new Vector2((col - 1.5f) * CardColumnStep, -(CardFirstRowFromTop + row * CardRowStep)), new Vector2(CardSize, CardSize));
+                    button.GetComponentInChildren<Text>().gameObject.SetActive(false);
                     _slots[data.characterType] = button;
                     continue;
                 }
@@ -78,8 +101,22 @@ namespace FarmFuryStampede.UI
                 _slots[data.characterType] = button;
             }
 
-            var cancel = UIKit.MakeButton(root, "CancelButton", "< Back", new Color(0.25f, 0.3f, 0.45f, 1f), Close, 34);
-            UIKit.Place(cancel.image.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(40f, -40f), new Vector2(240f, 70f));
+            if (art.backButton != null)
+            {
+                // Round back button in the top-left corner of the safe area, like Level Select.
+                var safe = UIKit.NewRect("SafeArea", root);
+                safe.gameObject.AddComponent<SafeAreaFitter>();
+                var back = UIKit.MakeButton(safe, "CancelButton", "", Color.white, Close);
+                back.image.sprite = art.backButton;
+                back.image.preserveAspect = true;
+                UIKit.Place(back.image.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(EdgeMargin, -EdgeMargin),
+                    new Vector2(BackButtonSize, BackButtonSize));
+            }
+            else
+            {
+                var cancel = UIKit.MakeButton(root, "CancelButton", "< Back", new Color(0.25f, 0.3f, 0.45f, 1f), Close, 34);
+                UIKit.Place(cancel.image.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(40f, -40f), new Vector2(240f, 70f));
+            }
 
             _root.SetActive(false);
         }
@@ -111,6 +148,22 @@ namespace FarmFuryStampede.UI
                 _root.SetActive(false);
             }
             GameManager.Instance.SetState(GameState.LevelSelect);
+        }
+
+        private void SetBackdrop(Sprite sprite)
+        {
+            _backdrop.gameObject.SetActive(sprite != null);
+            if (sprite == null)
+            {
+                return;
+            }
+
+            // The sprite fills its texture; take the bottom BackdropVisibleFraction of it (UV y runs bottom-up).
+            _backdrop.texture = sprite.texture;
+            _backdrop.uvRect = new Rect(0f, 0f, 1f, BackdropVisibleFraction);
+            _backdrop.color = new Color(BackdropBrightness, BackdropBrightness, BackdropBrightness, 1f);
+            _backdrop.GetComponent<AspectRatioFitter>().aspectRatio =
+                sprite.rect.width / (sprite.rect.height * BackdropVisibleFraction);
         }
 
         public bool IsSelectable(CharacterType type)
@@ -153,6 +206,8 @@ namespace FarmFuryStampede.UI
             }
 
             _title.text = $"Choose a character for {PendingLevel.displayName}";
+            var world = DataManager.Instance.GetWorldData(PendingLevel.worldType);
+            SetBackdrop(world != null ? world.levelSelectBackground : null);
             foreach (var data in DataManager.Instance.GetAllCharacters())
             {
                 bool unlocked = IsSelectable(data.characterType);
@@ -162,9 +217,6 @@ namespace FarmFuryStampede.UI
                 {
                     // Card art stays untinted; the Button's disabled colour dims a locked card.
                     button.image.color = Color.white;
-                    button.GetComponentInChildren<Text>().text = unlocked
-                        ? $"{data.abilityType}\n{data.abilityUsesPerLevel} uses per level"
-                        : $"LOCKED\nClear {data.unlockLevelsRequired} levels";
                     continue;
                 }
 

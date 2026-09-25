@@ -5,24 +5,28 @@ using UnityEngine;
 namespace FarmFuryStampede.EditorTools
 {
     /// <summary>
-    /// The eight World 1 levels, authored with <see cref="LevelBuilder"/>. Difficulty ramp:
-    ///   1-2  pure movement (no robots, no checkpoints)
-    ///   3-5  Harvesters, 1-2 gaps, checkpoints appear
-    ///   6-7  Drones join, raised platforms and terraces, 2+ checkpoints
-    ///   8    capstone: everything, widest gaps, most robots
+    /// The eleven World 1 levels and the boss, authored with <see cref="LevelBuilder"/>. Difficulty ramp:
+    ///   1-2   pure movement (no robots, no checkpoints)
+    ///   3-5   Harvesters, 1-2 gaps, checkpoints appear
+    ///   6-7   Drones join, raised platforms and terraces, 2+ checkpoints
+    ///   8     everything so far, widest gaps, most robots
+    ///   9-11  mixes: rising terraces under Drones (9), a Chaser run with climbable props (10), and the capstone
+    ///         (11) - five terraces, 5-wide gaps, every ordinary robot type - leading into the boss
     /// Phase 5a adds a Chaser (level 4), Scouts (levels 6 and 8), a Barrier Unit sealing level 5's secret chamber
     /// (Billy), and the boss level "Robot Commander's Fortress".
     /// Levels 1-4 carry a real character-gated secret (Phase 4): 1 = height ledge (Cluck's Flutter Jump or
     /// Woolly's Cloud Step), 2 = Breakable Floor (Bessie), 3 = Breakable Wall chamber (Billy), 4 = wide chasm
     /// (Gerald's Puff Glide, or Woolly's chained clouds). Levels 5-8 keep an open bonus cluster on a stair of
-    /// mounds/platforms; World 1 needs no more gating and later worlds add their own.
+    /// mounds/platforms. Levels 9-11 return to real gates: 9 = Breakable Floor (Bessie), 10 = chasm island behind
+    /// the start (Gerald / Woolly), 11 = Breakable Wall chamber on the highest platform (Billy).
     /// Objects are added after all layout so ground-relative placement sees the final geometry.
     /// </summary>
     internal static class MeadowRuinsLevels
     {
         public static List<LevelBuilder> CreateAll()
         {
-            return new List<LevelBuilder> { Level1(), Level2(), Level3(), Level4(), Level5(), Level6(), Level7(), Level8(), LevelBoss() };
+            return new List<LevelBuilder> { Level1(), Level2(), Level3(), Level4(), Level5(), Level6(), Level7(), Level8(),
+                Level9(), Level10(), Level11(), LevelBoss() };
         }
 
         // Arc of crops hinting the jump path over a gap.
@@ -339,6 +343,148 @@ namespace FarmFuryStampede.EditorTools
             b.CropRow(113, 116, 3);
             b.CropRow(122, 127, 5);
             b.SecretRow(102.5f, 105.5f, 1f, 8.5f);
+            return b;
+        }
+
+        // ---------------------------------------------------------------- 9
+
+        // Terraces climbing to a windy top-4 plateau under Drones, a perch stair on each rise, then back down.
+        private static LevelBuilder Level9()
+        {
+            var b = new LevelBuilder("MeadowRuins_09", "Windmill Heights");
+            b.Flat(26);                       // [-4,22) top 0
+            b.Gap(3);                         // [22,25)
+            b.Flat(20, 2);                    // [25,45) top 2
+            b.Flat(18, 4);                    // [45,63) top 4
+            b.Gap(4);                         // [63,67)
+            b.Flat(22, 4);                    // [67,89) top 4
+            b.Gap(4);                         // [89,93)
+            b.Flat(16, 2);                    // [93,109) top 2
+            b.Flat(24, 0);                    // [109,133) top 0
+
+            b.Mound(10, 3, 2);                // opening perch: mound up to a platform
+            b.Floating(15, 4, 4);
+            b.Mound(55, 2, 2);                // plateau perch
+            b.Floating(59, 4, 8);
+            b.BreakableFloor(78, 4);          // hollow beneath: Bessie's Ground Pound
+
+            b.Gate(CharacterType.Bessie, "Cracked Breakable Floor at x=78..82 on the plateau hides a hollow; only Ground Pound breaks it.");
+            b.Start(0).Goal(128).Checkpoint(27).Checkpoint(47).Checkpoint(84).Checkpoint(111);
+            b.Harvester(18, 2).Harvester(38, 4).Harvester(72, 2);
+            b.Scout(102, 4).Scout(118, 4);
+            b.Drone(34, 2.8f, 3).Drone(50, 2.8f, 3).Drone(100, 2.8f, 3);
+            b.CropRow(4, 8, 2);
+            b.Crop(11.5f);
+            b.CropAt(16, 4.5f).CropAt(17, 4.5f).CropAt(18, 4.5f);
+            GapArc(b, 22, 3, 0);
+            b.CropRow(28, 33, 3);
+            b.CropRow(40, 44, 2);
+            b.CropRow(46, 53, 3);
+            b.Crop(56f);
+            b.CropAt(60, 8.5f).CropAt(61, 8.5f).CropAt(62, 8.5f);
+            GapArc(b, 63, 4, 4);
+            b.CropRow(69, 76, 3);
+            b.CropRow(84, 88, 2);
+            GapArc(b, 89, 4, 4);
+            b.CropRow(96, 106, 4);
+            b.CropRow(112, 126, 4);
+            b.SecretRow(78.5f, 81.5f, 1f, 1.5f);
+            return b;
+        }
+
+        // ---------------------------------------------------------------- 10
+
+        // A long flat run with a Chaser waking mid-way, props to climb (barrel pyramid, hay stack, bonus blocks), then
+        // rising terraces. The secret island sits behind the start across a chasm, as in level 4.
+        private static LevelBuilder Level10()
+        {
+            var b = new LevelBuilder("MeadowRuins_10", "Scarecrow Pass", -32);
+            b.SecretFlat(8);                  // [-32,-24) island across a wide chasm behind the start
+            b.Gap(15);                        // [-24,-9)
+            b.Flat(35);                       // [-9,26) top 0
+            b.Gap(4);                         // [26,30)
+            b.Flat(40);                       // [30,70) top 0
+            b.Gap(4);                         // [70,74)
+            b.Flat(24, 1);                    // [74,98) top 1
+            b.Gap(3);                         // [98,101)
+            b.Flat(20, 3);                    // [101,121) top 3
+            b.Flat(16, 0);                    // [121,137) top 0
+
+            b.BarrelPyramid(20);
+            b.HayStack(40);
+            b.StoneBlocks(52, 3, 4);          // bonus perch over the Chaser's stretch
+
+            b.Gate(CharacterType.Gerald, "Island 15 units left of the start: too wide for the base jump; Puff Glide crosses it.", CharacterType.Woolly);
+            b.Start(0).Goal(133).Checkpoint(32).Checkpoint(76).Checkpoint(103);
+            b.Scout(12, 3).Harvester(48, 3).Harvester(86, 4).Scout(112, 4);
+            b.Chaser(62, 12);                 // wakes as the player crosses the hay stack; stompable, and outrunnable
+            b.Drone(64, 2.8f, 3).Drone(128, 2.8f, 3);
+            b.CropRow(4, 9, 2);
+            b.CropRow(23, 25, 2);
+            GapArc(b, 26, 4, 0);
+            b.CropRow(32, 36, 2);
+            b.CropRow(44, 50, 3);
+            b.CropAt(52.4f, 4.9f).CropAt(53.65f, 4.9f).CropAt(54.9f, 4.9f);
+            b.CropRow(58, 68, 4);
+            GapArc(b, 70, 4, 0);
+            b.CropRow(78, 96, 4);
+            GapArc(b, 98, 3, 1);
+            b.CropRow(104, 119, 5);
+            b.CropRow(124, 131, 3);
+            b.SecretRow(-30.5f, -26.5f, 1f, 0.5f);
+            return b;
+        }
+
+        // ---------------------------------------------------------------- 11
+
+        // Capstone before the boss: five terraces, three 5-wide gaps, every ordinary robot type, five checkpoints,
+        // and a sealed chamber on the highest platform of the level.
+        private static LevelBuilder Level11()
+        {
+            var b = new LevelBuilder("MeadowRuins_11", "Commander's Approach");
+            b.Flat(24);                       // [-4,20) top 0
+            b.Gap(3);                         // [20,23)
+            b.Flat(21, 2);                    // [23,44) top 2
+            b.Gap(5);                         // [44,49)
+            b.Flat(20, 2);                    // [49,69) top 2
+            b.Flat(16, 4);                    // [69,85) top 4
+            b.Gap(5);                         // [85,90)
+            b.Flat(18, 4);                    // [90,108) top 4
+            b.Gap(4);                         // [108,112)
+            b.Flat(22, 2);                    // [112,134) top 2
+            b.Gap(5);                         // [134,139)
+            b.Flat(24, 0);                    // [139,163) top 0
+
+            b.Mound(52, 3, 2);                // perch after the first wide gap
+            b.Floating(56, 4, 6);
+            b.Mound(93, 3, 2);                // open stair up to the chamber's platform
+            b.Floating(97, 4, 8);
+            b.Floating(102, 10, 10);
+            b.Chamber(106, 10, 4);            // sealed by a Breakable Wall: Billy's Charge Break
+
+            b.Gate(CharacterType.Billy, "Sealed chamber on the highest platform, above the last gap; its Breakable Wall only breaks to Charge Break.");
+            b.Start(0).Goal(158).Checkpoint(26).Checkpoint(51).Checkpoint(91).Checkpoint(114).Checkpoint(141);
+            b.Harvester(12, 3).Scout(34, 4).Harvester(60, 4).Scout(102, 4).Harvester(126, 4).Scout(150, 4);
+            b.Chaser(80, 10);                 // wakes on the top-4 terrace, right before the second wide gap
+            b.Drone(40, 3.2f, 3).Drone(120, 2.8f, 4);
+            b.CropRow(4, 7, 2);
+            b.CropRow(10, 18, 4);
+            GapArc(b, 20, 3, 0);
+            b.CropRow(28, 40, 4);
+            GapArc(b, 44, 5, 2);
+            b.Crop(53.5f);
+            b.CropAt(57, 6.5f).CropAt(58, 6.5f);
+            b.CropRow(62, 67, 5);
+            b.CropRow(71, 83, 4);
+            GapArc(b, 85, 5, 4);
+            b.Crop(94.5f);
+            b.CropAt(98, 8.5f).CropAt(99, 8.5f);
+            b.CropAt(103, 10.5f).CropAt(104, 10.5f);
+            GapArc(b, 108, 4, 4);
+            b.CropRow(116, 132, 4);
+            GapArc(b, 134, 5, 2);
+            b.CropRow(143, 156, 4);
+            b.SecretRow(107.5f, 110.5f, 1f, 10.5f);
             return b;
         }
 

@@ -20,7 +20,7 @@ namespace FarmFuryStampede.EditorTools
     /// <summary>
     /// Re-runnable Phase 5a bootstrap (supersedes the Phase 3/4 setup). Regenerates placeholder sprites/tiles, the
     /// pooled gameplay prefabs (Player, Crop, the seven robots, Checkpoint, Goal, Breakable Wall, Cloud
-    /// Platform, Horseshoe), the CharacterData / RobotData / WorldData / LevelData assets, the eight Meadow
+    /// Platform, Horseshoe), the CharacterData / RobotData / WorldData / LevelData assets, the eleven Meadow
     /// Ruins level prefabs plus the boss level, and wires Game.unity (LevelLoader, pool, camera, character
     /// select, GameFlow UI, debug panel, DataManager lists). Safe to re-run: existing assets are updated in
     /// place (GUIDs preserved) and the scene objects it owns (the "LevelSystem" root) are rebuilt.
@@ -282,7 +282,7 @@ namespace FarmFuryStampede.EditorTools
 
             var worldDatas = CreateWorldDatas();
 
-            // ---- Stage 3: build and validate the eight level prefabs and their LevelData.
+            // ---- Stage 3: build and validate the Meadow Ruins level prefabs (11 + boss) and their LevelData.
             var errors = new List<string>();
             var levelDatas = new List<LevelData>();
             foreach (var builder in MeadowRuinsLevels.CreateAll())
@@ -1054,12 +1054,12 @@ namespace FarmFuryStampede.EditorTools
         {
             var specs = new (WorldType type, string name, int levels, string blurb)[]
             {
-                (WorldType.MeadowRuins, "Meadow Ruins", 8, "Grassland tutorial world, wood/stone robot outposts."),
-                (WorldType.FrozenTundra, "Frozen Tundra", 8, "Ice physics: reduced traction, frozen lake platforming."),
-                (WorldType.WatermillVillage, "Watermill Village", 8, "Water-wheel village with timed fire-spread hazards."),
-                (WorldType.SkyIslands, "Sky Islands", 8, "Vertical platforming across floating islands, wind gusts."),
-                (WorldType.SunkenCity, "Sunken City", 8, "Flooded ruins: underwater sections with reduced gravity."),
-                (WorldType.RobotMothership, "Robot Mothership", 6, "Zero-G platforming; the Robot Overlord waits at the end."),
+                (WorldType.MeadowRuins, "Meadow Ruins", 11, "Grassland tutorial world, wood/stone robot outposts."),
+                (WorldType.FrozenTundra, "Frozen Tundra", 11, "Ice physics: reduced traction, frozen lake platforming."),
+                (WorldType.WatermillVillage, "Watermill Village", 11, "Water-wheel village with timed fire-spread hazards."),
+                (WorldType.SkyIslands, "Sky Islands", 11, "Vertical platforming across floating islands, wind gusts."),
+                (WorldType.SunkenCity, "Sunken City", 11, "Flooded ruins: underwater sections with reduced gravity."),
+                (WorldType.RobotMothership, "Robot Mothership", 11, "Zero-G platforming; the Robot Overlord waits at the end."),
             };
 
             var list = new List<WorldData>();
@@ -1074,6 +1074,8 @@ namespace FarmFuryStampede.EditorTools
                 data.levelCount = spec.levels;
                 data.bossLevelId = $"{spec.type}_Boss";
                 data.blurb = spec.blurb;
+                data.selectCardArt = StampedeUIArt.WorldSelectCard(spec.type);
+                data.levelSelectBackground = StampedeUIArt.LevelSelectBackground(spec.type);
                 EditorUtility.SetDirty(data);
                 list.Add(data);
             }
@@ -1163,6 +1165,18 @@ namespace FarmFuryStampede.EditorTools
             var flow = flowObject.AddComponent<GameFlow>();
             var flowSo = new SerializedObject(flow);
             flowSo.FindProperty("characterSelect").objectReferenceValue = characterSelect;
+            flowSo.FindProperty("menuArt.levelTileLocked").objectReferenceValue = StampedeUIArt.LevelTileLocked();
+            flowSo.FindProperty("menuArt.levelTileNext").objectReferenceValue = StampedeUIArt.LevelTileNext();
+            flowSo.FindProperty("menuArt.backButton").objectReferenceValue = StampedeUIArt.BackButton();
+            flowSo.FindProperty("menuArt.playButton").objectReferenceValue = StampedeUIArt.PlayButton();
+            flowSo.FindProperty("menuArt.worldSelectBanner").objectReferenceValue = StampedeUIArt.WorldUnlockedSign();
+            flowSo.FindProperty("menuArt.characterSelectBanner").objectReferenceValue = StampedeUIArt.NewCharacterSign();
+            flowSo.FindProperty("menuArt.bossShield").objectReferenceValue = StampedeUIArt.BossShield();
+            flowSo.FindProperty("menuArt.oneStarBoard").objectReferenceValue = StampedeUIArt.StarBoard(1);
+            flowSo.FindProperty("menuArt.twoStarBoard").objectReferenceValue = StampedeUIArt.StarBoard(2);
+            flowSo.FindProperty("menuArt.threeStarBoard").objectReferenceValue = StampedeUIArt.StarBoard(3);
+            flowSo.FindProperty("menuArt.newCharacterSign").objectReferenceValue = StampedeUIArt.NewCharacterSign();
+            flowSo.FindProperty("menuArt.worldUnlockedSign").objectReferenceValue = StampedeUIArt.WorldUnlockedSign();
             flowSo.ApplyModifiedPropertiesWithoutUndo();
             flowObject.AddComponent<DebugPanel>();
 

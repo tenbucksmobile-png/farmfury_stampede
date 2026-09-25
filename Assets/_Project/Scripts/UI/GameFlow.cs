@@ -18,6 +18,7 @@ namespace FarmFuryStampede.UI
         public const float FailedReturnSeconds = 2.5f;
 
         [SerializeField] private CharacterSelectScreen characterSelect;
+        [SerializeField] private MenuArt menuArt = new();
 
         public static GameFlow Instance { get; private set; }
 
@@ -41,10 +42,10 @@ namespace FarmFuryStampede.UI
             UIKit.EnsureEventSystem(transform);
 
             Hud = new HudScreen(canvas.transform, OpenPause);
-            Worlds = new WorldSelectScreen(canvas.transform, EnterLevelSelect);
-            Levels = new LevelSelectScreen(canvas.transform, PickLevel, EnterWorldSelect);
+            Worlds = new WorldSelectScreen(canvas.transform, EnterLevelSelect, menuArt);
+            Levels = new LevelSelectScreen(canvas.transform, PickLevel, EnterWorldSelect, menuArt);
             _canvasTransform = canvas.transform;
-            Results = new ResultsScreen(canvas.transform, RestartLevel, LeaveResults);
+            Results = new ResultsScreen(canvas.transform, RestartLevel, LeaveResults, menuArt);
             Pause = new PauseScreen(canvas.transform, ResumeFromPause, RestartLevel, QuitToLevelSelect);
         }
 
@@ -63,7 +64,7 @@ namespace FarmFuryStampede.UI
         private void Start()
         {
             _gm = GameManager.Instance;
-            characterSelect.Build(_canvasTransform);   // needs DataManager, so not in Awake
+            characterSelect.Build(_canvasTransform, menuArt);   // needs DataManager, so not in Awake
             _gm.StateChanged += ApplyState;
             EnterWorldSelect();
         }

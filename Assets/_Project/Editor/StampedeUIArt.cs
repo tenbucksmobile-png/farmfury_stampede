@@ -60,6 +60,34 @@ namespace FarmFuryStampede.EditorTools
             { CharacterType.Billy, "Billy_Goat.png" },
         };
 
+        // ---- Menu art ----------------------------------------------------------------------------------------
+        // UI-only sprites (an Image sizes them; pixels-per-unit is irrelevant). Signs/boards live in Sprites/UI; the
+        // per-world World Select card (WS_ prefix, name centred) and Level Select backdrop (name along the top) live
+        // in Sprites/Environment. Filenames don't all match the WorldType names (SkyIsland, Mothership).
+        private const string EnvironmentDir = "Assets/_Project/Sprites/Environment";
+        // Level Select tiles (per the Level Select mockup): padlock plaque when locked, the question-mark plaque for
+        // the next level to play, the Cluck board with 1-3 gold stars once completed (the 1-3 star boards double as the Results art), the boss shield. Btn_back.png is the
+        // round Level Select back button. World Select: WorldUnlocked.png doubles as its header banner and
+        // Btn_play.png is each card's play button. SelectLevelSign.png is imported but not used: no mockup has it.
+        private const string SelectLevelSignFile = "SelectLevelSign.png";
+        private const string LevelTileLockedFile = "LevelTile_Locked.png";
+        private const string LevelTileNextFile = "LevelTile_question.png";
+        private const string BackButtonFile = "Btn_back.png";
+        private const string PlayButtonFile = "Btn_play.png";
+        private const string BossShieldFile = "Boss_Shield.png";
+        private static readonly string[] StarBoardFiles = { "LevelWin_1.png", "LevelComplete_2.png", "LevelComplete_3.png" };
+        private const string NewCharacterSignFile = "NewCharacter.png";
+        private const string WorldUnlockedSignFile = "WorldUnlocked.png";
+        private static readonly Dictionary<WorldType, string> WorldArtNames = new()
+        {
+            { WorldType.MeadowRuins, "MeadowRuins" },
+            { WorldType.FrozenTundra, "FrozenTundra" },
+            { WorldType.WatermillVillage, "WatermillVillage" },
+            { WorldType.SkyIslands, "SkyIsland" },
+            { WorldType.SunkenCity, "SunkenCity" },
+            { WorldType.RobotMothership, "Mothership" },
+        };
+
         // ---- World scale -------------------------------------------------------------------------------------
         // Every world prop (obstacles, barrels, bales, buildings, trees, crops-in-the-field, fences) is sized from ONE
         // table of real-world heights, so nothing is out of proportion with anything else: a barrel can never
@@ -99,7 +127,66 @@ namespace FarmFuryStampede.EditorTools
 
             foreach (var (file, pivotY, metres) in SceneryFiles) { ImportToScale(file, pivotY, metres); }
             ImportToScale(BarrelFile, BarrelPivotY, BarrelMetres);
+
+            foreach (string file in MenuSpriteFiles()) { ImportMenuSprite(file); }
         }
+
+        // Every menu sprite as a project path.
+        private static IEnumerable<string> MenuSpriteFiles()
+        {
+            yield return $"{UIDir}/{SelectLevelSignFile}";
+            yield return $"{UIDir}/{BossShieldFile}";
+            yield return $"{UIDir}/{LevelTileLockedFile}";
+            yield return $"{UIDir}/{LevelTileNextFile}";
+            yield return $"{UIDir}/{BackButtonFile}";
+            yield return $"{UIDir}/{PlayButtonFile}";
+            foreach (string file in StarBoardFiles) { yield return $"{UIDir}/{file}"; }
+            yield return $"{UIDir}/{NewCharacterSignFile}";
+            yield return $"{UIDir}/{WorldUnlockedSignFile}";
+            foreach (string name in WorldArtNames.Values)
+            {
+                yield return $"{EnvironmentDir}/WS_{name}.png";
+                yield return $"{EnvironmentDir}/{name}.png";
+            }
+        }
+
+        private static void ImportMenuSprite(string path)
+        {
+            if (!File.Exists(path))
+            {
+                Debug.LogWarning($"[UIArt] Missing menu art {path}; that screen keeps its plain look.");
+                return;
+            }
+
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.filterMode = FilterMode.Bilinear;
+            importer.mipmapEnabled = false;
+            importer.alphaIsTransparency = true;
+            importer.spritePixelsPerUnit = 100f;
+            SetPivot(importer, new Vector2(0.5f, 0.5f));
+            importer.SaveAndReimport();
+        }
+
+        public static Sprite LevelTileLocked() => Load(LevelTileLockedFile);
+        public static Sprite LevelTileNext() => Load(LevelTileNextFile);
+        public static Sprite BackButton() => Load(BackButtonFile);
+        public static Sprite PlayButton() => Load(PlayButtonFile);
+        public static Sprite BossShield() => Load(BossShieldFile);
+        /// <summary>Results board for 1, 2 or 3 stars.</summary>
+        public static Sprite StarBoard(int stars) => Load(StarBoardFiles[Mathf.Clamp(stars, 1, 3) - 1]);
+        public static Sprite NewCharacterSign() => Load(NewCharacterSignFile);
+        public static Sprite WorldUnlockedSign() => Load(WorldUnlockedSignFile);
+
+        /// <summary>The world's World Select card art (name centred), or null.</summary>
+        public static Sprite WorldSelectCard(WorldType world) =>
+            WorldArtNames.TryGetValue(world, out string name) ? AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/WS_{name}.png") : null;
+
+        /// <summary>The world's Level Select backdrop (name along the top), or null.</summary>
+        public static Sprite LevelSelectBackground(WorldType world) =>
+            WorldArtNames.TryGetValue(world, out string name) ? AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/{name}.png") : null;
 
         /// <summary>World height in units of a piece of art whose opaque pixels span the given real-world height.</summary>
         public static float WorldHeight(float metres) => metres * UnitsPerMetre;

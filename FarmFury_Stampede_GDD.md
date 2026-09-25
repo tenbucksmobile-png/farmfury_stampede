@@ -1,6 +1,6 @@
 # FARM FURY: STAMPEDE — Game Design Document
 
-**v1.1** · "Charge In. Break Through. Take It Back." · A Farm Fury Universe Game
+**v1.2** · "Charge In. Break Through. Take It Back." · A Farm Fury Universe Game
 Side-Scrolling Platformer · Mobile · Free-to-Play
 
 ---
@@ -164,20 +164,22 @@ All eight animals return. Each has exactly one platforming-relevant ability, tra
 
 **Six worlds, reused from the shelved Farm Fury's design work (Section 3), reframed as platformer territories:**
 
-| World | Reused from | Platformer identity | Approx. levels |
+| World | Reused from | Platformer identity | Levels |
 |---|---|---|---|
-| 1. Meadow Ruins | Farm Fury World 1 | Grassland tutorial world, wood/stone robot outposts | 8 |
-| 2. Frozen Tundra | Farm Fury World 2 | Ice physics — reduced traction on ice tiles, frozen lake platforming | 8 |
-| 3. Watermill Village | Farm Fury World 3 | Water-wheel village, timed fire-spread hazards reinterpreted as platforming obstacles | 8 |
-| 4. Sky Islands | Farm Fury World 4 | Vertical platforming across floating islands, wind gusts push mid-air trajectories | 8 |
-| 5. Sunken City | Farm Fury World 5 | Flooded ruins — Ducky-favoured world, underwater sections with reduced gravity | 8 |
-| 6. Robot Mothership | Farm Fury World 6 | Zero-G platforming twist, Robot Overlord final boss | 6 + boss |
+| 1. Meadow Ruins | Farm Fury World 1 | Grassland tutorial world, wood/stone robot outposts | 11 + boss (built) |
+| 2. Frozen Tundra | Farm Fury World 2 | Ice physics — reduced traction on ice tiles, frozen lake platforming | 11 + boss |
+| 3. Watermill Village | Farm Fury World 3 | Water-wheel village, timed fire-spread hazards reinterpreted as platforming obstacles | 11 + boss |
+| 4. Sky Islands | Farm Fury World 4 | Vertical platforming across floating islands, wind gusts push mid-air trajectories | 11 + boss |
+| 5. Sunken City | Farm Fury World 5 | Flooded ruins — Ducky-favoured world, underwater sections with reduced gravity | 11 + boss |
+| 6. Robot Mothership | Farm Fury World 6 | Zero-G platforming twist, Robot Overlord final boss | 11 + Overlord |
 
-46 levels total for v1 launch scope — deliberately smaller than Arcade's 175 mazes or Rush's endless-plus-4-worlds, because hand-built platformer levels take materially longer to design and test than maze layouts or procedural runner chunks. Expand post-launch rather than over-scoping v1.
+**12 levels per world — 11 regular levels plus the boss as the 12th — 72 levels total for v1.** This replaces the original 46-level scope (8 per world, 6 + boss for the Mothership). Every world uses the same count so World and Level Select read the same everywhere: the Level Select grid is two rows of six with the boss in the last slot. The trade-off is real: hand-built platformer levels take materially longer to design and test than Arcade's mazes or Rush's procedural chunks, so the added levels are the biggest content cost in the roadmap. If schedule pressure bites, cut per-world variety (fewer new set-pieces per level) before cutting the count, so the grid stays consistent.
 
 **Character-gated secrets.** Every level has at minimum one Billy-only wall-break secret or one Ducky-only water section or similar — the level design brief for each level should name which character(s) get a bonus area, so the content is deliberate rather than incidental.
 
-**Meadow Ruins secrets as built (Phase 4-5a).** Level 1: a high ledge 4 units up (out of a single jump's reach; the double jump, Cluck's Flutter Jump or Woolly's Cloud Step reach it). Level 2: a Breakable Floor hiding a hollow (Bessie). Level 3: a chamber sealed by a Breakable Wall (Billy). Level 4: an island across a 15-wide chasm behind the start (Gerald's Puff Glide, or Woolly's chained clouds). Level 5: a chamber sealed by a Barrier Unit (Billy). Levels 6-8 keep open bonus clusters. The level builder rejects any "secret" that the base jump could reach.
+**Meadow Ruins secrets as built (Phase 4-5a).** Level 1: a high ledge 4 units up (out of a single jump's reach; the double jump, Cluck's Flutter Jump or Woolly's Cloud Step reach it). Level 2: a Breakable Floor hiding a hollow (Bessie). Level 3: a chamber sealed by a Breakable Wall (Billy). Level 4: an island across a 15-wide chasm behind the start (Gerald's Puff Glide, or Woolly's chained clouds). Level 5: a chamber sealed by a Barrier Unit (Billy). Levels 6-8 keep open bonus clusters. Level 9 "Windmill Heights": a Breakable Floor on the top-4 plateau (Bessie). Level 10 "Scarecrow Pass": an island across a 15-wide chasm behind the start (Gerald, or Woolly). Level 11 "Commander's Approach" (the capstone before the boss): a Breakable Wall chamber on the level's highest platform (Billy). The level builder rejects any "secret" that the base jump could reach. Percy's Roll Dash and Horace's Rear Vault have no World 1 gate: every character's double jump already reaches as far and as high as either, so they need geometry the base kit can't cover (low tunnels, taller walls) in later worlds.
+
+**Meadow Ruins difficulty ramp (as built).** 1-2 pure movement; 3-5 Harvesters, gaps and the first checkpoints; 6-7 Drones, raised platforms and terraces; 8 everything so far with the widest gaps; 9 rising terraces under Drones; 10 a long Chaser run with climbable props (barrel pyramid, hay stack, bonus stone blocks); 11 five terraces, three 5-wide gaps, every ordinary robot type and five checkpoints; then the Robot Commander's Fortress.
 
 **Boss levels.** One per world, ending in the world's own Robot Commander-tier fortress boss (reusing the "elaborate Robot Commander fortress" concept from the original Farm Fury's own World 1 boss language), culminating in the Robot Overlord finale in World 6.
 
@@ -187,9 +189,9 @@ All eight animals return. Each has exactly one platforming-relevant ability, tra
 
 ## 7. User Interface
 
-- **World Select** — six world cards (matching the world table above), locked/unlocked state, stars earned. **Rule:** a world unlocks once the previous world's boss level has been completed; only Meadow Ruins is open on a fresh save.
-- **Level Select (within world)** — grid of level tiles, lock state, star rating, a small icon marking any level with an as-yet-undiscovered character secret once the level has been completed. **Rules:** the first level of a world is open; each later level opens when the previous one is completed; the boss level opens once every regular level is cleared. The icon shows on a completed level with a gated secret that has not been found yet (found = a crop of the secret cluster was collected)
-- **Character Select (before a level)** — grid of unlocked characters with their ability described; picking one is a level *attempt*, not a permanent choice — replay the same level with a different character freely
+- **World Select** — a wooden banner header over six world cards (matching the world table above): each card is the world's art with its name baked in and a round play button in the bottom-left corner; a locked world's card and button are greyed out. (As built, the cards no longer show stars earned or which boss unlocks a world — the art mockup dropped the text.) **Rule:** a world unlocks once the previous world's boss level has been completed; only Meadow Ruins is open on a fresh save.
+- **Level Select (within world)** — the world's backdrop (name baked in) with two rows of six wooden plaques, sized to the device safe area: a padlock plaque when locked, a question-mark plaque for the next level to play, a board showing the 1-3 stars earned once completed, and the boss shield as the 12th slot. (As built, the art look drops level numbers and the undiscovered-secret icon; the plain fallback grid, used for a world without art, still shows both.) **Rules:** the first level of a world is open; each later level opens when the previous one is completed; the boss level opens once every regular level is cleared. The icon shows on a completed level with a gated secret that has not been found yet (found = a crop of the secret cluster was collected)
+- **Character Select (before a level)** — a "New Character" banner over the eight framed character cards (names baked in), locked ones greyed out; as built there's no ability text under the cards; picking one is a level *attempt*, not a permanent choice — replay the same level with a different character freely
 - **Gameplay HUD** — crops/score (top-left), lives (top-right), character portrait + ability-uses-remaining (bottom-left), pause (top-centre)
 - **Level Complete** — stars earned, crops collected, deaths, any character or world unlocked by this clear. **Level Failed** (out of lives) shows briefly, then returns to Level Select
 - **Pause** — Play, Settings (a stub until settings exist), Restart Level (reloads the level, same character, full lives), Quit (back to Level Select)
@@ -240,7 +242,7 @@ Reusing Arcade's exact, store-registered price points isn't just convenient — 
 
 **A genuinely different controller from Rush's, despite the shared engine.** Rush's Phase 2 learned a real lesson worth carrying over explicitly: Unity's Physics2D ignores the Z axis entirely for collision, and anything that needs to scroll or move reliably against colliders needs a **kinematic `Rigidbody2D` moved via `MovePosition`**, not `transform.Translate` (see Rush's `CLAUDE.md`, Phase 2 architecture notes). That lesson applies directly to Stampede's character controller too — a platformer needs precise, collision-reliable movement even more than a runner does. Where Stampede's controller genuinely differs from Rush's: Rush keeps the character fixed in X while the world scrolls past it; Stampede needs the more conventional platformer setup where the *character* actually traverses a level built in Tilemap space, with a Cinemachine-style camera following it — closer to a standard 2D platformer controller than to Rush's scrolling-world trick.
 
-**Level authoring:** each level is a prefab (Tilemap + Composite Collider2D geometry plus marker objects for the player start, crops, robots, checkpoints, goal, breakable walls) referenced by a `LevelData` ScriptableObject, and loaded in place by a `LevelLoader` that spawns the pooled gameplay objects at the markers — rather than 46 fully bespoke scenes — matching the franchise's established single-scene, data-driven convention (Arcade's `Resources.LoadAll` approach, Rush's Inspector-list approach) rather than breaking from it just because the genre changed.
+**Level authoring:** each level is a prefab (Tilemap + Composite Collider2D geometry plus marker objects for the player start, crops, robots, checkpoints, goal, breakable walls) referenced by a `LevelData` ScriptableObject, and loaded in place by a `LevelLoader` that spawns the pooled gameplay objects at the markers — rather than 72 fully bespoke scenes — matching the franchise's established single-scene, data-driven convention (Arcade's `Resources.LoadAll` approach, Rush's Inspector-list approach) rather than breaking from it just because the genre changed.
 
 **Backend:** plan for the same shared Supabase account as Rush and the franchise's stated cross-game intent — but build it the way Arcade actually proved out (Unity IAP's async `UnityIAPServices`/`StoreController` API, LevelPlay ad mediation), not the way Rush has only *planned* but not yet reached in its six-phase build order. Don't inherit Rush's unverified backend assumptions; inherit Arcade's verified ones.
 
@@ -254,7 +256,7 @@ Mirrors the phase structure that's already worked for Rush (see its `CLAUDE.md`)
 
 1. **Project foundation** — folder structure, core singletons (GameManager, DataManager, SaveManager, AudioManager), ScriptableObject definitions (CharacterData, RobotData, LevelData, WorldData), enums, empty scene, placeholder data. No gameplay. **Built.**
 2. **Core movement & controls** — Cluck only. Kinematic Rigidbody2D + MovePosition movement, coyote time, jump buffering, one hand-built test level in Meadow Ruins. Priority is game feel — this is the phase most likely to need real iteration time, same as it was for Rush. **Built.**
-3. **Level system & World 1** — Tilemap-based level loading from ScriptableObject descriptors, all 8 Meadow Ruins levels, ground-patrol and drone robot AI, checkpoint/level-complete flow, crop collection. **Built; machine-verified, hand-playtest pending.**
+3. **Level system & World 1** — Tilemap-based level loading from ScriptableObject descriptors, the Meadow Ruins levels (8 at the time; now 11 + boss), ground-patrol and drone robot AI, checkpoint/level-complete flow, crop collection. **Built; machine-verified, hand-playtest pending.**
 4. **Characters & abilities** — remaining 7 characters and all 8 unique abilities, character-select-before-level UI, ability-gated secrets, the 5/10/15/20/30/40 unlock ladder. **Built; machine-verified, hand-playtest pending.**
 5. **Remaining worlds, bosses & progression UI** — Worlds 2–6, per-world bosses, Robot Overlord finale, World Select/Level Select screens, HUD, pause. Split into one session per world: **5a done** (Scout/Barrier Unit/Chaser, the reusable boss pattern proven on Meadow Ruins, World/Level Select, HUD, pause, lives; machine-verified, hand-playtest pending); 5b Frozen Tundra (ice physics); 5c Watermill Village; 5d Sky Islands; 5e Sunken City; 5f Robot Mothership and the Robot Overlord.
 6. **Monetisation & polish** — Unity IAP (Arcade's proven product catalog, adapted), LevelPlay ad mediation, Firebase Analytics, Supabase cloud save, cross-promo, tutorial, launch polish.
@@ -290,3 +292,4 @@ Mirrors the phase structure that's already worked for Rush (see its `CLAUDE.md`)
 **Document Version History:**
 - v1.0 — Initial GDD. Concept established: Mario-Bros-style platformer, deliberately differentiated from Rush's endless-runner mechanic and Arcade's mid-maze-swap mechanic. Reuses the shelved original Farm Fury's six unshipped worlds and its Robot Overlord as final boss. Monetisation and pricing deliberately copied from Arcade's tested, store-verified model rather than newly invented.
 - v1.1 — Updated to the as-built design after Phases 1-5a: unified base movement and the 3-uses-per-level ability limit; ability rules as implemented; refined Scout/Barrier Unit/Chaser and the Commander boss; lives (3 per attempt) and the star formula; the boss pattern; world/level unlock rules and the secret-found icon rule; prefab-based level loading; roadmap status with Phase 5 split into 5a-5f.
+- v1.2 — Level count raised to 12 per world (11 levels + the boss as the 12th), 72 total, replacing the 46-level v1 scope; Meadow Ruins levels 9-11 built (Bessie, Gerald/Woolly and Billy gates) and the as-built difficulty ramp recorded. UI section updated to the art-driven World, Level and Character Select screens.
