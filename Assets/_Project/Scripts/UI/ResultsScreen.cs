@@ -16,7 +16,7 @@ namespace FarmFuryStampede.UI
     /// than 16:9 shows more farm at the sides instead of bars;
     /// the stars and unlock signs are children of the backdrop, placed in the art's own pixel coordinates, so they
     /// stay on the painted stars at any screen size. Buttons (inside the safe area, the shared round size):
-    ///   complete - play = next level (Character Select for it; World Select after the boss), X = Level Select,
+    ///   complete - play = continue to Level Select (next level ready as the question mark; World Select after the boss), X = Level Select,
     ///              home = landing screen, cog = Shop &amp; Settings;
     ///   failed   - play = retry the level, X = Level Select, home = landing screen.
     /// Under the stars sits the score: a corn kernel and "collected / total" crops for the run, in the title's gold

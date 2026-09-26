@@ -2,6 +2,7 @@ using FarmFuryStampede.Core;
 using FarmFuryStampede.Data;
 using FarmFuryStampede.LevelSystem;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace FarmFuryStampede.UI
@@ -197,30 +198,20 @@ namespace FarmFuryStampede.UI
         }
 
         /// <summary>
-        /// Level Complete's play button: Character Select for the next level in the world (the character is chosen
-        /// before every level); after the world's last level (the boss), World Select.
+        /// Level Complete's play button: back to Level Select, where the next level now shows as the question mark
+        /// (the character is picked from there, as for every level). After the world's last level (the boss),
+        /// World Select, where the newly unlocked world is waiting.
         /// </summary>
         public void PlayNextLevel()
         {
             var level = _gm.CurrentLevel;
-            if (level == null)
+            if (level == null || level.isBossLevel)
             {
                 EnterWorldSelect();
                 return;
             }
 
-            var levels = DataManager.Instance.GetWorldLevels(level.worldType);
-            int index = levels.IndexOf(level);
-            var next = index >= 0 && index + 1 < levels.Count ? levels[index + 1] : null;
-            if (next == null || !SaveManager.Instance.IsLevelUnlocked(next))
-            {
-                if (next == null) { EnterWorldSelect(); } else { QuitToLevelSelect(); }
-                return;
-            }
-
-            CurrentWorld = next.worldType;
-            LeaveGameplay();
-            characterSelect.Open(next);
+            QuitToLevelSelect();
         }
 
         private void LeaveGameplay()
@@ -245,6 +236,13 @@ namespace FarmFuryStampede.UI
 
         private void ApplyState(GameState state)
         {
+            // Drop the UI focus on every screen change: otherwise a button that had focus stays the target of the
+            // menu "submit" key (Space / Enter), so the jump key held at the goal could press a results button.
+            if (EventSystem.current != null)
+            {
+                EventSystem.current.SetSelectedGameObject(null);
+            }
+
             bool inLevel = state == GameState.Playing || state == GameState.Paused
                 || state == GameState.LevelComplete || state == GameState.LevelFailed;
 
