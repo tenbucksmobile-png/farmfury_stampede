@@ -2,6 +2,7 @@ using FarmFuryStampede.Data;
 using FarmFuryStampede.LevelSystem;
 using FarmFuryStampede.Movement;
 using FarmFuryStampede.Robots;
+using FarmFuryStampede.Utilities;
 using UnityEngine;
 
 namespace FarmFuryStampede.Characters
@@ -54,6 +55,10 @@ namespace FarmFuryStampede.Characters
 
             _pounding = false;
             Vector2 feet = owner.FeetPosition;
+            if (owner.Prefabs.poundEffect != null)
+            {
+                ObjectPool.Instance.Get(owner.Prefabs.poundEffect, feet + Vector2.up * 0.3f);   // the impact ring (BessieSlam.png)
+            }
 
             int tilesBroken = 0;
             foreach (var hit in Physics2D.OverlapCircleAll(feet, BreakRadius, owner.GroundMask))

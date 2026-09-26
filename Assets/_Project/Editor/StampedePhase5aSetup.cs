@@ -53,6 +53,10 @@ namespace FarmFuryStampede.EditorTools
         private const string BreakableWallPrefabPath = PrefabsDir + "/BreakableWall.prefab";
         private const string CloudPrefabPath = PrefabsDir + "/CloudPlatform.prefab";
         private const string HorseshoePrefabPath = PrefabsDir + "/Horseshoe.prefab";
+        private const string EggPrefabPath = PrefabsDir + "/Egg.prefab";
+        // Cluck's Egg Launch projectile: the cracked-egg art, imported centred at EggHeight units tall.
+        private const string EggArtFile = "Power_1.png";
+        private const float EggHeight = 0.6f;
         private const string HarvesterPrefabPath = RobotPrefabsDir + "/Harvester.prefab";
         private const string DronePrefabPath = RobotPrefabsDir + "/Drone.prefab";
         private const string ScoutPrefabPath = RobotPrefabsDir + "/Scout.prefab";
@@ -100,8 +104,8 @@ namespace FarmFuryStampede.EditorTools
 
         private static readonly CharacterSpec[] Characters =
         {
-            new CharacterSpec { type = CharacterType.Cluck, displayName = "Cluck the Chicken", ability = AbilityType.FlutterJump, unlockLevels = 0, ui = new Color(1f, 0.9f, 0.4f),
-                description = "Flutter Jump: a brief mid-air flutter granting a second jump (once per airborne period)." },
+            new CharacterSpec { type = CharacterType.Cluck, displayName = "Cluck the Chicken", ability = AbilityType.EggLaunch, unlockLevels = 0, ui = new Color(1f, 0.9f, 0.4f),
+                description = "Egg Launch: lobs an egg forward, on the ground or in the air, that defeats the first robot it hits." },
             new CharacterSpec { type = CharacterType.Bessie, displayName = "Bessie the Cow", ability = AbilityType.GroundPound, unlockLevels = 0, ui = new Color(0.95f, 0.95f, 0.95f),
                 description = "Ground Pound: a forced fast-fall; on landing breaks Breakable Floor tiles nearby and defeats robots beneath her." },
             new CharacterSpec { type = CharacterType.Percy, displayName = "Percy the Pig", ability = AbilityType.RollDash, unlockLevels = 5, ui = new Color(1f, 0.65f, 0.75f),
@@ -195,8 +199,10 @@ namespace FarmFuryStampede.EditorTools
             CreateTile("WaterTile", square, new Color(0.25f, 0.5f, 0.95f, 0.6f));
             CreateTile("InvisibleTile", null, Color.white);   // collision only; art is drawn separately (stone ledges)
 
-            BuildCloudPrefab(square, groundLayer);
-            BuildHorseshoePrefab(horseshoeSprite);
+            BuildCloudPrefab(square, groundLayer, ImportCentredArt(CloudArtFile, CloudArtWidth));
+            BuildHorseshoePrefab(ImportCentredArt(HorseshoeArtFile, HorseshoeHeight) ?? horseshoeSprite);
+            BuildEggPrefab(ImportCentredArt(EggArtFile, EggHeight) ?? horseshoeSprite);
+            BuildPoundEffectPrefab(ImportCentredArt(PoundArtFile, PoundArtHeight));
             BuildBreakableWallPrefab(barrierSprite, groundLayer);
             BuildPlayerPrefab(groundLayer, playerLayer);
             BuildCropPrefab(cropSprite);
@@ -603,20 +609,27 @@ namespace FarmFuryStampede.EditorTools
             so.FindProperty("groundMask").intValue = 1 << groundLayer;
             so.FindProperty("abilityPrefabs.cloudPlatform").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(CloudPrefabPath);
             so.FindProperty("abilityPrefabs.horseshoe").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(HorseshoePrefabPath);
+            so.FindProperty("abilityPrefabs.egg").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(EggPrefabPath);
+            so.FindProperty("abilityPrefabs.poundEffect").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(PoundEffectPrefabPath);
             so.ApplyModifiedPropertiesWithoutUndo();
 
             SavePrefab(root, PlayerPrefabPath);
         }
 
-        private static void BuildCloudPrefab(Sprite square, int groundLayer)
+        // Woolly's wool platform. With the cloud art (Wooly_effect.png, CloudArtWidth wide) the puff hangs from the
+        // thin collider so its top sits level with the surface Woolly stands on; otherwise a flat white bar.
+        private static void BuildCloudPrefab(Sprite square, int groundLayer, Sprite cloudArt)
         {
             var root = new GameObject("CloudPlatform") { layer = groundLayer };
 
             var box = root.AddComponent<BoxCollider2D>();
-            box.size = new Vector2(2.2f, CloudPlatform.Thickness);
+            box.size = new Vector2(CloudArtWidth, CloudPlatform.Thickness);
 
-            var visual = AddVisual(root.transform, "Visual", square, new Color(0.95f, 0.97f, 1f), Vector3.zero,
-                new Vector3(2.2f, CloudPlatform.Thickness, 1f), 6);
+            var visual = cloudArt != null
+                ? AddVisual(root.transform, "Visual", cloudArt, Color.white,
+                    new Vector3(0f, CloudPlatform.Thickness * 0.5f + 0.15f - cloudArt.bounds.size.y * 0.5f, 0f), Vector3.one, 6)
+                : AddVisual(root.transform, "Visual", square, new Color(0.95f, 0.97f, 1f), Vector3.zero,
+                    new Vector3(CloudArtWidth, CloudPlatform.Thickness, 1f), 6);
             visual.gameObject.layer = groundLayer;
 
             AddPooled(root, "CloudPlatform");
@@ -645,6 +658,71 @@ namespace FarmFuryStampede.EditorTools
             root.AddComponent<Horseshoe>();
 
             SavePrefab(root, HorseshoePrefabPath);
+        }
+
+        // Cluck's egg: same shape as the horseshoe (kinematic trigger, pooled), with the Egg arc behaviour.
+        private static void BuildEggPrefab(Sprite sprite)
+        {
+            var root = new GameObject("Egg");
+
+            var body = root.AddComponent<Rigidbody2D>();
+            body.bodyType = RigidbodyType2D.Kinematic;
+
+            var circle = root.AddComponent<CircleCollider2D>();
+            circle.isTrigger = true;
+            circle.radius = 0.3f;
+
+            AddVisual(root.transform, "Visual", sprite, Color.white, Vector3.zero, Vector3.one, 9);
+
+            AddPooled(root, "Egg");
+            root.AddComponent<Egg>();
+
+            SavePrefab(root, EggPrefabPath);
+        }
+
+        // Imports an effect/projectile image from Sprites/Characters as a centred sprite 'units' tall (its source
+        // height); null if the file is missing, so the caller can fall back to placeholder art.
+        private static Sprite ImportCentredArt(string file, float units)
+        {
+            string path = ArtPath(file);
+            if (!File.Exists(path))
+            {
+                Debug.LogWarning($"[Phase5aSetup] Missing {path}; placeholder art is used instead.");
+                return null;
+            }
+
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.GetSourceTextureWidthAndHeight(out _, out int height);
+            importer.spritePixelsPerUnit = height / units;
+            StampedeUIArt.SetPivot(importer, CentrePivot);
+            importer.filterMode = FilterMode.Bilinear;
+            importer.mipmapEnabled = false;
+            importer.alphaIsTransparency = true;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
+        // Bessie's ground-pound impact: the BessieSlam ring, grown and faded out by FadeEffect. No art = no prefab
+        // (GroundPoundAbility skips the effect).
+        private static void BuildPoundEffectPrefab(Sprite sprite)
+        {
+            if (sprite == null)
+            {
+                return;
+            }
+
+            var root = new GameObject("PoundEffect");
+            var visual = AddVisual(root.transform, "Visual", sprite, Color.white, Vector3.zero, Vector3.one, 7);
+            AddPooled(root, "PoundEffect");
+            var effect = root.AddComponent<FadeEffect>();
+            var so = new SerializedObject(effect);
+            so.FindProperty("visual").objectReferenceValue = visual;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            SavePrefab(root, PoundEffectPrefabPath);
         }
 
         private static void BuildBreakableWallPrefab(Sprite barrier, int groundLayer)
@@ -927,18 +1005,69 @@ namespace FarmFuryStampede.EditorTools
         // ---------------------------------------------------------------- real character art
 
         // Frame files per character. Only characters listed here get real art; the rest keep placeholders.
-        private static readonly Dictionary<CharacterType, string[]> CharacterArtFiles = new()
+        // A character's art frames (file names in Sprites/Characters). Only idle or run is required per side; a
+        // missing jump/defeat/ability frame falls back in CharacterSpriteAnimator, and a one-frame run just holds.
+        private sealed class ArtFrames
         {
-            // idleRight, runRight1, runRight2, jumpRight, idleLeft, runLeft1, runLeft2, jumpLeft, defeat
+            public string idleRight, jumpRight, idleLeft, jumpLeft, defeat, abilityRight, abilityLeft;
+            public string[] runRight = Array.Empty<string>(), runLeft = Array.Empty<string>();
+
+            public IEnumerable<string> Files()
             {
-                CharacterType.Cluck, new[]
+                var all = new List<string> { idleRight, jumpRight, idleLeft, jumpLeft, defeat, abilityRight, abilityLeft };
+                all.AddRange(runRight);
+                all.AddRange(runLeft);
+                var seen = new HashSet<string>();
+                foreach (string f in all)
                 {
-                    "Cluck_right.png", "Cluck_right1.png", "Cluck_right2.png", "Cluck_Right_Jump.png",
-                    "Clucky_Left_Stand.png", "Clucky_Left1.png", "Clucky_Left2.png", "Clucky_left_Jump.png",
-                    "Clucky_Defeat.png"
+                    if (!string.IsNullOrEmpty(f) && seen.Add(f)) { yield return f; }
                 }
-            },
+            }
+        }
+
+        // What each character has so far (2026-09-26). Missing art, per the drop: jump and defeat frames for everyone
+        // but Cluck, a second walk frame for Ducky, Woolly and Gerald facing right, a thumbs-up idle facing right for
+        // Bessie, and ability poses for Bessie, Woolly, Ducky, Horace and Gerald. Percy's left frames are Flat1/Flat2,
+        // his right frames Right1/Right2.
+        private static readonly Dictionary<CharacterType, ArtFrames> CharacterArtFiles = new()
+        {
+            { CharacterType.Cluck, new ArtFrames {
+                idleRight = "Cluck_right.png", runRight = new[] { "Cluck_right1.png", "Cluck_right2.png" }, jumpRight = "Cluck_Right_Jump.png",
+                idleLeft = "Clucky_Left_Stand.png", runLeft = new[] { "Clucky_Left1.png", "Clucky_Left2.png" }, jumpLeft = "Clucky_left_Jump.png",
+                defeat = "Clucky_Defeat.png" } },
+            { CharacterType.Bessie, new ArtFrames {
+                idleRight = "Bessie_right.png", runRight = new[] { "Bessie_right.png", "Bessie_right2.png" },
+                idleLeft = "Bessie_left3.png", runLeft = new[] { "Bessie_left.png", "Bessie_left2.png" } } },   // left3 = thumbs-up idle
+            { CharacterType.Percy, new ArtFrames {
+                idleRight = "Right1.png", runRight = new[] { "Right1.png", "Right2.png" },
+                idleLeft = "Flat1.png", runLeft = new[] { "Flat1.png", "Flat2.png" },
+                abilityRight = "Percy_effect.png", abilityLeft = "Percy_effect.png" } },                         // rolled up for Roll Dash
+            { CharacterType.Woolly, new ArtFrames {
+                idleRight = "Wooly_right.png", runRight = new[] { "Wooly_right.png" },
+                idleLeft = "Wooly_left.png", runLeft = new[] { "Wooly_left.png" } } },
+            { CharacterType.Ducky, new ArtFrames {
+                idleRight = "Ducky_right.png", runRight = new[] { "Ducky_right.png" },
+                idleLeft = "Ducky_left.png", runLeft = new[] { "Ducky_left.png" } } },
+            { CharacterType.Horace, new ArtFrames {
+                idleRight = "Horace_right.png", runRight = new[] { "Horace_right.png", "Horace_right1.png" },
+                idleLeft = "Horace_left.png", runLeft = new[] { "Horace_left.png", "Horace_left1.png" } } },
+            { CharacterType.Gerald, new ArtFrames {
+                idleRight = "Gerald_right.png", runRight = new[] { "Gerald_right.png" },
+                idleLeft = "Gerald_left.png", runLeft = new[] { "Gerald_left.png", "Gerald_left1.png" } } },
+            { CharacterType.Billy, new ArtFrames {
+                idleRight = "Billy_right.png", runRight = new[] { "Billy_right.png", "Billy_right1.png" },
+                idleLeft = "Billy_left.png", runLeft = new[] { "Billy_left.png", "Billy_left1.png" },
+                abilityRight = "Billy_right_ram1.png", abilityLeft = "Billy_left_ram1.png" } },                 // ramming for Charge Break
         };
+
+        // Ability effect art in Sprites/Characters, imported centred at these heights (units).
+        private const string HorseshoeArtFile = "horseshoe.png";
+        private const float HorseshoeHeight = 0.7f;
+        private const string CloudArtFile = "Wooly_effect.png";
+        private const float CloudArtWidth = 2.2f;      // the cloud platform's collider width
+        private const string PoundArtFile = "BessieSlam.png";
+        private const float PoundArtHeight = 2.6f;
+        private const string PoundEffectPrefabPath = PrefabsDir + "/PoundEffect.prefab";
 
         private static string ArtPath(string file) => $"{ArtDir}/{file}";
 
@@ -947,7 +1076,7 @@ namespace FarmFuryStampede.EditorTools
         {
             foreach (var pair in CharacterArtFiles)
             {
-                foreach (string file in pair.Value)
+                foreach (string file in pair.Value.Files())
                 {
                     string path = ArtPath(file);
                     if (!File.Exists(path))
@@ -1008,30 +1137,51 @@ namespace FarmFuryStampede.EditorTools
         // Returns the sprite set for the character, or null when it has no (complete) art.
         private static CharacterSpriteSet CreateCharacterSpriteSet(CharacterType type)
         {
-            if (!CharacterArtFiles.TryGetValue(type, out var files))
+            if (!CharacterArtFiles.TryGetValue(type, out var frames))
             {
                 return null;
             }
 
-            var sprites = new Sprite[files.Length];
-            for (int i = 0; i < files.Length; i++)
+            Sprite Load(string file)
             {
-                sprites[i] = AssetDatabase.LoadAssetAtPath<Sprite>(ArtPath(files[i]));
-                if (sprites[i] == null)
+                if (string.IsNullOrEmpty(file)) { return null; }
+                var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(ArtPath(file));
+                if (sprite == null) { Debug.LogWarning($"[Phase5aSetup] Art frame {file} for {type} did not load; skipped."); }
+                return sprite;
+            }
+
+            Sprite[] LoadAll(string[] files)
+            {
+                var list = new List<Sprite>();
+                foreach (string f in files)
                 {
-                    Debug.LogWarning($"[Phase5aSetup] Art frame {files[i]} for {type} did not load; using the placeholder instead.");
-                    return null;
+                    var sprite = Load(f);
+                    if (sprite != null) { list.Add(sprite); }
                 }
+                return list.ToArray();
+            }
+
+            var runRight = LoadAll(frames.runRight);
+            var runLeft = LoadAll(frames.runLeft);
+            var idleRight = Load(frames.idleRight);
+            var idleLeft = Load(frames.idleLeft);
+            // A side needs an idle or a run frame; without both sides the character keeps its placeholder.
+            if ((idleRight == null && runRight.Length == 0) || (idleLeft == null && runLeft.Length == 0))
+            {
+                Debug.LogWarning($"[Phase5aSetup] {type} has no usable frames for one facing; using the placeholder instead.");
+                return null;
             }
 
             var set = LoadOrCreate<CharacterSpriteSet>($"{CharacterDataDir}/CharacterSprites_{type}.asset");
-            set.idleRight = sprites[0];
-            set.runRight = new[] { sprites[1], sprites[2] };
-            set.jumpRight = sprites[3];
-            set.idleLeft = sprites[4];
-            set.runLeft = new[] { sprites[5], sprites[6] };
-            set.jumpLeft = sprites[7];
-            set.defeat = sprites[8];
+            set.idleRight = idleRight;
+            set.runRight = runRight;
+            set.jumpRight = Load(frames.jumpRight);
+            set.idleLeft = idleLeft;
+            set.runLeft = runLeft;
+            set.jumpLeft = Load(frames.jumpLeft);
+            set.defeat = Load(frames.defeat);
+            set.abilityRight = Load(frames.abilityRight);
+            set.abilityLeft = Load(frames.abilityLeft);
             EditorUtility.SetDirty(set);
             return set;
         }
@@ -1170,10 +1320,18 @@ namespace FarmFuryStampede.EditorTools
             flowSo.FindProperty("menuArt.backButton").objectReferenceValue = StampedeUIArt.BackButton();
             flowSo.FindProperty("menuArt.playButton").objectReferenceValue = StampedeUIArt.PlayButton();
             flowSo.FindProperty("menuArt.homeButton").objectReferenceValue = StampedeUIArt.HomeButton();
+            flowSo.FindProperty("menuArt.lifeIcon").objectReferenceValue = StampedeUIArt.LifeIcon();
+            flowSo.FindProperty("menuArt.pauseButton").objectReferenceValue = StampedeUIArt.PauseButton();
+            flowSo.FindProperty("menuArt.quitButton").objectReferenceValue = StampedeUIArt.QuitButton();
+            flowSo.FindProperty("menuArt.scoreIcon").objectReferenceValue = StampedeUIArt.ScoreIcon();
+            flowSo.FindProperty("menuArt.levelCompleteBackground").objectReferenceValue = StampedeUIArt.LevelCompleteBackground();
+            flowSo.FindProperty("menuArt.levelFailedBackground").objectReferenceValue = StampedeUIArt.LevelFailedBackground();
+            flowSo.FindProperty("menuArt.levelCompleteStarEmpty").objectReferenceValue = StampedeUIArt.LevelCompleteStarEmpty();
             flowSo.FindProperty("menuArt.worldSelectBackground").objectReferenceValue = StampedeUIArt.WorldSelectBackground();
             flowSo.FindProperty("menuArt.exitButton").objectReferenceValue = StampedeUIArt.ExitButton();
             flowSo.FindProperty("menuArt.settingsButton").objectReferenceValue = StampedeUIArt.SettingsButton();
             flowSo.FindProperty("menuArt.landingPoster").objectReferenceValue = StampedeUIArt.LandingPoster();
+            flowSo.FindProperty("menuArt.landingBackdrop").objectReferenceValue = StampedeUIArt.LandingBackdrop();
             flowSo.FindProperty("menuArt.worldSelectBanner").objectReferenceValue = StampedeUIArt.WorldUnlockedSign();
             flowSo.FindProperty("menuArt.characterSelectBanner").objectReferenceValue = StampedeUIArt.NewCharacterSign();
             flowSo.FindProperty("menuArt.bossShield").objectReferenceValue = StampedeUIArt.BossShield();

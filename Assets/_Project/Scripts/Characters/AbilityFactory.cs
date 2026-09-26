@@ -10,7 +10,7 @@ namespace FarmFuryStampede.Characters
         {
             switch (type)
             {
-                case AbilityType.FlutterJump: return new FlutterJumpAbility();
+                case AbilityType.EggLaunch: return new EggLaunchAbility();
                 case AbilityType.GroundPound: return new GroundPoundAbility();
                 case AbilityType.RollDash: return new RollDashAbility();
                 case AbilityType.CloudStep: return new CloudStepAbility();

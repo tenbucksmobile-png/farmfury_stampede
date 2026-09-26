@@ -14,8 +14,8 @@ namespace FarmFuryStampede.UI
     /// backdrop (world name baked in along the top) and wooden plaques, six per row, played in order: every slot
     /// starts as the padlock except the first, which is the question mark (the next level to play); completing a
     /// level turns it into the Cluck board with its 1-3 gold stars and the next slot into the question mark. The boss
-    /// slot (after the last level) is a padlock until every level is done, then the boss shield, then its star board
-    /// once beaten. No numbers or secret icons on the art look. Every tile's art is drawn at the same visible size
+    /// slot (after the last level) always shows the boss shield - untappable until every level is done - and its star
+    /// board once beaten. No numbers or secret icons on the art look. Every tile's art is drawn at the same visible size
     /// (scaled by how much of its frame the art fills) in an evenly spaced grid sized for 12 slots (11 levels + boss,
     /// two rows of six) inside the device safe area and below the backdrop's title, so tiles never overlap each
     /// other, the title or a notch; a short last row is centred. The backdrop covers the screen with any overflow
@@ -72,7 +72,7 @@ namespace FarmFuryStampede.UI
         private const float BoardScale = 1f / 0.698f;
         private const float ShieldScale = 1f / 0.986f;
         private static readonly Vector2 BoardCentreOffset = new(0.5f - 0.485f, 0.519f - 0.5f);   // x right, y up, in frames
-        private const float BackButtonSize = 120f;
+        private const float BackButtonSize = UIKit.RoundButtonSize;
 
         public LevelSelectScreen(Transform canvas, Action<LevelData> onPick, Action onBack, MenuArt art)
         {
@@ -178,12 +178,7 @@ namespace FarmFuryStampede.UI
             var level = tile.level;
             Sprite sprite;
             bool board = tile.unlocked && tile.completed && tile.stars > 0;
-            if (!tile.unlocked)
-            {
-                sprite = _art.levelTileLocked;
-                tile.artScale = PlaqueScale;
-            }
-            else if (board)
+            if (board)
             {
                 sprite = _art.StarBoard(tile.stars);
                 tile.artScale = BoardScale;
@@ -191,8 +186,13 @@ namespace FarmFuryStampede.UI
             }
             else if (level.isBossLevel && _art.bossShield != null)
             {
-                sprite = _art.bossShield;   // the boss is next to play
+                sprite = _art.bossShield;   // the boss keeps its badge, locked or not
                 tile.artScale = ShieldScale;
+            }
+            else if (!tile.unlocked)
+            {
+                sprite = _art.levelTileLocked;
+                tile.artScale = PlaqueScale;
             }
             else
             {

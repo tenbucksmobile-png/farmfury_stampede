@@ -11,14 +11,34 @@ namespace FarmFuryStampede.UI
     public class MenuArt
     {
         [Header("Landing screen")]
-        [Tooltip("The landing poster (FF_StampedePoster.png): logo, sign and Cluck painted in; the buttons go on top.")]
+        [Tooltip("The landing poster, edges faded (FF_StampedePoster_Soft.png, made by setup from FF_StampedePoster.png): logo, sign and Cluck painted in; the buttons go on top.")]
         public Sprite landingPoster;
+        [Tooltip("Behind the slightly zoomed-out poster: the same farm scene without the logo (Environment/Canvas.png).")]
+        public Sprite landingBackdrop;
         [Tooltip("Round play button, bottom-left. (Btn_play.png) Null = a plain PLAY button.")]
         public Sprite playButton;
         [Tooltip("Exit button, bottom-right. (Exit.png)")]
         public Sprite exitButton;
         [Tooltip("Settings cog, bottom-right corner; opens Shop & Settings. (Btn_settings.png)")]
         public Sprite settingsButton;
+
+        [Header("Gameplay HUD")]
+        [Tooltip("One per life, top-right; each death hides one. (CluckThumbsUp.png) Null = red squares.")]
+        public Sprite lifeIcon;
+        [Tooltip("Round pause button, bottom-left. (Btn_pause.png) Null = a plain II button.")]
+        public Sprite pauseButton;
+
+        [Header("Level Complete / Level Failed")]
+        [Tooltip("Level Complete backdrop: title, logo and three gold stars painted in (Environment/LevelComplete_Canvas.png).")]
+        public Sprite levelCompleteBackground;
+        [Tooltip("Level Failed backdrop: title and logo painted in (Environment/LevelFailed_Canvas.png).")]
+        public Sprite levelFailedBackground;
+        [Tooltip("Greyed star drawn over each painted star not earned (UI/LevelComplete_StarEmpty.png, cut from the backdrop).")]
+        public Sprite levelCompleteStarEmpty;
+        [Tooltip("Icon beside the Level Complete score (the corn kernel pickup, CornKernel.png).")]
+        public Sprite scoreIcon;
+        [Tooltip("Round X button: back to Level Select from the results screens. (Btn_quit.png)")]
+        public Sprite quitButton;
 
         [Header("Menus")]
         [Tooltip("World Select backdrop: the sunset farm (Environment/Canvas.png). Null = the plain dark background.")]

@@ -89,7 +89,7 @@ namespace FarmFuryStampede.EditorTools
             public override string ToString() => $"{(secret ? "Secret" : "")}{kind}[{x0},{x1}) top={top}";
         }
 
-        private struct CropRec { public float x, y; public bool secret, coin; }
+        private struct CropRec { public float x, y; public bool secret, coin, path; }
         private struct RobotRec { public RobotType type; public float x, y, patrol; public int wave; }
         private struct BreakableRec { public int x, length, top; }
         private struct ChamberRec { public int x0, floorTop, interiorWidth; public bool barrierSeal; }
@@ -121,8 +121,11 @@ namespace FarmFuryStampede.EditorTools
         private readonly List<ChamberRec> _chambers = new();
         private readonly List<RectInt> _water = new();
         private readonly List<Vector2> _pyramids = new();
-        private readonly List<Vector2> _haystacks = new();
+        private readonly List<(Vector2 at, int rows)> _haystacks = new();   // bale stacks: 2 rows = HayStack, 3 = HayPyramid
         private bool _manualScenery;
+        private bool _pathCorn;
+        private int _haybalesAsBarrels;
+        private bool _standardFarm;
         private readonly List<(FarmProp prop, float x, bool flip)> _props = new();
         private readonly List<Vector2> _cornFields = new();   // (x0, x1)
         private readonly List<Vector2> _fences = new();
@@ -200,7 +203,7 @@ namespace FarmFuryStampede.EditorTools
             return this;
         }
 
-        /// <summary>One-tile-thick platform floating with its top surface at the given height.</summary>
+        /// <summary>One-tile-thick platform floating with its top surface at the given height (drawn with stone slabs).</summary>
         public LevelBuilder Floating(int x, int length, int top)
         {
             _surfaces.Add(new Surface { x0 = x, x1 = x + length, top = top, baseTop = top - 1, kind = Kind.Floating });
@@ -412,13 +415,44 @@ namespace FarmFuryStampede.EditorTools
         public LevelBuilder Biplane(float height) { _biplaneHeight = height; return this; }
 
         /// <summary>
+        /// One unbroken line of kernels along the main path from the start to the goal (the boss arena's far wall):
+        /// resting on the ground, climbing over hay stacks, barrel pyramids and the random obstacles, and arcing over
+        /// every jumpable pit. Hand-placed crops on the path line are replaced by it; crops up on platforms, stone
+        /// blocks, coins and secrets stay. Laid out at build time, after all the geometry is known.
+        /// </summary>
+        public LevelBuilder PathCorn() { _pathCorn = true; return this; }
+
+        /// <summary>
+        /// Level 1's farm scenery, laid out automatically for any layout: the farmstead (water wheel, windmill, cart,
+        /// silo, barn) once, the oak and the gnarled tree once each, fenced corn fields along the rest of the ground
+        /// and the biplane. Each landmark goes on the flat ground nearest its preferred spot. Replaces the automatic
+        /// barn/windmill scenery (the random obstacles stay).
+        /// </summary>
+        public LevelBuilder StandardFarm() { _standardFarm = true; return this; }
+
+        /// <summary>
+        /// The leftmost <paramref name="count"/> random hay-bale obstacles are built as single wooden barrels instead.
+        /// The random layout is chosen exactly as before (same spots, same rocks), only the art/solid changes.
+        /// </summary>
+        public LevelBuilder HaybalesAsBarrels(int count = 1) { _haybalesAsBarrels = count; return this; }
+
+        /// <summary>
         /// Three to-scale hay bales stacked (two side by side, one on top) at x on flat ground: a solid, climbable
         /// 3-high step (two 1.5 steps). Ground corn under it is cleared.
         /// </summary>
-        public LevelBuilder HayStack(float x)
+        public LevelBuilder HayStack(float x) => BaleStack(x, 2, "Hay stack");
+
+        /// <summary>
+        /// Six to-scale hay bales in a 3-2-1 pyramid at x on flat ground: a solid, climbable 4.5-high obstacle in
+        /// three 1.5 steps, 5.7 wide at the base. Ground corn under it is cleared (the path corn climbs over it).
+        /// </summary>
+        public LevelBuilder HayPyramid(float x) => BaleStack(x, 3, "Hay pyramid");
+
+        private LevelBuilder BaleStack(float x, int rows, string label)
         {
             int top = GroundTopAt(x, out bool found);
-            for (float dx = -(BaleWidth + 0.5f); found && dx <= BaleWidth + 0.5f; dx += 0.5f)
+            float reach = rows * BaleWidth * 0.5f + 0.5f;
+            for (float dx = -reach; found && dx <= reach; dx += 0.5f)
             {
                 if (GroundTopAt(x + dx, out bool f) != top || !f)
                 {
@@ -427,11 +461,11 @@ namespace FarmFuryStampede.EditorTools
             }
             if (!found)
             {
-                Error($"Hay stack at x={x} needs flat ground {BaleWidth + 0.5f} units either side.");
+                Error($"{label} at x={x} needs flat ground {reach} units either side.");
                 return this;
             }
 
-            _haystacks.Add(new Vector2(x, top));
+            _haystacks.Add((new Vector2(x, top), rows));
             return this;
         }
 
@@ -675,6 +709,8 @@ namespace FarmFuryStampede.EditorTools
         /// <summary>Validates and builds the level prefab asset. Returns null (with errors) if the design is invalid.</summary>
         public GameObject BuildPrefab(LevelAssets assets, string prefabPath, List<string> errorsOut)
         {
+            if (_pathCorn) { AddPathCorn(); }
+            if (_standardFarm) { PlanStandardFarm(assets.farmArt); }
             Validate();
             if (_errors.Count > 0)
             {
@@ -711,7 +747,9 @@ namespace FarmFuryStampede.EditorTools
                         Fill(ground, assets.groundTile, s.x0, s.x1 - 1, s.baseTop, s.top - 1);
                         break;
                     case Kind.Floating:
-                        Sprite stoneSprite = !s.stone ? null : s.blocks ? assets.stoneBlockSprite : assets.ledgeSprite;
+                        // Every floating platform (ordinary ones too, not just secret ledges) is drawn with the
+                        // Stone_Block.png slabs; StoneBlocks() bonus platforms keep their square blocks.
+                        Sprite stoneSprite = s.blocks ? assets.stoneBlockSprite : assets.ledgeSprite;
                         bool stoneArt = stoneSprite != null && assets.invisibleTile != null;
                         Fill(platforms, stoneArt ? assets.invisibleTile : assets.platformTile, s.x0, s.x1 - 1, s.top - 1, s.top - 1);
                         if (stoneArt)
@@ -750,7 +788,7 @@ namespace FarmFuryStampede.EditorTools
             BuildBarrelPyramids(root.transform, assets);
             BuildHayStacks(root.transform, assets);
             var haybales = _manualScenery ? new List<Vector2>() : PlaceObstacles(root.transform, assets);
-            var scenery = _manualScenery ? new List<(float x, float halfWidth)>() : PlaceScenery(root.transform, assets, haybales);
+            var scenery = _manualScenery || _standardFarm ? new List<(float x, float halfWidth)>() : PlaceScenery(root.transform, assets, haybales);
             PlaceFarmBackdrop(root.transform, assets.farmArt, scenery, endX);
             Finish(platforms);
 
@@ -884,6 +922,205 @@ namespace FarmFuryStampede.EditorTools
             _crops.AddRange(kept);
         }
 
+        // ------------------------------------------------------------ path corn
+
+        // Kernel centres along the path are this far apart: every second kernel of the tightest line icons allow
+        // (MinCropSpacing), so the line is an even dotted trail rather than a solid row.
+        private const float PathCornSpacing = MinCropSpacing * 2f;
+        // Jump-hint arc over a pit: starts this far above the higher edge and bulges this much more mid-pit.
+        private const float PitArcLift = 1.2f, PitArcPeak = 1.4f;
+
+        // Main-path range: start to goal, or to the far wall in a boss arena (no goal).
+        private (float x0, float x1) PathRange() =>
+            (_playerStart?.x ?? _startX, _goal.HasValue ? _goal.Value.x : _x - 1.5f);
+
+        // Height of what a kernel on the path rests on at x: the ground or mound, raised by a hay stack or barrel
+        // pyramid standing there (their stepped profiles). found = false over a pit.
+        private float PathSurface(float x, out bool found)
+        {
+            int ground = GroundTopAt(x, out found);
+            if (!found) { return 0f; }
+            float top = ground;
+            foreach (var p in _pyramids)
+            {
+                float dx = Mathf.Abs(x - p.x);
+                int rows = 0;
+                for (int row = 0; row < BarrelRows; row++)
+                {
+                    if (dx < (BarrelRows - row) * BarrelWidth * 0.5f) { rows++; }
+                }
+                if (rows > 0 && Mathf.Approximately(p.y, ground)) { top = Mathf.Max(top, ground + rows * BarrelHeight); }
+            }
+            foreach (var (h, stackRows) in _haystacks)
+            {
+                float dx = Mathf.Abs(x - h.x);
+                int rows = 0;
+                for (int row = 0; row < stackRows; row++)
+                {
+                    if (dx < (stackRows - row) * BaleWidth * 0.5f) { rows++; }
+                }
+                if (rows > 0 && Mathf.Approximately(h.y, ground)) { top = Mathf.Max(top, ground + rows * BaleHeight); }
+            }
+            return top;
+        }
+
+        // The highest path surface within a kernel's half-width of x, so a kernel beside a step sits on the step
+        // rather than inside it.
+        private float PathRestTop(float x)
+        {
+            float best = float.MinValue;
+            for (float dx = -0.45f; dx <= 0.45f + 0.001f; dx += 0.15f)
+            {
+                float top = PathSurface(x + dx, out bool found);
+                if (found) { best = Mathf.Max(best, top); }
+            }
+            return best;
+        }
+
+        private bool BlockedForCrop(float x, float y) =>
+            _surfaces.Any(s => CropOverlaps(x, y, s)) || Hollows().Any(h => h.Contains(new Vector2(x, y)));
+
+        private bool HasGround(float x)
+        {
+            GroundTopAt(x, out bool found);
+            return found;
+        }
+
+        // Replaces the hand-placed crops on the path line with one evenly spaced line of kernels (see PathCorn).
+        private void AddPathCorn()
+        {
+            var (x0, x1) = PathRange();
+
+            // Pits the main path crosses, as [a, b) with ground either side; only jumpable ones get an arc.
+            var pits = new List<(int a, int b, float baseTop)>();
+            for (int cx = Mathf.FloorToInt(x0); cx < Mathf.CeilToInt(x1); cx++)
+            {
+                if (HasGround(cx + 0.5f)) { continue; }
+                int a = cx;
+                while (cx < x1 && !HasGround(cx + 0.5f)) { cx++; }
+                int b = cx;
+                if (b - a > MaxFlatGap || !HasGround(a - 0.5f) || !HasGround(b + 0.5f)) { continue; }
+                float baseTop = Mathf.Max(PathSurface(a - 0.5f, out _), PathSurface(b + 0.5f, out _));
+                pits.Add((a, b, baseTop));
+            }
+
+            bool OnPathLine(CropRec c)
+            {
+                if (c.x < x0 - 1f || c.x > x1 + 1f) { return false; }
+                if (HasGround(c.x)) { return Mathf.Abs(c.y - (PathRestTop(c.x) + CropRestHeight)) < 0.6f; }
+                return pits.Any(p => c.x > p.a - 0.5f && c.x < p.b + 0.5f && c.y < p.baseTop + PitArcLift + PitArcPeak + 1f);
+            }
+            _crops.RemoveAll(c => !c.secret && !c.coin && OnPathLine(c));
+
+            for (float x = x0 + 1f; x <= x1 - 0.5f; x += PathCornSpacing)
+            {
+                if (!HasGround(x)) { continue; }   // pits get their arc below
+                float y = PathRestTop(x) + CropRestHeight;
+                if (!BlockedForCrop(x, y)) { _crops.Add(new CropRec { x = x, y = y, path = true }); }
+            }
+
+            // Over a pit the line keeps the same spacing (so no arc kernel crowds a ground one and gets thinned out),
+            // lifted into an arc; a pit too narrow to hold a grid point gets one kernel at its middle.
+            foreach (var (a, b, baseTop) in pits)
+            {
+                bool any = false;
+                for (float x = x0 + 1f; x <= x1 - 0.5f; x += PathCornSpacing)
+                {
+                    if (x < a || x >= b) { continue; }   // x == a has no ground under it, so the arc owns it
+                    any = true;
+                    AddArcKernel(x, a, b, baseTop);
+                }
+                if (!any) { AddArcKernel((a + b) * 0.5f, a, b, baseTop); }
+            }
+        }
+
+        private void AddArcKernel(float x, int a, int b, float baseTop)
+        {
+            float t = (x - a) / (b - a);
+            float y = baseTop + PitArcLift + PitArcPeak * Mathf.Sin(Mathf.PI * t);
+            if (!BlockedForCrop(x, y)) { _crops.Add(new CropRec { x = x, y = y, path = true }); }
+        }
+
+        // ------------------------------------------------------------ standard farm scenery
+
+        // Level 1's farmstead, as offsets from its left end: water wheel, windmill, cart, silo, then the barn.
+        private static readonly (FarmProp prop, float dx)[] Farmstead =
+        {
+            (FarmProp.WaterWheel, 0f), (FarmProp.Windmill, 3f), (FarmProp.Cart, 6.3f), (FarmProp.Silo, 9.5f), (FarmProp.Barn, 14.5f),
+        };
+        private const float FarmsteadHalfSpan = 3f;   // the water wheel / barn art reaches about this far past the end offsets
+        private const float FieldMargin = 1f;         // clear ground kept between a landmark and the corn fields
+
+        // Lays out StandardFarm(): landmarks first (each on the flat ground nearest its preferred fraction of the
+        // level), then fenced corn over the ground left between them.
+        private void PlanStandardFarm(FarmBackdropArt art)
+        {
+            var (x0, x1) = PathRange();
+            float length = x1 - x0;
+            var occupied = new List<(float a, float b)>();
+
+            // Nearest x to 'preferred' (scanning outward) where [x - left, x + right] is flat ground of one height,
+            // inside the level and clear of every landmark already placed; null if there is none.
+            float? FindSpot(float preferred, float left, float right)
+            {
+                for (float d = 0f; d < length; d += 0.5f)
+                {
+                    foreach (float spot in new[] { preferred + d, preferred - d })
+                    {
+                        if (spot - left < x0 + 2f || spot + right > x1 - 1f) { continue; }
+                        if (occupied.Any(o => spot + right > o.a - FieldMargin && spot - left < o.b + FieldMargin)) { continue; }
+                        if (FlatSpan(spot - left, spot + right)) { return spot; }
+                    }
+                }
+                return null;
+            }
+
+            float farmSpan = Farmstead[Farmstead.Length - 1].dx;
+            float? farm = FindSpot(x0 + length * 0.5f - farmSpan * 0.5f, FarmsteadHalfSpan, farmSpan + FarmsteadHalfSpan);
+            if (farm.HasValue)
+            {
+                foreach (var (prop, dx) in Farmstead) { Backdrop(prop, farm.Value + dx); }
+                occupied.Add((farm.Value - FarmsteadHalfSpan, farm.Value + farmSpan + FarmsteadHalfSpan));
+            }
+            else
+            {
+                Debug.LogWarning($"[LevelBuilder] {Id}: no flat stretch long enough for the farmstead.");
+            }
+
+            foreach (var (prop, fraction, sprite) in new[] { (FarmProp.Oak, 0.22f, art?.oak), (FarmProp.GnarledTree, 0.82f, art?.gnarledTree) })
+            {
+                float half = (sprite != null ? sprite.bounds.size.x * 0.5f : 1f) * 0.6f;
+                float? x = FindSpot(x0 + length * fraction, half, half);
+                if (!x.HasValue) { continue; }
+                Backdrop(prop, x.Value);
+                occupied.Add((x.Value - half, x.Value + half));
+            }
+
+            // Fenced corn over what's left (CornField/Fence skip gaps and steps themselves).
+            occupied.Sort((p, q) => p.a.CompareTo(q.a));
+            float from = x0 + 3f;
+            foreach (var (a, b) in occupied.Append((x1 - 1f, x1 - 1f)))
+            {
+                float to = a - FieldMargin;
+                if (to - from >= 4f) { CornField(from, to).Fence(from, to); }
+                from = Mathf.Max(from, b + FieldMargin);
+            }
+
+            _biplaneHeight ??= 8.5f;
+        }
+
+        // True when [a, b] is ground of one height with no pit.
+        private bool FlatSpan(float a, float b)
+        {
+            int top = GroundTopAt(a, out bool found);
+            if (!found) { return false; }
+            for (float x = a; x <= b; x += 0.25f)
+            {
+                if (GroundTopAt(x, out bool f) != top || !f) { return false; }
+            }
+            return true;
+        }
+
         // ------------------------------------------------------------ obstacles
 
         private const float ObstacleWidth = 2.1f;
@@ -920,6 +1157,7 @@ namespace FarmFuryStampede.EditorTools
 
             var random = new System.Random(StableSeed(Id));
             var placed = new List<float>();
+            var picks = new List<(float x, int top, Sprite art)>();
             while (placed.Count < assets.obstaclesPerLevel)
             {
                 var open = candidates.Where(c => placed.All(p => Mathf.Abs(p - c.x) >= ObstacleSpacing)).ToList();
@@ -929,21 +1167,36 @@ namespace FarmFuryStampede.EditorTools
                     break;
                 }
 
-                var (x, top) = open[random.Next(open.Count)];
-                placed.Add(x);
-                Sprite art = assets.obstacleSprites[random.Next(assets.obstacleSprites.Length)];
+                var (px, ptop) = open[random.Next(open.Count)];
+                placed.Add(px);
+                picks.Add((px, ptop, assets.obstacleSprites[random.Next(assets.obstacleSprites.Length)]));
+            }
 
+            // HaybalesAsBarrels(): the leftmost hay bales become barrels (chosen after the random picks, so the
+            // layout itself is unchanged).
+            var barrelSpots = new HashSet<float>(picks.Where(p => p.art == assets.haybaleSprite).OrderBy(p => p.x)
+                .Take(_haybalesAsBarrels).Select(p => p.x));
+
+            for (int n = 0; n < picks.Count; n++)
+            {
+                var (x, top, art) = picks[n];
                 float height = ObstacleHeight;
-                if (art == assets.haybaleSprite)
+                if (barrelSpots.Contains(x))
+                {
+                    // One to-scale barrel (1.1 x 1.5): a shorter, narrower step than the bale it replaces.
+                    AddBarrel(root, assets, $"Obstacle_Barrel_{n + 1}", new Vector2(x, top), 3);
+                    height = BarrelHeight;
+                }
+                else if (art == assets.haybaleSprite)
                 {
                     // One to-scale bale (1.9 x 1.5) is obstacle-sized on its own.
-                    AddBale(root, assets, $"Obstacle_HayBale_{placed.Count}", new Vector2(x, top), 3);
+                    AddBale(root, assets, $"Obstacle_HayBale_{n + 1}", new Vector2(x, top), 3);
                     haybales.Add(new Vector2(x, top));
                     height = BaleHeight;
                 }
                 else
                 {
-                    var obstacle = new GameObject($"Obstacle_{art.name}_{placed.Count}") { layer = assets.groundLayer };
+                    var obstacle = new GameObject($"Obstacle_{art.name}_{n + 1}") { layer = assets.groundLayer };
                     obstacle.transform.SetParent(root, false);
                     obstacle.transform.position = new Vector3(x, top, 0f);
                     var box = obstacle.AddComponent<BoxCollider2D>();
@@ -1089,6 +1342,9 @@ namespace FarmFuryStampede.EditorTools
                 Spawn($"{prop}_{x}", sprite, new Vector2(x, top.Value), scale, flip, BackdropTint, order);
             }
 
+            // Background corn only grows on the level's base ground (the height at the start): none on mounds,
+            // terraces or other raised ground, which read as hills.
+            int baseTop = GroundTopAt(_playerStart?.x ?? _startX, out _);
             if (art.cornStalks.Length > 0)
             {
                 // Back row: shorter, darker, tighter; front row offset so the gaps interleave.
@@ -1105,7 +1361,7 @@ namespace FarmFuryStampede.EditorTools
                         {
                             float sx = x + Range(-0.12f, 0.12f);
                             int? top = FlatTop(sx, 0.3f);
-                            if (top == null) { continue; }
+                            if (top == null || top.Value > baseTop) { continue; }
                             Sprite stalk = art.cornStalks[random.Next(art.cornStalks.Length)];
                             Spawn($"CornStalk_{sx:0.00}", stalk, new Vector2(sx, top.Value), Range(row.minScale, row.maxScale),
                                 random.Next(2) == 0, row.tint, row.order);
@@ -1162,17 +1418,26 @@ namespace FarmFuryStampede.EditorTools
         {
             for (int h = 0; h < _haystacks.Count; h++)
             {
-                BuildHayStack(root, assets, $"HayStack_{h + 1}", _haystacks[h]);
-                Vector2 at = _haystacks[h];
-                _crops.RemoveAll(c => !c.secret && Mathf.Abs(c.x - at.x) < BaleWidth + 0.6f && c.y < at.y + 2f * BaleHeight);
+                var (at, rows) = _haystacks[h];
+                BuildHayStack(root, assets, $"{(rows > 2 ? "HayPyramid" : "HayStack")}_{h + 1}", at, rows);
+                _crops.RemoveAll(c => !c.secret && !c.path && Mathf.Abs(c.x - at.x) < rows * BaleWidth * 0.5f + 0.6f
+                    && c.y < at.y + rows * BaleHeight);
             }
         }
 
-        private static void BuildHayStack(Transform root, LevelAssets assets, string stackName, Vector2 at)
+        // Rows of bales centred on at.x: the bottom row has 'rows' bales, each row above one fewer, each drawn over
+        // the row below it.
+        private static void BuildHayStack(Transform root, LevelAssets assets, string stackName, Vector2 at, int rows)
         {
-            AddBale(root, assets, $"{stackName}_Left", new Vector2(at.x - BaleWidth * 0.5f, at.y), 3);
-            AddBale(root, assets, $"{stackName}_Right", new Vector2(at.x + BaleWidth * 0.5f, at.y), 3);
-            AddBale(root, assets, $"{stackName}_Top", new Vector2(at.x, at.y + BaleHeight), 4);
+            for (int row = 0; row < rows; row++)
+            {
+                int count = rows - row;
+                for (int i = 0; i < count; i++)
+                {
+                    float x = at.x + (i - (count - 1) * 0.5f) * BaleWidth;
+                    AddBale(root, assets, $"{stackName}_R{row}_{i}", new Vector2(x, at.y + row * BaleHeight), 3 + row);
+                }
+            }
         }
 
         // One bale: solid box on the Ground layer. The art is imported so the bale body matches the box, its straw
@@ -1212,8 +1477,11 @@ namespace FarmFuryStampede.EditorTools
                 }
 
                 float halfBase = BarrelRows * BarrelWidth * 0.5f;
-                _crops.RemoveAll(c => !c.secret && Mathf.Abs(c.x - at.x) < halfBase + 0.6f && c.y < at.y + BarrelRows * BarrelHeight);
-                _crops.Add(new CropRec { x = at.x, y = at.y + BarrelRows * BarrelHeight + CropRestHeight });
+                _crops.RemoveAll(c => !c.secret && !c.path && Mathf.Abs(c.x - at.x) < halfBase + 0.6f && c.y < at.y + BarrelRows * BarrelHeight);
+                if (!_pathCorn)   // the path line already runs over the top
+                {
+                    _crops.Add(new CropRec { x = at.x, y = at.y + BarrelRows * BarrelHeight + CropRestHeight });
+                }
             }
         }
 
@@ -1263,7 +1531,7 @@ namespace FarmFuryStampede.EditorTools
         private bool IsObstacleSpotClear(float x, int top)
         {
             if (_pyramids.Any(p => Mathf.Abs(p.x - x) < BarrelRows * BarrelWidth * 0.5f + ObstacleWidth * 0.5f + 3f)) { return false; }
-            if (_haystacks.Any(p => Mathf.Abs(p.x - x) < BaleWidth + ObstacleWidth * 0.5f + 3f)) { return false; }
+            if (_haystacks.Any(p => Mathf.Abs(p.at.x - x) < p.rows * BaleWidth * 0.5f + ObstacleWidth * 0.5f + 3f)) { return false; }
             // Flat ground past both sides, so it never sits at a gap edge or against a step.
             float flat = ObstacleWidth * 0.5f + 1f;
             for (float dx = -flat; dx <= flat; dx += 0.5f)

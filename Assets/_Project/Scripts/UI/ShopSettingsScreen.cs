@@ -14,7 +14,7 @@ namespace FarmFuryStampede.UI
         public GameObject Root { get; private set; }
         public Button BackButton { get; private set; }
 
-        private const float BackButtonSize = 120f;
+        private const float BackButtonSize = UIKit.RoundButtonSize;
         private const float EdgeMargin = 40f;
 
         public ShopSettingsScreen(Transform canvas, Action onBack, MenuArt art)

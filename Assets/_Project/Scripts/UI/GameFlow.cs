@@ -1,4 +1,3 @@
-using System.Collections;
 using FarmFuryStampede.Core;
 using FarmFuryStampede.Data;
 using FarmFuryStampede.LevelSystem;
@@ -15,8 +14,6 @@ namespace FarmFuryStampede.UI
     /// </summary>
     public class GameFlow : MonoBehaviour
     {
-        public const float FailedReturnSeconds = 2.5f;
-
         [SerializeField] private CharacterSelectScreen characterSelect;
         [SerializeField] private MenuArt menuArt = new();
 
@@ -33,7 +30,6 @@ namespace FarmFuryStampede.UI
         public WorldType CurrentWorld { get; private set; } = WorldType.MeadowRuins;
 
         private GameManager _gm;
-        private Coroutine _failedReturn;
         private Transform _canvasTransform;
 
         private void Awake()
@@ -45,11 +41,11 @@ namespace FarmFuryStampede.UI
 
             Landing = new LandingScreen(canvas.transform, EnterWorldSelect, ExitGame, OpenShopSettings, menuArt);
             ShopSettings = new ShopSettingsScreen(canvas.transform, CloseShopSettings, menuArt);
-            Hud = new HudScreen(canvas.transform, OpenPause);
+            Hud = new HudScreen(canvas.transform, OpenPause, menuArt);
             Worlds = new WorldSelectScreen(canvas.transform, EnterLevelSelect, EnterLanding, menuArt);
             Levels = new LevelSelectScreen(canvas.transform, PickLevel, EnterWorldSelect, menuArt);
             _canvasTransform = canvas.transform;
-            Results = new ResultsScreen(canvas.transform, RestartLevel, LeaveResults, menuArt);
+            Results = new ResultsScreen(canvas.transform, PlayNextLevel, RestartLevel, LeaveResults, EnterLanding, OpenShopSettings, menuArt);
             Pause = new PauseScreen(canvas.transform, ResumeFromPause, RestartLevel, QuitToLevelSelect);
         }
 
@@ -93,6 +89,12 @@ namespace FarmFuryStampede.UI
 
         private void HandleEscape()
         {
+            if (ShopSettings.Root.activeSelf)
+            {
+                CloseShopSettings();
+                return;
+            }
+
             switch (_gm.CurrentState)
             {
                 case GameState.Playing: OpenPause(); break;
@@ -102,9 +104,8 @@ namespace FarmFuryStampede.UI
                 case GameState.CharacterSelect: characterSelect.Close(); break;
                 case GameState.LevelSelect: EnterWorldSelect(); break;
                 case GameState.WorldSelect: EnterLanding(); break;
-                case GameState.MainMenu:
-                    if (ShopSettings.Root.activeSelf) { CloseShopSettings(); }
-                    break;
+                case GameState.LevelComplete:
+                case GameState.LevelFailed: QuitToLevelSelect(); break;
             }
         }
 
@@ -117,8 +118,10 @@ namespace FarmFuryStampede.UI
             _gm.SetState(GameState.MainMenu);
         }
 
+        /// <summary>Shop &amp; Settings over whatever screen opened it (landing, Level Complete); Back returns to it.</summary>
         public void OpenShopSettings()
         {
+            ShopSettings.Root.transform.SetAsLastSibling();
             ShopSettings.Root.SetActive(true);
         }
 
@@ -193,14 +196,35 @@ namespace FarmFuryStampede.UI
             QuitToLevelSelect();
         }
 
-        private void LeaveGameplay()
+        /// <summary>
+        /// Level Complete's play button: Character Select for the next level in the world (the character is chosen
+        /// before every level); after the world's last level (the boss), World Select.
+        /// </summary>
+        public void PlayNextLevel()
         {
-            if (_failedReturn != null)
+            var level = _gm.CurrentLevel;
+            if (level == null)
             {
-                StopCoroutine(_failedReturn);
-                _failedReturn = null;
+                EnterWorldSelect();
+                return;
             }
 
+            var levels = DataManager.Instance.GetWorldLevels(level.worldType);
+            int index = levels.IndexOf(level);
+            var next = index >= 0 && index + 1 < levels.Count ? levels[index + 1] : null;
+            if (next == null || !SaveManager.Instance.IsLevelUnlocked(next))
+            {
+                if (next == null) { EnterWorldSelect(); } else { QuitToLevelSelect(); }
+                return;
+            }
+
+            CurrentWorld = next.worldType;
+            LeaveGameplay();
+            characterSelect.Open(next);
+        }
+
+        private void LeaveGameplay()
+        {
             characterSelect.HideVisual();
             var loader = LevelLoader.Instance;
             if (loader != null)
@@ -242,22 +266,11 @@ namespace FarmFuryStampede.UI
             }
             else if (state == GameState.LevelFailed)
             {
-                Results.ShowFailed();
-                _failedReturn = StartCoroutine(ReturnAfterFailure());
+                Results.ShowFailed();   // waits for a button: retry, Level Select or home
             }
             else
             {
                 Results.Hide();
-            }
-        }
-
-        private IEnumerator ReturnAfterFailure()
-        {
-            yield return new WaitForSecondsRealtime(FailedReturnSeconds);
-            _failedReturn = null;
-            if (_gm.CurrentState == GameState.LevelFailed)
-            {
-                QuitToLevelSelect();
             }
         }
     }

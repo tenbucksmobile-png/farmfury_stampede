@@ -5,28 +5,40 @@ using UnityEngine;
 namespace FarmFuryStampede.EditorTools
 {
     /// <summary>
-    /// The eleven World 1 levels and the boss, authored with <see cref="LevelBuilder"/>. Difficulty ramp:
-    ///   1-2   pure movement (no robots, no checkpoints)
-    ///   3-5   Harvesters, 1-2 gaps, checkpoints appear
-    ///   6-7   Drones join, raised platforms and terraces, 2+ checkpoints
-    ///   8     everything so far, widest gaps, most robots
-    ///   9-11  mixes: rising terraces under Drones (9), a Chaser run with climbable props (10), and the capstone
-    ///         (11) - five terraces, 5-wide gaps, every ordinary robot type - leading into the boss
-    /// Phase 5a adds a Chaser (level 4), Scouts (levels 6 and 8), a Barrier Unit sealing level 5's secret chamber
-    /// (Billy), and the boss level "Robot Commander's Fortress".
-    /// Levels 1-4 carry a real character-gated secret (Phase 4): 1 = height ledge (Cluck's Flutter Jump or
-    /// Woolly's Cloud Step), 2 = Breakable Floor (Bessie), 3 = Breakable Wall chamber (Billy), 4 = wide chasm
-    /// (Gerald's Puff Glide, or Woolly's chained clouds). Levels 5-8 keep an open bonus cluster on a stair of
-    /// mounds/platforms. Levels 9-11 return to real gates: 9 = Breakable Floor (Bessie), 10 = chasm island behind
+    /// The eleven World 1 levels and the boss, authored with <see cref="LevelBuilder"/>. The layouts ramp up (more
+    /// and wider gaps, then terraces, then 5-wide gaps and five checkpoints) and so do the robots, one new type at a
+    /// time with every level adding pressure:
+    ///   1-3   Scouts only: 4, 6, 7 - guarding take-offs, landings and the ground under stairs
+    ///   4-7   Harvesters join (2, 3, 3, 4) beside 6-7 Scouts
+    ///   8-11  the Chaser (DriftRobot art) and Drones join: 1/2 Chasers, 2-4 Drones, 3-4 Harvesters, 6-8 Scouts
+    ///   12    the boss: Commander with a Chaser on the run-in and Drones in the reinforcement waves
+    /// Props to climb recur: hay pyramids (2, 3, 4), stone-block stairs with the coin on top (1, 2, 3), Level 10's
+    /// barrel pyramid and hay stack. A Barrier Unit seals level 5's secret chamber (Billy).
+    /// Character-gated secrets (Phase 4): 1 = height ledge (the double jump every character has, or Woolly's Cloud Step),
+    /// 2 = Breakable Floor (Bessie), 4 = wide chasm (Gerald's Puff Glide, or Woolly's chained clouds), 5 = Barrier
+    /// Unit chamber (Billy). Level 3 has no secret (its Billy chamber was removed: Billy unlocks far too late for a
+    /// level-3 player); its stair leads to an open bonus platform instead. Levels 6-8 keep an open bonus cluster on
+    /// a stair of mounds/platforms. Levels 9-11 return to real gates: 9 = Breakable Floor (Bessie), 10 = chasm island behind
     /// the start (Gerald / Woolly), 11 = Breakable Wall chamber on the highest platform (Billy).
     /// Objects are added after all layout so ground-relative placement sees the final geometry.
+    /// Every level also gets PathCorn (a continuous kernel line start to goal) and, except Level 1, StandardFarm
+    /// (Level 1's farm scenery laid out automatically); both are applied in CreateAll and laid out at build time.
     /// </summary>
     internal static class MeadowRuinsLevels
     {
         public static List<LevelBuilder> CreateAll()
         {
-            return new List<LevelBuilder> { Level1(), Level2(), Level3(), Level4(), Level5(), Level6(), Level7(), Level8(),
+            var levels = new List<LevelBuilder> { Level1(), Level2(), Level3(), Level4(), Level5(), Level6(), Level7(), Level8(),
                 Level9(), Level10(), Level11(), LevelBoss() };
+
+            // World-wide look: an unbroken line of kernels along every level's path, and Level 1's farm scenery
+            // (farmstead, oak, gnarled tree, fenced corn, biplane) behind every other level - Level 1 hand-places its own.
+            foreach (var level in levels)
+            {
+                level.PathCorn();
+                if (level != levels[0]) { level.StandardFarm(); }
+            }
+            return levels;
         }
 
         // Arc of crops hinting the jump path over a gap.
@@ -46,7 +58,7 @@ namespace FarmFuryStampede.EditorTools
 
             b.SecretLedge(24, 5, 4);          // 4 above the ground: out of a single jump's reach, easy with the double jump
 
-            b.Gate(CharacterType.Cluck, "High ledge 4 units up: needs extra height (double jump, Cluck's Flutter Jump, or Woolly's Cloud Step).", CharacterType.Woolly);
+            b.Gate(CharacterType.Cluck, "High ledge 4 units up: needs extra height (the double jump every character has, or Woolly's Cloud Step).", CharacterType.Woolly);
             b.Start(0).Goal(112);
             b.ManualScenery();                // every obstacle and backdrop piece below is placed by hand (the mockups)
             b.SecretRow(24.5f, 28.5f, 1f, 4.5f);
@@ -117,6 +129,8 @@ namespace FarmFuryStampede.EditorTools
 
             b.Gate(CharacterType.Bessie, "Cracked Breakable Floor at x=74..78 hides a chamber below; only Ground Pound breaks it.");
             b.Start(0).Goal(114);
+            b.HayPyramid(22);                 // 3-2-1 bales, 4.5 high, on the run-up to the first pit: climb it, leap off the top
+            b.HaybalesAsBarrels(1);           // the first random hay bale (x=9.5, before the pyramid) is a wooden barrel
             b.CropRow(6, 22, 2);
             GapArc(b, 26, 3, 0);
             b.Crop(35.5f);
@@ -129,6 +143,19 @@ namespace FarmFuryStampede.EditorTools
             b.CropRow(79, 83, 2);
             GapArc(b, 85, 4, 0);
             b.CropRow(92, 108, 4);
+
+            // Six Scouts, spaced to ramp up: one alone on each of the first three stretches (the first well clear of
+            // the start, the third under the stepping platforms), one squeezed between the breakable floor and the
+            // third pit, then a pair 10 apart on the run to the goal.
+            b.Scout(15, 3).Scout(45, 3).Scout(67, 2.5f).Scout(81.5f, 2).Scout(96, 3).Scout(106, 3);
+
+            // Level 1's stone-block stair on the final run: kernels up the steps and the coin on the top block,
+            // the fifth Scout patrolling underneath.
+            b.StoneBlocks(92, 3, 3).StoneBlocks(96, 1, 4).StoneBlocks(98, 1, 6).StoneBlocks(100, 2, 3);
+            b.CropAt(92.4f, 3.9f).CropAt(93.65f, 3.9f).CropAt(94.9f, 3.9f);
+            b.CropAt(96.5f, 4.9f);
+            b.BonusCoin(98.5f, 6);
+            b.CropAt(100.4f, 3.9f).CropAt(101.65f, 3.9f);
             b.SecretRow(74.5f, 77.5f, 1f, -2.5f);
             return b;
         }
@@ -144,14 +171,20 @@ namespace FarmFuryStampede.EditorTools
             b.Gap(4);                         // [69,73)
             b.Flat(45);                       // [73,118)
 
-            b.Mound(96, 3, 2);                // open stair up to the chamber's platform
+            b.Mound(96, 3, 2);                // open stair up to a bonus platform over the finish
             b.Floating(101, 4, 4);
             b.Floating(106, 10, 6);
-            b.Chamber(110, 6, 4);             // sealed by a Breakable Wall: Billy's Charge Break
 
-            b.Gate(CharacterType.Billy, "Sealed chamber on the high platform; its Breakable Wall only breaks to Charge Break.");
             b.Start(0).Goal(116).Checkpoint(44);
-            b.Harvester(22, 4).Harvester(52, 3).Harvester(90, 4);
+            // Seven Scouts: three on the opening run (the last at the first pit's take-off), two under the stone
+            // stair, one past the hay pyramid, one at the foot of the stair up to the chamber.
+            b.Scout(10, 3).Scout(24, 3).Scout(32, 2).Scout(53, 3).Scout(63, 3).Scout(85, 2.5f).Scout(91, 3);
+            b.HayPyramid(77);                 // 3-2-1 bales on the last stretch, clear of the pit landing at 73
+            b.StoneBlocks(55, 3, 3).StoneBlocks(59, 1, 4).StoneBlocks(61, 1, 6).StoneBlocks(63, 2, 3);
+            b.CropAt(55.4f, 3.9f).CropAt(56.65f, 3.9f).CropAt(57.9f, 3.9f);
+            b.CropAt(59.5f, 4.9f);
+            b.BonusCoin(61.5f, 6);
+            b.CropAt(63.4f, 3.9f).CropAt(64.65f, 3.9f);
             b.CropRow(4, 14, 5);
             b.CropRow(28, 34, 3);
             GapArc(b, 36, 3, 0);
@@ -162,7 +195,7 @@ namespace FarmFuryStampede.EditorTools
             b.CropRow(93, 95, 2);
             b.Crop(97.5f);
             b.CropAt(102, 4.5f).CropAt(103, 4.5f);
-            b.SecretRow(111.5f, 114.5f, 1f, 6.5f);
+            b.CropAt(107.5f, 6.9f).CropAt(110f, 6.9f).CropAt(112.5f, 6.9f).CropAt(115f, 6.9f);   // bonus kernels on the top platform
             return b;
         }
 
@@ -183,8 +216,13 @@ namespace FarmFuryStampede.EditorTools
 
             b.Gate(CharacterType.Gerald, "Island 15 units left of the start: too wide for the base jump; Puff Glide crosses it.", CharacterType.Woolly);
             b.Start(0).Goal(116).Checkpoint(34).Checkpoint(66);
-            b.Harvester(16, 3).Harvester(44, 4).Harvester(78, 3).Harvester(108, 4);
-            b.Chaser(86, 12);                 // wakes when Cluck nears the end of this stretch; stompable, and outrunnable
+            // The Harvester arrives: one guarding the first pit's take-off, one mid-way through the third stretch,
+            // with six Scouts around them, paired up on the two middle stretches and the run to the goal.
+            b.HayPyramid(16);                 // 3-2-1 bales on the opening run
+            b.Scout(7, 2).Harvester(22.5f, 2);
+            b.Scout(44, 3).Scout(52, 3);
+            b.Harvester(76, 3).Scout(83, 2.5f);
+            b.Scout(100, 3).Scout(108, 3);
             b.CropRow(4, 10, 3);
             b.CropRow(20, 24, 2);
             GapArc(b, 26, 4, 0);
@@ -219,7 +257,12 @@ namespace FarmFuryStampede.EditorTools
 
             b.Gate(CharacterType.Billy, "Chamber on the high platform sealed by a Barrier Unit; only Charge Break clears it.");
             b.Start(0).Goal(116).Checkpoint(24).Checkpoint(72);
-            b.Harvester(14, 3).Harvester(32, 4).Harvester(60, 3).Harvester(108, 4);
+            // One robot per terrace section, two on the long ones: 3 Harvesters, 6 Scouts.
+            b.Scout(10, 3).Harvester(17, 2.5f);
+            b.Scout(31, 3).Scout(38, 2.5f);
+            b.Harvester(48.5f, 2).Scout(63, 3);
+            b.Harvester(80, 3);
+            b.Scout(100, 3).Scout(109, 3);
             b.CropRow(4, 10, 3);
             b.CropRow(17, 20, 3);
             b.CropRow(26, 30, 2);
@@ -256,8 +299,12 @@ namespace FarmFuryStampede.EditorTools
             b.Floating(87, 4, 6);
 
             b.Start(0).Goal(103).Checkpoint(33).Checkpoint(68);
-            b.Harvester(12, 3).Scout(74, 3);
-            b.Drone(20, 2.8f, 3).Drone(56, 2.8f, 4).Drone(96, 2.8f, 4);
+            // 3 Harvesters, 7 Scouts: Harvesters under both platform stairs and on the opening run, Scouts at every
+            // take-off, the checkpoint approaches and the finish.
+            b.Scout(9, 3).Harvester(17, 3).Scout(23, 2);
+            b.Scout(37.5f, 1.5f).Harvester(47, 3).Scout(57, 3);
+            b.Scout(73, 3).Harvester(86, 3);
+            b.Scout(95, 2.5f).Scout(101, 1.5f);
             b.CropRow(4, 8, 2);
             b.CropRow(15, 24, 3);
             GapArc(b, 26, 4, 0);
@@ -292,8 +339,13 @@ namespace FarmFuryStampede.EditorTools
             b.Floating(73, 3, 9);
 
             b.Start(0).Goal(121).Checkpoint(22).Checkpoint(41).Checkpoint(78);
-            b.Harvester(12, 3).Harvester(47, 3).Harvester(84, 3).Harvester(104, 4);
-            b.Drone(30, 2.8f, 4).Drone(64, 2.6f, 3).Drone(114, 2.8f, 4);
+            // 4 Harvesters, 7 Scouts, two robots on most terraces so each climb meets a pair.
+            b.Scout(9, 3).Harvester(15.5f, 2);
+            b.Scout(29, 3).Harvester(34.5f, 1.5f);
+            b.Scout(47, 3).Scout(53, 1.5f);
+            b.Harvester(64, 3);
+            b.Scout(84, 3);
+            b.Harvester(100, 3).Scout(108, 3).Scout(115, 2.5f);
             b.CropRow(4, 10, 3);
             b.CropRow(15, 18, 3);
             b.CropRow(26, 36, 5);
@@ -327,8 +379,15 @@ namespace FarmFuryStampede.EditorTools
             b.Floating(102, 4, 8);
 
             b.Start(0).Goal(128).Checkpoint(30).Checkpoint(58).Checkpoint(82).Checkpoint(111);
-            b.Harvester(13, 3).Harvester(40, 4).Scout(66, 4).Harvester(92, 4).Harvester(118, 4);
-            b.Drone(46, 2.8f, 3).Drone(86, 2.6f, 3).Drone(123, 2.8f, 3);
+            // The Chaser and the Drone arrive: one Chaser waking on the top-4 terrace, Drones over the widest gap's
+            // run-up and the finish; 3 Harvesters and 6 Scouts hold the ground between.
+            b.Scout(9, 3).Harvester(18, 3);
+            b.Scout(38, 3).Scout(45, 2.5f);
+            b.Harvester(65, 3).Scout(71, 2);
+            b.Scout(87, 2);
+            b.Chaser(95, 9);                  // wakes as the player passes x=86; stopped by the mound at 98
+            b.Harvester(118, 3).Scout(125, 2);
+            b.Drone(46, 2.8f, 3).Drone(123, 2.8f, 3);
             b.CropRow(4, 8, 2);
             b.CropRow(16, 22, 3);
             GapArc(b, 24, 3, 0);
@@ -370,8 +429,15 @@ namespace FarmFuryStampede.EditorTools
 
             b.Gate(CharacterType.Bessie, "Cracked Breakable Floor at x=78..82 on the plateau hides a hollow; only Ground Pound breaks it.");
             b.Start(0).Goal(128).Checkpoint(27).Checkpoint(47).Checkpoint(84).Checkpoint(111);
-            b.Harvester(18, 2).Harvester(38, 4).Harvester(72, 2);
-            b.Scout(102, 4).Scout(118, 4);
+            // 1 Chaser, 3 Drones, 3 Harvesters, 7 Scouts: every terrace and perch is guarded, the Chaser waits on
+            // the way down.
+            b.Scout(7, 2).Harvester(17.5f, 2.5f);
+            b.Scout(35, 3).Scout(41.5f, 2);
+            b.Harvester(51.5f, 2.5f).Scout(60, 2);
+            b.Scout(72, 3);
+            b.Scout(99, 3);
+            b.Chaser(106, 10);                // wakes at x=96 on the top-2 step down
+            b.Harvester(116, 3).Scout(123, 2.5f);
             b.Drone(34, 2.8f, 3).Drone(50, 2.8f, 3).Drone(100, 2.8f, 3);
             b.CropRow(4, 8, 2);
             b.Crop(11.5f);
@@ -416,9 +482,15 @@ namespace FarmFuryStampede.EditorTools
 
             b.Gate(CharacterType.Gerald, "Island 15 units left of the start: too wide for the base jump; Puff Glide crosses it.", CharacterType.Woolly);
             b.Start(0).Goal(133).Checkpoint(32).Checkpoint(76).Checkpoint(103);
-            b.Scout(12, 3).Harvester(48, 3).Harvester(86, 4).Scout(112, 4);
-            b.Chaser(62, 12);                 // wakes as the player crosses the hay stack; stompable, and outrunnable
-            b.Drone(64, 2.8f, 3).Drone(128, 2.8f, 3);
+            // 2 Chasers, 3 Drones, 3 Harvesters, 7 Scouts.
+            b.Scout(10, 3).Scout(24.5f, 1);   // the second guards the first pit's take-off
+            b.Harvester(48, 3).Scout(54, 2).Harvester(60, 2);
+            b.Chaser(66, 12);                 // wakes as the player crosses the hay stack; stompable, and outrunnable
+            b.Scout(81, 2.5f).Harvester(88, 3).Scout(94.5f, 2.5f);
+            b.Scout(108, 3);
+            b.Chaser(118, 10);                // wakes on the top-3 terrace
+            b.Scout(126, 3);
+            b.Drone(64, 2.8f, 3).Drone(90, 2.8f, 3).Drone(128, 2.8f, 3);
             b.CropRow(4, 9, 2);
             b.CropRow(23, 25, 2);
             GapArc(b, 26, 4, 0);
@@ -464,9 +536,17 @@ namespace FarmFuryStampede.EditorTools
 
             b.Gate(CharacterType.Billy, "Sealed chamber on the highest platform, above the last gap; its Breakable Wall only breaks to Charge Break.");
             b.Start(0).Goal(158).Checkpoint(26).Checkpoint(51).Checkpoint(91).Checkpoint(114).Checkpoint(141);
-            b.Harvester(12, 3).Scout(34, 4).Harvester(60, 4).Scout(102, 4).Harvester(126, 4).Scout(150, 4);
+            // The capstone: 2 Chasers, 4 Drones, 4 Harvesters, 8 Scouts.
+            b.Scout(8, 3).Harvester(15.5f, 2.5f);
+            b.Scout(33, 3).Scout(40, 2.5f);
+            b.Harvester(62, 3).Scout(66.5f, 1.5f);
+            b.Scout(74, 3);
             b.Chaser(80, 10);                 // wakes on the top-4 terrace, right before the second wide gap
-            b.Drone(40, 3.2f, 3).Drone(120, 2.8f, 4);
+            b.Scout(102, 3);
+            b.Scout(119, 2.5f).Harvester(126, 3);
+            b.Chaser(131, 8);                 // wakes at x=123, just before the last wide gap
+            b.Scout(146, 3).Harvester(153, 3);
+            b.Drone(40, 3.2f, 3).Drone(82, 2.8f, 3).Drone(120, 2.8f, 4).Drone(150, 2.8f, 3);
             b.CropRow(4, 7, 2);
             b.CropRow(10, 18, 4);
             GapArc(b, 20, 3, 0);
@@ -504,11 +584,12 @@ namespace FarmFuryStampede.EditorTools
 
             b.Boss();
             b.Start(0).Checkpoint(38);
-            b.Harvester(16, 3).Scout(24, 3);                        // run-in guards
+            b.Scout(10, 3).Harvester(18, 2);                        // run-in guards
+            b.Chaser(26, 8);                                        // wakes at x=18, right before the gap to the gate
             b.Commander(62, 8);                                     // patrols [54,70]
             b.Harvester(50, 3).Scout(74, 3);                        // arena guards (wave 0)
-            b.Scout(86, 3, wave: 1).Harvester(56, 2, wave: 1);      // reinforcements after hit 1
-            b.Drone(60, 2.8f, 4, wave: 2).Scout(72, 3, wave: 2);    // reinforcements after hit 2
+            b.Scout(86, 3, wave: 1).Harvester(56, 2, wave: 1).Drone(76, 2.8f, 3, wave: 1);   // after hit 1
+            b.Drone(60, 2.8f, 4, wave: 2).Drone(48, 2.8f, 3, wave: 2).Scout(72, 3, wave: 2); // after hit 2
 
             b.CropRow(4, 26, 3);
             GapArc(b, 30, 3, 0);

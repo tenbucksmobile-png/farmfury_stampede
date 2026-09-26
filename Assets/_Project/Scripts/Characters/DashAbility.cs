@@ -21,7 +21,7 @@ namespace FarmFuryStampede.Characters
 
         public override bool IsActive => _timeLeft > 0f;
 
-        // One dash per airborne period (like Flutter and Cloud Step), so a dash crosses a small gap but
+        // One dash per airborne period (like Cloud Step), so a dash crosses a small gap but
         // three chained mid-air dashes cannot turn it into a chasm-crosser. Landing re-arms it.
         public override bool CanActivate(CharacterController2D owner)
         {
@@ -76,8 +76,8 @@ namespace FarmFuryStampede.Characters
         protected override float DashGravityScale => 0f;
         protected override bool DefeatsRobots => true;
 
+        // No squash while rolling: Percy's real art shows the roll itself (Percy_effect.png, the ability pose).
         public override Color Tint => IsActive ? new Color(1f, 0.75f, 0.75f) : Color.white;
-        public override Vector2 VisualScale => IsActive ? new Vector2(1f, 0.6f) : Vector2.one;
     }
 
     /// <summary>

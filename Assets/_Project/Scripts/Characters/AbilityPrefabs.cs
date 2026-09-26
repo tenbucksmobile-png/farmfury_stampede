@@ -9,5 +9,7 @@ namespace FarmFuryStampede.Characters
     {
         public GameObject cloudPlatform;
         public GameObject horseshoe;
+        public GameObject egg;
+        public GameObject poundEffect;   // Bessie's landing impact (FadeEffect)
     }
 }

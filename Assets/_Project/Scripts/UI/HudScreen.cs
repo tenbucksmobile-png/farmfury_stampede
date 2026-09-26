@@ -9,23 +9,23 @@ using UnityEngine.UI;
 namespace FarmFuryStampede.UI
 {
     /// <summary>
-    /// Gameplay HUD (GDD Section 7): crops top-left, lives top-right, character portrait + ability uses
-    /// bottom-left, pause top-centre. Refreshed every frame by GameFlow so it always reflects the live run.
+    /// Gameplay HUD, kept to the minimum so the level reads clearly: one Cluck icon per life top-right (one disappears
+    /// with each death), the round pause button bottom-left, and the Commander's hit count top-centre in a boss
+    /// level. Everything sits inside the device safe area. Refreshed every frame by GameFlow.
+    /// Without art the lives fall back to red squares and pause to a plain "II" button.
     /// </summary>
     public class HudScreen
     {
         public GameObject Root { get; private set; }
         public Button PauseButton { get; private set; }
 
-        private Text _crops;
-        private Text _lives;
         private readonly List<Image> _lifeIcons = new();
-        private Image _portrait;
-        private Text _ability;
-        private Text _boss;
+        private readonly Text _boss;
 
-        public string CropsText => _crops.text;
-        public string AbilityText => _ability.text;
+        private const float EdgeMargin = 40f;
+        private const float LifeIconHeight = 96f;
+        private const float LifeIconGap = 10f;
+
         public string BossText => _boss.gameObject.activeSelf ? _boss.text : "";
         public int LifeIconsShown
         {
@@ -40,57 +40,53 @@ namespace FarmFuryStampede.UI
             }
         }
 
-        public HudScreen(Transform canvas, Action onPause)
+        public HudScreen(Transform canvas, Action onPause, MenuArt art)
         {
+            art ??= new MenuArt();
             var root = UIKit.NewRect("Hud", canvas);
             UIKit.Stretch(root);
             Root = root.gameObject;
 
-            _crops = UIKit.Label(root, "Crops", "Crops: 0", 44, TextAnchor.MiddleLeft, UIKit.Accent);
-            UIKit.Place(_crops.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(40f, -30f), new Vector2(520f, 64f));
+            var safe = UIKit.NewRect("SafeArea", root);
+            safe.gameObject.AddComponent<SafeAreaFitter>();
 
-            _lives = UIKit.Label(root, "LivesLabel", "Lives", 40, TextAnchor.MiddleRight);
-            UIKit.Place(_lives.rectTransform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-250f, -30f), new Vector2(160f, 64f));
+            // Lives: a row of Cluck icons in the top-right corner, the rightmost first to go.
+            Sprite life = art.lifeIcon;
+            float iconWidth = life != null ? LifeIconHeight * life.rect.width / life.rect.height : 48f;
+            float iconHeight = life != null ? LifeIconHeight : 48f;
             for (int i = 0; i < GameManager.LivesPerAttempt; i++)
             {
-                var icon = UIKit.Panel(root, $"Life{i + 1}", new Color(0.9f, 0.25f, 0.3f, 1f));
-                UIKit.Place(icon.rectTransform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-40f - i * 62f, -38f), new Vector2(48f, 48f));
+                var icon = life != null ? UIKit.Picture(safe, $"Life{i + 1}", life) : UIKit.Panel(safe, $"Life{i + 1}", new Color(0.9f, 0.25f, 0.3f, 1f));
+                icon.raycastTarget = false;
+                float x = -EdgeMargin - (GameManager.LivesPerAttempt - 1 - i) * (iconWidth + LifeIconGap);
+                UIKit.Place(icon.rectTransform, Vector2.one, Vector2.one, new Vector2(x, -EdgeMargin * 0.5f), new Vector2(iconWidth, iconHeight));
                 _lifeIcons.Add(icon);
             }
 
-            PauseButton = UIKit.MakeButton(root, "PauseButton", "II", new Color(0.2f, 0.25f, 0.38f, 0.95f), () => onPause?.Invoke(), 40);
-            UIKit.Place(PauseButton.image.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -30f), new Vector2(110f, 64f));
+            PauseButton = UIKit.MakeButton(safe, "PauseButton", art.pauseButton != null ? "" : "II",
+                art.pauseButton != null ? Color.white : new Color(0.2f, 0.25f, 0.38f, 0.95f), () => onPause?.Invoke(), 40);
+            if (art.pauseButton != null)
+            {
+                PauseButton.image.sprite = art.pauseButton;
+                PauseButton.image.preserveAspect = true;
+            }
+            UIKit.Place(PauseButton.image.rectTransform, Vector2.zero, Vector2.zero, new Vector2(EdgeMargin, EdgeMargin),
+                Vector2.one * UIKit.RoundButtonSize);
 
-            _boss = UIKit.Label(root, "BossHits", "", 40, TextAnchor.MiddleCenter, new Color(1f, 0.55f, 0.5f));
-            UIKit.Place(_boss.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -110f), new Vector2(700f, 56f));
-
-            var frame = UIKit.Panel(root, "PortraitFrame", new Color(0f, 0f, 0f, 0.55f));
-            UIKit.Place(frame.rectTransform, Vector2.zero, Vector2.zero, new Vector2(30f, 30f), new Vector2(520f, 110f));
-            _portrait = UIKit.Panel(frame.transform, "Portrait", Color.white);
-            UIKit.Place(_portrait.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(12f, 0f), new Vector2(86f, 86f));
-            _portrait.preserveAspect = true;
-            _ability = UIKit.Label(frame.transform, "AbilityUses", "", 34, TextAnchor.MiddleLeft);
-            UIKit.Place(_ability.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(116f, 0f), new Vector2(390f, 100f));
+            _boss = UIKit.Label(safe, "BossHits", "", 40, TextAnchor.MiddleCenter, new Color(1f, 0.55f, 0.5f));
+            UIKit.Place(_boss.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -30f), new Vector2(700f, 56f));
 
             Root.SetActive(false);
         }
 
-        /// <summary>Reads the live run/player state into the labels.</summary>
+        /// <summary>Reads the live run state into the HUD: one life icon per life left.</summary>
         public void Refresh(GameManager gm, CharacterController2D player)
         {
             var run = gm.RunState;
-            int total = run.totalNormalCrops + run.totalSecretCrops;
-            _crops.text = $"Crops: {run.cropsCollectedThisRun}/{total}";
-
             for (int i = 0; i < _lifeIcons.Count; i++)
             {
+                // Icons are laid out left to right; lives are lost from the right-hand end.
                 _lifeIcons[i].gameObject.SetActive(i < run.livesRemaining);
-            }
-
-            if (player != null && player.Data != null)
-            {
-                _portrait.sprite = player.Data.placeholderSprite;
-                _ability.text = $"{player.Data.displayName}\n{player.Data.abilityType}: {player.UsesRemaining}/{player.UsesPerLevel}";
             }
 
             var boss = CommanderBoss.Active;

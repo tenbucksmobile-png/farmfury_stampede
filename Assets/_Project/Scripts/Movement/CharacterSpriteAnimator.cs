@@ -3,7 +3,7 @@ using UnityEngine;
 namespace FarmFuryStampede.Movement
 {
     /// <summary>
-    /// Picks the visual's sprite from the controller's live state (defeated, airborne, running, idle) using the
+    /// Picks the visual's sprite from the controller's live state (defeated, ability pose, airborne, running, idle) using the
     /// character's CharacterSpriteSet. Does nothing for characters without a set, which keep their placeholder
     /// sprite. Sits on the same object as the SpriteRenderer.
     /// </summary>
@@ -30,12 +30,22 @@ namespace FarmFuryStampede.Movement
             }
 
             bool right = _controller.Facing >= 0;
+            Sprite[] run = right ? set.runRight : set.runLeft;
             Sprite idle = right ? set.idleRight : set.idleLeft;
+            if (idle == null && run != null && run.Length > 0)
+            {
+                idle = run[0];
+            }
+            Sprite pose = right ? set.abilityRight : set.abilityLeft;
             Sprite chosen;
 
             if (_controller.IsDying)
             {
                 chosen = set.defeat != null ? set.defeat : idle;
+            }
+            else if (pose != null && _controller.AbilityActive)
+            {
+                chosen = pose;
             }
             // Rising, or clearly airborne: a one-step ground-check blip mustn't flash the (bigger) jump frame.
             else if (!_controller.IsGrounded && (_controller.Velocity.y > 0.1f || _controller.AirTime > AirborneGrace))
@@ -45,7 +55,7 @@ namespace FarmFuryStampede.Movement
             }
             else if (Mathf.Abs(_controller.Velocity.x) > 0.5f)
             {
-                Sprite[] frames = right ? set.runRight : set.runLeft;
+                Sprite[] frames = run;
                 if (frames != null && frames.Length > 0)
                 {
                     float speedScale = Mathf.Clamp(Mathf.Abs(_controller.Velocity.x) / Mathf.Max(0.1f, _controller.MoveSpeed), 0.4f, 1f);

@@ -18,6 +18,9 @@ namespace FarmFuryStampede.UI
         public static readonly Color Good = new Color(0.3f, 0.75f, 0.4f, 1f);
         public static readonly Color Muted = new Color(0.55f, 0.58f, 0.65f, 1f);
 
+        /// <summary>Every round menu button (play, settings, home, back) is this size; Exit is scaled to the same height.</summary>
+        public const float RoundButtonSize = 120f;
+
         private static Font _font;
 
         public static Font DefaultFont

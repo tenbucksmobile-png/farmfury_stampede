@@ -33,8 +33,8 @@ namespace FarmFuryStampede.UI
         private const float CardWidth = 570f;
         private const float CardHeight = CardWidth * 9f / 16f;   // the WS_ card art is 16:9
         private static readonly Color LockedTint = new(0.4f, 0.4f, 0.42f, 1f);
-        // Same size and inset as the Level Select back button.
-        private const float HomeButtonSize = 120f;
+        // Same size as every other round menu button.
+        private const float HomeButtonSize = UIKit.RoundButtonSize;
         private const float EdgeMargin = 40f;
 
         public WorldSelectScreen(Transform canvas, Action<WorldType> onEnter, Action onHome, MenuArt art)

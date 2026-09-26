@@ -31,7 +31,7 @@ namespace FarmFuryStampede.UI
         private const float CardFirstRowFromTop = 445f, CardRowStep = 340f;
         // Banner wide enough to cover the world title baked into the (dimmed) backdrop behind it.
         private static readonly Vector2 BannerSize = new(620f, 259f);
-        private const float BackButtonSize = 120f, EdgeMargin = 16f;   // matches Level Select
+        private const float BackButtonSize = UIKit.RoundButtonSize, EdgeMargin = 16f;   // matches Level Select
 
         /// <summary>Builds the panel under the given canvas (once). Called by GameFlow.</summary>
         public void Build(Transform canvas, MenuArt art = null)
