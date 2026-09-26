@@ -11,11 +11,15 @@ namespace FarmFuryStampede.UI
     /// Level Select for one world: a grid of level tiles (regular levels, then the boss).
     ///
     /// Two looks. A world with a <see cref="WorldData.levelSelectBackground"/> follows the Level Select mockup: the
-    /// backdrop (world name baked in along the top) and wooden plaques, six per row - padlock when locked, question
-    /// mark for the next level to play, the Cluck board with 1-3 gold stars once completed - and the boss shield in
-    /// the slot after the last level. No numbers or secret icons on the art look. The grid is sized for 12 slots
-    /// (11 levels + boss, two rows of six) inside the device safe area and below the backdrop's title, so tiles never
-    /// overlap each other, the title or a notch; a short last row is centred.
+    /// backdrop (world name baked in along the top) and wooden plaques, six per row, played in order: every slot
+    /// starts as the padlock except the first, which is the question mark (the next level to play); completing a
+    /// level turns it into the Cluck board with its 1-3 gold stars and the next slot into the question mark. The boss
+    /// slot (after the last level) is a padlock until every level is done, then the boss shield, then its star board
+    /// once beaten. No numbers or secret icons on the art look. Every tile's art is drawn at the same visible size
+    /// (scaled by how much of its frame the art fills) in an evenly spaced grid sized for 12 slots (11 levels + boss,
+    /// two rows of six) inside the device safe area and below the backdrop's title, so tiles never overlap each
+    /// other, the title or a notch; a short last row is centred. The backdrop covers the screen with any overflow
+    /// cropped off the bottom, never the top, so the baked-in title stays whole and inside the safe area.
     /// A world without a backdrop keeps the plain code-built card grid (numbers, names, stars, the secret "?" icon).
     /// </summary>
     public class LevelSelectScreen
@@ -31,6 +35,7 @@ namespace FarmFuryStampede.UI
             public GameObject secretIcon;   // plain look only
             public GameObject lockLabel;    // plain look only
             public float artScale;          // art rect size / tile size (art look)
+            public Vector2 artOffset;       // art centre offset, in art-rect sizes (art look)
             public RectTransform art;       // art look
         }
 
@@ -59,12 +64,14 @@ namespace FarmFuryStampede.UI
         private const float TitleBand = 0.37f;
         private const float EdgeMargin = 16f;          // inside the safe area
         private const float TileFill = 0.8f;           // tile size as a fraction of its cell: the rest is the gap
-        // Art rect relative to the tile: the padlock / question plaques fill their frame; the Cluck boards have a
-        // transparent margin (the board is ~64% of the frame wide, ~70% tall), so their rect is bigger to draw a
-        // board about as big as a plaque; the shield fills its frame like the plaques.
-        private const float PlaqueScale = 1f;
-        private const float BoardScale = 1f / 0.68f;
-        private const float ShieldScale = 1f;
+        // Art rect relative to the tile, so every tile's visible art is the same height. Measured off the 500px art:
+        // the padlock / question plaques and the boss shield fill ~99% of their frame; the Cluck boards have a
+        // transparent margin (the board is 70% of the frame tall) and sit off-centre in it, so their rect is bigger
+        // and nudged to centre the board on the tile.
+        private const float PlaqueScale = 1f / 0.99f;
+        private const float BoardScale = 1f / 0.698f;
+        private const float ShieldScale = 1f / 0.986f;
+        private static readonly Vector2 BoardCentreOffset = new(0.5f - 0.485f, 0.519f - 0.5f);   // x right, y up, in frames
         private const float BackButtonSize = 120f;
 
         public LevelSelectScreen(Transform canvas, Action<LevelData> onPick, Action onBack, MenuArt art)
@@ -77,6 +84,7 @@ namespace FarmFuryStampede.UI
             Root = root.gameObject;
             Root.AddComponent<Image>().color = UIKit.Dark;
             _backdrop = UIKit.Backdrop(root);
+            _backdrop.rectTransform.pivot = new Vector2(0.5f, 1f);   // crop overflow off the bottom, keep the title whole
 
             _title = UIKit.Label(root, "Title", "", 60, TextAnchor.MiddleCenter, UIKit.Accent);
             UIKit.Place(_title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(1300f, 90f));
@@ -169,20 +177,27 @@ namespace FarmFuryStampede.UI
         {
             var level = tile.level;
             Sprite sprite;
-            if (level.isBossLevel && _art.bossShield != null)
-            {
-                sprite = _art.bossShield;
-                tile.artScale = ShieldScale;
-            }
-            else if (!tile.unlocked)
+            bool board = tile.unlocked && tile.completed && tile.stars > 0;
+            if (!tile.unlocked)
             {
                 sprite = _art.levelTileLocked;
                 tile.artScale = PlaqueScale;
             }
+            else if (board)
+            {
+                sprite = _art.StarBoard(tile.stars);
+                tile.artScale = BoardScale;
+                tile.artOffset = BoardCentreOffset;
+            }
+            else if (level.isBossLevel && _art.bossShield != null)
+            {
+                sprite = _art.bossShield;   // the boss is next to play
+                tile.artScale = ShieldScale;
+            }
             else
             {
-                sprite = _art.LevelTile(tile.completed, tile.stars);
-                tile.artScale = tile.completed && tile.stars > 0 ? BoardScale : PlaqueScale;
+                sprite = _art.levelTileNext;
+                tile.artScale = PlaqueScale;
             }
 
             // The tile root is an invisible, tile-sized hit area; the art is a non-raycast child that may be drawn
@@ -228,11 +243,11 @@ namespace FarmFuryStampede.UI
             float bottom = -h * 0.5f + safeMin.y * h + EdgeMargin;
             float safeTop = -h * 0.5f + safeMax.y * h;
 
-            // The backdrop covers the screen (cropping the overflow), centred, so its title band scales with it.
+            // The backdrop covers the screen with its top edge on the screen's top, so its title band hangs from there.
             var sprite = _backdrop.sprite;
             float aspect = sprite != null ? sprite.rect.width / sprite.rect.height : 16f / 9f;
             float imageHeight = Mathf.Max(h, w / aspect);
-            float titleBottom = imageHeight * (0.5f - TitleBand);
+            float titleBottom = h * 0.5f - imageHeight * TitleBand;
             float top = Mathf.Min(titleBottom, safeTop - EdgeMargin);
 
             int rows = Mathf.Max(ArtMinRows, Mathf.CeilToInt(_tiles.Count / (float)ArtColumns));
@@ -250,8 +265,9 @@ namespace FarmFuryStampede.UI
                 var tile = _tiles[i];
                 UIKit.Place((RectTransform)tile.root.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), centre,
                     new Vector2(tileSize, tileSize));
-                UIKit.Place(tile.art, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero,
-                    Vector2.one * tileSize * tile.artScale);
+                float artSize = tileSize * tile.artScale;
+                UIKit.Place(tile.art, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), tile.artOffset * artSize,
+                    Vector2.one * artSize);
             }
         }
 

@@ -9,7 +9,7 @@ namespace FarmFuryStampede.UI
 {
     /// <summary>
     /// Owns the menu/HUD screens and the navigation between them:
-    /// World Select -> Level Select -> Character Select -> Playing (HUD) -> Paused / Results -> Level Select.
+    /// Landing (Shop &amp; Settings) -> World Select -> Level Select -> Character Select -> Playing (HUD) -> Paused / Results -> Level Select.
     /// The screens are built in code under one canvas; GameManager's state decides which are visible.
     /// Menus hide the player and unload the level; StartLevel loads it again.
     /// </summary>
@@ -22,6 +22,8 @@ namespace FarmFuryStampede.UI
 
         public static GameFlow Instance { get; private set; }
 
+        public LandingScreen Landing { get; private set; }
+        public ShopSettingsScreen ShopSettings { get; private set; }
         public HudScreen Hud { get; private set; }
         public WorldSelectScreen Worlds { get; private set; }
         public LevelSelectScreen Levels { get; private set; }
@@ -41,8 +43,10 @@ namespace FarmFuryStampede.UI
             var canvas = UIKit.CreateCanvas("UICanvas", 10, transform);
             UIKit.EnsureEventSystem(transform);
 
+            Landing = new LandingScreen(canvas.transform, EnterWorldSelect, ExitGame, OpenShopSettings, menuArt);
+            ShopSettings = new ShopSettingsScreen(canvas.transform, CloseShopSettings, menuArt);
             Hud = new HudScreen(canvas.transform, OpenPause);
-            Worlds = new WorldSelectScreen(canvas.transform, EnterLevelSelect, menuArt);
+            Worlds = new WorldSelectScreen(canvas.transform, EnterLevelSelect, EnterLanding, menuArt);
             Levels = new LevelSelectScreen(canvas.transform, PickLevel, EnterWorldSelect, menuArt);
             _canvasTransform = canvas.transform;
             Results = new ResultsScreen(canvas.transform, RestartLevel, LeaveResults, menuArt);
@@ -66,7 +70,7 @@ namespace FarmFuryStampede.UI
             _gm = GameManager.Instance;
             characterSelect.Build(_canvasTransform, menuArt);   // needs DataManager, so not in Awake
             _gm.StateChanged += ApplyState;
-            EnterWorldSelect();
+            EnterLanding();
         }
 
         private void Update()
@@ -97,10 +101,41 @@ namespace FarmFuryStampede.UI
                     break;
                 case GameState.CharacterSelect: characterSelect.Close(); break;
                 case GameState.LevelSelect: EnterWorldSelect(); break;
+                case GameState.WorldSelect: EnterLanding(); break;
+                case GameState.MainMenu:
+                    if (ShopSettings.Root.activeSelf) { CloseShopSettings(); }
+                    break;
             }
         }
 
         // ------------------------------------------------------------ navigation
+
+        /// <summary>The landing screen: where the game opens.</summary>
+        public void EnterLanding()
+        {
+            LeaveGameplay();
+            _gm.SetState(GameState.MainMenu);
+        }
+
+        public void OpenShopSettings()
+        {
+            ShopSettings.Root.SetActive(true);
+        }
+
+        public void CloseShopSettings()
+        {
+            ShopSettings.Root.SetActive(false);
+        }
+
+        /// <summary>Exit on the landing screen: quits the app (stops Play mode in the editor).</summary>
+        public void ExitGame()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        }
 
         public void EnterWorldSelect()
         {
@@ -189,6 +224,8 @@ namespace FarmFuryStampede.UI
             bool inLevel = state == GameState.Playing || state == GameState.Paused
                 || state == GameState.LevelComplete || state == GameState.LevelFailed;
 
+            Landing.Root.SetActive(state == GameState.MainMenu);
+            if (state != GameState.MainMenu) { ShopSettings.Root.SetActive(false); }
             Hud.Root.SetActive(inLevel);
             Worlds.Root.SetActive(state == GameState.WorldSelect);
             Levels.Root.SetActive(state == GameState.LevelSelect);

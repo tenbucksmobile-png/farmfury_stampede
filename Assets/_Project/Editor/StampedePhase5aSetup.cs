@@ -1169,6 +1169,11 @@ namespace FarmFuryStampede.EditorTools
             flowSo.FindProperty("menuArt.levelTileNext").objectReferenceValue = StampedeUIArt.LevelTileNext();
             flowSo.FindProperty("menuArt.backButton").objectReferenceValue = StampedeUIArt.BackButton();
             flowSo.FindProperty("menuArt.playButton").objectReferenceValue = StampedeUIArt.PlayButton();
+            flowSo.FindProperty("menuArt.homeButton").objectReferenceValue = StampedeUIArt.HomeButton();
+            flowSo.FindProperty("menuArt.worldSelectBackground").objectReferenceValue = StampedeUIArt.WorldSelectBackground();
+            flowSo.FindProperty("menuArt.exitButton").objectReferenceValue = StampedeUIArt.ExitButton();
+            flowSo.FindProperty("menuArt.settingsButton").objectReferenceValue = StampedeUIArt.SettingsButton();
+            flowSo.FindProperty("menuArt.landingPoster").objectReferenceValue = StampedeUIArt.LandingPoster();
             flowSo.FindProperty("menuArt.worldSelectBanner").objectReferenceValue = StampedeUIArt.WorldUnlockedSign();
             flowSo.FindProperty("menuArt.characterSelectBanner").objectReferenceValue = StampedeUIArt.NewCharacterSign();
             flowSo.FindProperty("menuArt.bossShield").objectReferenceValue = StampedeUIArt.BossShield();

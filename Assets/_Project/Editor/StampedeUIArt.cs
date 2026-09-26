@@ -67,14 +67,22 @@ namespace FarmFuryStampede.EditorTools
         private const string EnvironmentDir = "Assets/_Project/Sprites/Environment";
         // Level Select tiles (per the Level Select mockup): padlock plaque when locked, the question-mark plaque for
         // the next level to play, the Cluck board with 1-3 gold stars once completed (the 1-3 star boards double as the Results art), the boss shield. Btn_back.png is the
-        // round Level Select back button. World Select: WorldUnlocked.png doubles as its header banner and
-        // Btn_play.png is each card's play button. SelectLevelSign.png is imported but not used: no mockup has it.
+        // round Level Select back button. World Select: WorldUnlocked.png doubles as its header banner (each card is
+        // itself the tap target). SelectLevelSign.png is imported but not used: no mockup has it.
+        // Landing screen (per the landing mockup): the FF_StampedePoster.png poster (logo, sign and Cluck painted in)
+        // with the Btn_play / Exit / Btn_settings buttons on top. Btn_home.png is World Select's
+        // top-left button back to the landing screen; Environment/Canvas.png is World Select's backdrop.
         private const string SelectLevelSignFile = "SelectLevelSign.png";
         private const string LevelTileLockedFile = "LevelTile_Locked.png";
         private const string LevelTileNextFile = "LevelTile_question.png";
         private const string BackButtonFile = "Btn_back.png";
-        private const string PlayButtonFile = "Btn_play.png";
         private const string BossShieldFile = "Boss_Shield.png";
+        private const string PlayButtonFile = "Btn_play.png";
+        private const string HomeButtonFile = "Btn_home.png";
+        private const string WorldSelectBackgroundPath = EnvironmentDir + "/Canvas.png";
+        private const string ExitButtonFile = "Exit.png";
+        private const string SettingsButtonFile = "Btn_settings.png";
+        private const string LandingPosterFile = "FF_StampedePoster.png";
         private static readonly string[] StarBoardFiles = { "LevelWin_1.png", "LevelComplete_2.png", "LevelComplete_3.png" };
         private const string NewCharacterSignFile = "NewCharacter.png";
         private const string WorldUnlockedSignFile = "WorldUnlocked.png";
@@ -140,6 +148,11 @@ namespace FarmFuryStampede.EditorTools
             yield return $"{UIDir}/{LevelTileNextFile}";
             yield return $"{UIDir}/{BackButtonFile}";
             yield return $"{UIDir}/{PlayButtonFile}";
+            yield return $"{UIDir}/{HomeButtonFile}";
+            yield return WorldSelectBackgroundPath;
+            yield return $"{UIDir}/{ExitButtonFile}";
+            yield return $"{UIDir}/{SettingsButtonFile}";
+            yield return $"{UIDir}/{LandingPosterFile}";
             foreach (string file in StarBoardFiles) { yield return $"{UIDir}/{file}"; }
             yield return $"{UIDir}/{NewCharacterSignFile}";
             yield return $"{UIDir}/{WorldUnlockedSignFile}";
@@ -173,8 +186,14 @@ namespace FarmFuryStampede.EditorTools
         public static Sprite LevelTileLocked() => Load(LevelTileLockedFile);
         public static Sprite LevelTileNext() => Load(LevelTileNextFile);
         public static Sprite BackButton() => Load(BackButtonFile);
-        public static Sprite PlayButton() => Load(PlayButtonFile);
         public static Sprite BossShield() => Load(BossShieldFile);
+        public static Sprite PlayButton() => Load(PlayButtonFile);
+        public static Sprite HomeButton() => Load(HomeButtonFile);
+        /// <summary>World Select's backdrop: the sunset farm (Environment/Canvas.png).</summary>
+        public static Sprite WorldSelectBackground() => AssetDatabase.LoadAssetAtPath<Sprite>(WorldSelectBackgroundPath);
+        public static Sprite ExitButton() => Load(ExitButtonFile);
+        public static Sprite SettingsButton() => Load(SettingsButtonFile);
+        public static Sprite LandingPoster() => Load(LandingPosterFile);
         /// <summary>Results board for 1, 2 or 3 stars.</summary>
         public static Sprite StarBoard(int stars) => Load(StarBoardFiles[Mathf.Clamp(stars, 1, 3) - 1]);
         public static Sprite NewCharacterSign() => Load(NewCharacterSignFile);

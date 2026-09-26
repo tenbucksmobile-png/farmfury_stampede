@@ -9,10 +9,11 @@ namespace FarmFuryStampede.UI
 {
     /// <summary>
     /// World Select: six world cards (GDD Section 7). A world unlocks once the previous world's boss level has been
-    /// completed; only Meadow Ruins is open on a fresh save. Per the World Select mockup each card is just the world's
-    /// art (name baked in) with a round play button in its bottom-left corner, under the wooden banner header; a
-    /// locked world's card and button are greyed out and can't be entered. Without art, the card falls back to a
-    /// coloured panel with the world name as text.
+    /// completed; only Meadow Ruins is open on a fresh save. Each card is just the world's art (name baked in), under
+    /// the wooden banner header, and the whole card is the tap target that opens the world's Level Select; a locked
+    /// world's card is greyed out and can't be entered. Without art, the card falls back to a coloured panel with the
+    /// world name as text. The screen sits on the sunset-farm backdrop (Canvas.png), cover-cropped to the device.
+    /// The round home button (Btn_home.png) top-left of the safe area returns to the landing screen.
     /// </summary>
     public class WorldSelectScreen
     {
@@ -25,18 +26,18 @@ namespace FarmFuryStampede.UI
         }
 
         public GameObject Root { get; private set; }
+        public Button HomeButton { get; private set; }
         public IReadOnlyList<Card> Cards => _cards;
 
         private readonly List<Card> _cards = new();
         private const float CardWidth = 570f;
         private const float CardHeight = CardWidth * 9f / 16f;   // the WS_ card art is 16:9
-        // Play button: measured off the mockup (centre ~13% in from the left, ~16% up from the bottom), a little
-        // bigger than the mockup so it's an easy tap on a phone.
-        private const float PlayButtonSize = 84f;
-        private static readonly Vector2 PlayButtonCentre = new(74f, 52f);
         private static readonly Color LockedTint = new(0.4f, 0.4f, 0.42f, 1f);
+        // Same size and inset as the Level Select back button.
+        private const float HomeButtonSize = 120f;
+        private const float EdgeMargin = 40f;
 
-        public WorldSelectScreen(Transform canvas, Action<WorldType> onEnter, MenuArt art)
+        public WorldSelectScreen(Transform canvas, Action<WorldType> onEnter, Action onHome, MenuArt art)
         {
             art ??= new MenuArt();
             var root = UIKit.NewRect("WorldSelect", canvas);
@@ -44,6 +45,7 @@ namespace FarmFuryStampede.UI
             Root = root.gameObject;
             var bg = Root.AddComponent<Image>();
             bg.color = UIKit.Dark;
+            UIKit.SetBackdrop(UIKit.Backdrop(root), art.worldSelectBackground);
 
             if (art.worldSelectBanner != null)
             {
@@ -60,34 +62,36 @@ namespace FarmFuryStampede.UI
             {
                 int index = (int)world;
                 int col = index % 3, row = index / 3;
-                var card = UIKit.Panel(root, $"Card_{world}", UIKit.Card);
-                card.raycastTarget = false;
+                var captured = world;
+                // The whole card is the button. Refresh() already tints a locked card, so the Button's own disabled
+                // tint stays white rather than darkening it a second time.
+                var button = UIKit.MakeButton(root, $"Card_{world}", "", UIKit.Card, () => onEnter?.Invoke(captured));
+                var colors = button.colors;
+                colors.disabledColor = Color.white;
+                button.colors = colors;
+                var card = button.image;
                 UIKit.Place(card.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
                     new Vector2((col - 1) * 600f, 85f - row * 345f), new Vector2(CardWidth, CardHeight));
 
                 var name = UIKit.Label(card.transform, "Name", world.ToString(), 44, TextAnchor.MiddleCenter);
+                name.raycastTarget = false;
                 UIKit.Place(name.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -18f), new Vector2(520f, 60f));
-
-                var captured = world;
-                Button button;
-                if (art.playButton != null)
-                {
-                    button = UIKit.MakeButton(card.transform, "PlayButton", "", Color.white, () => onEnter?.Invoke(captured));
-                    button.image.sprite = art.playButton;
-                    button.image.preserveAspect = true;
-                    var colors = button.colors;
-                    colors.disabledColor = LockedTint;   // greyed with the card while the world is locked
-                    button.colors = colors;
-                    UIKit.Place(button.image.rectTransform, Vector2.zero, new Vector2(0.5f, 0.5f), PlayButtonCentre, new Vector2(PlayButtonSize, PlayButtonSize));
-                }
-                else
-                {
-                    button = UIKit.MakeButton(card.transform, "PlayButton", "PLAY", UIKit.Good, () => onEnter?.Invoke(captured), 32);
-                    UIKit.Place(button.image.rectTransform, Vector2.zero, Vector2.zero, new Vector2(18f, 18f), new Vector2(170f, 64f));
-                }
 
                 _cards.Add(new Card { world = world, root = card.gameObject, button = button });
             }
+
+            var safe = UIKit.NewRect("SafeArea", root);
+            safe.gameObject.AddComponent<SafeAreaFitter>();
+            HomeButton = UIKit.MakeButton(safe, "HomeButton", art.homeButton != null ? "" : "Home",
+                new Color(0.62f, 0.38f, 0.17f, 1f), () => onHome?.Invoke(), 34);
+            if (art.homeButton != null)
+            {
+                HomeButton.image.sprite = art.homeButton;
+                HomeButton.image.color = Color.white;
+                HomeButton.image.preserveAspect = true;
+            }
+            UIKit.Place(HomeButton.image.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(EdgeMargin, -EdgeMargin),
+                new Vector2(HomeButtonSize, HomeButtonSize));
 
             Root.SetActive(false);
         }

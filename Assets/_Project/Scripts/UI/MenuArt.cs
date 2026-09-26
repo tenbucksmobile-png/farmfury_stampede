@@ -10,10 +10,23 @@ namespace FarmFuryStampede.UI
     [Serializable]
     public class MenuArt
     {
+        [Header("Landing screen")]
+        [Tooltip("The landing poster (FF_StampedePoster.png): logo, sign and Cluck painted in; the buttons go on top.")]
+        public Sprite landingPoster;
+        [Tooltip("Round play button, bottom-left. (Btn_play.png) Null = a plain PLAY button.")]
+        public Sprite playButton;
+        [Tooltip("Exit button, bottom-right. (Exit.png)")]
+        public Sprite exitButton;
+        [Tooltip("Settings cog, bottom-right corner; opens Shop & Settings. (Btn_settings.png)")]
+        public Sprite settingsButton;
+
+        [Header("Menus")]
+        [Tooltip("World Select backdrop: the sunset farm (Environment/Canvas.png). Null = the plain dark background.")]
+        public Sprite worldSelectBackground;
+        [Tooltip("Round home button, top-left of World Select; back to the landing screen. (Btn_home.png) Null = a plain Home button.")]
+        public Sprite homeButton;
         [Tooltip("World Select header banner (the wooden World Unlocked sign). Null = 'SELECT A WORLD' text.")]
         public Sprite worldSelectBanner;
-        [Tooltip("Round play button in the bottom-left corner of each World Select card. Null = a green PLAY button.")]
-        public Sprite playButton;
         [Tooltip("Character Select header banner (the wooden New Character sign). Null = 'Choose a character for ...' text.")]
         public Sprite characterSelectBanner;
         [Tooltip("Level Select tile for a locked level: plank with a padlock.")]
@@ -32,9 +45,6 @@ namespace FarmFuryStampede.UI
         public Sprite newCharacterSign;
         [Tooltip("Results sign shown when a boss clear unlocked the next world.")]
         public Sprite worldUnlockedSign;
-
-        /// <summary>Level Select art for an unlocked level: the star board once completed, else the question plaque.</summary>
-        public Sprite LevelTile(bool completed, int stars) => completed && stars > 0 ? StarBoard(stars) : levelTileNext;
 
         public Sprite StarBoard(int stars) => stars switch
         {
