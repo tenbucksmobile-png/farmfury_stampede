@@ -310,7 +310,8 @@ namespace FarmFuryStampede.Movement
                 // Blink while invulnerable.
                 visual.enabled = !IsInvulnerable || ((int)(Time.time * 12f) % 2 == 0);
                 visual.color = _ability != null ? _ability.Tint : Color.white;
-                visual.transform.localScale = _ability != null ? (Vector3)_ability.VisualScale : Vector3.one;
+                float size = Data != null ? Data.visualScale : 1f;
+                visual.transform.localScale = (_ability != null ? (Vector3)_ability.VisualScale : Vector3.one) * size;
             }
 
             // Presses are captured per rendered frame; buffers are consumed and aged in FixedUpdate.

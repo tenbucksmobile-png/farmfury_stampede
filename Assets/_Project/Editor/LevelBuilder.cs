@@ -423,9 +423,10 @@ namespace FarmFuryStampede.EditorTools
         public LevelBuilder PathCorn() { _pathCorn = true; return this; }
 
         /// <summary>
-        /// Level 1's farm scenery, laid out automatically for any layout: the farmstead (water wheel, windmill, cart,
-        /// silo, barn) once, the oak and the gnarled tree once each, fenced corn fields along the rest of the ground
-        /// and the biplane. Each landmark goes on the flat ground nearest its preferred spot. Replaces the automatic
+        /// The farm scenery every level shares, laid out automatically for any layout: the entrance group (water wheel,
+        /// windmill, gnarled tree) after the start, the farmyard (broken barn and cart, the oak behind them) mid-level,
+        /// the silo later among the corn, fenced corn fields along the rest and the biplane. Each group goes on the
+        /// flat ground nearest its preferred spot, never behind a platform or ledge. Replaces the automatic
         /// barn/windmill scenery (the random obstacles stay).
         /// </summary>
         public LevelBuilder StandardFarm() { _standardFarm = true; return this; }
@@ -1047,63 +1048,109 @@ namespace FarmFuryStampede.EditorTools
 
         // ------------------------------------------------------------ standard farm scenery
 
-        // Level 1's farmstead, as offsets from its left end: water wheel, windmill, cart, silo, then the barn.
-        private static readonly (FarmProp prop, float dx)[] Farmstead =
+        // The farm backdrop every level shares (StandardFarm), as three landmark groups, each prop an offset from the
+        // group's anchor:
+        //   Entrance, just after the start: water wheel, windmill and gnarled tree together.
+        //   Farmyard, mid-level: the broken barn with the wooden cart beside it and the oak behind them.
+        //   Silo, later on, standing among the corn fields (the corn grows in front of it).
+        private static readonly (FarmProp prop, float dx)[] EntranceGroup =
         {
-            (FarmProp.WaterWheel, 0f), (FarmProp.Windmill, 3f), (FarmProp.Cart, 6.3f), (FarmProp.Silo, 9.5f), (FarmProp.Barn, 14.5f),
+            (FarmProp.WaterWheel, 0f), (FarmProp.Windmill, 3.5f), (FarmProp.GnarledTree, 7.5f),
         };
-        private const float FarmsteadHalfSpan = 3f;   // the water wheel / barn art reaches about this far past the end offsets
-        private const float FieldMargin = 1f;         // clear ground kept between a landmark and the corn fields
+        private static readonly (FarmProp prop, float dx)[] FarmyardGroup =
+        {
+            (FarmProp.Oak, -1.5f), (FarmProp.Barn, 0f), (FarmProp.Cart, 4.5f),
+        };
+        private static readonly (FarmProp prop, float dx)[] SiloGroup = { (FarmProp.Silo, 0f) };
+        private const float EntranceFraction = 0.04f, FarmyardFraction = 0.5f, SiloFraction = 0.8f;
+        private const float FieldMargin = 1f;         // clear ground kept between a landmark group and the corn fields
+        private const float LedgeClearance = 1.5f;    // a landmark keeps this far from any platform/ledge in front of it
+        private const float TightLedgeClearance = 0.5f; // fallback for a crowded level: still never behind a ledge
 
-        // Lays out StandardFarm(): landmarks first (each on the flat ground nearest its preferred fraction of the
-        // level), then fenced corn over the ground left between them.
+        private static Sprite FarmSprite(FarmProp prop, FarmBackdropArt art) => art == null ? null : prop switch
+        {
+            FarmProp.Silo => art.silo,
+            FarmProp.Oak => art.oak,
+            FarmProp.GnarledTree => art.gnarledTree,
+            FarmProp.WaterWheel => art.waterWheel,
+            FarmProp.Barn => art.barn,
+            FarmProp.Windmill => art.windmill,
+            _ => art.cart,
+        };
+
+        // Lays out StandardFarm(): the three landmark groups (each on the flat ground nearest its preferred fraction of
+        // the level, never behind a platform, ledge, stone block, chamber or stacked obstacle, so they stay in view),
+        // then fenced corn over the ground left between the entrance and farmyard groups (it runs past the silo).
         private void PlanStandardFarm(FarmBackdropArt art)
         {
             var (x0, x1) = PathRange();
             float length = x1 - x0;
             var occupied = new List<(float a, float b)>();
 
+            // Foreground things that would hide a landmark standing behind them.
+            var blockers = new List<(float a, float b)>();
+            blockers.AddRange(_surfaces.Where(sf => sf.kind == Kind.Floating).Select(sf => ((float)sf.x0, (float)sf.x1)));
+            blockers.AddRange(_chambers.Select(c => ((float)c.x0 - 1f, (float)(c.x0 + c.interiorWidth + 1))));
+            blockers.AddRange(_pyramids.Select(pyr => (pyr.x - 2.5f, pyr.x + 2.5f)));
+            blockers.AddRange(_haystacks.Select(h => (h.at.x - 2.5f, h.at.x + 2.5f)));
+
             // Nearest x to 'preferred' (scanning outward) where [x - left, x + right] is flat ground of one height,
-            // inside the level and clear of every landmark already placed; null if there is none.
-            float? FindSpot(float preferred, float left, float right)
+            // inside the level, clear of the groups already placed and of every blocker; null if there is none.
+            float? FindSpot(float preferred, float left, float right, bool fieldMargin, float clearance)
             {
+                float margin = fieldMargin ? FieldMargin : 0f;
                 for (float d = 0f; d < length; d += 0.5f)
                 {
                     foreach (float spot in new[] { preferred + d, preferred - d })
                     {
-                        if (spot - left < x0 + 2f || spot + right > x1 - 1f) { continue; }
-                        if (occupied.Any(o => spot + right > o.a - FieldMargin && spot - left < o.b + FieldMargin)) { continue; }
-                        if (FlatSpan(spot - left, spot + right)) { return spot; }
+                        float a = spot - left, b = spot + right;
+                        if (a < x0 - 1f || b > x1 - 1f) { continue; }
+                        if (occupied.Any(o => b > o.a - margin && a < o.b + margin)) { continue; }
+                        if (blockers.Any(k => b > k.a - clearance && a < k.b + clearance)) { continue; }
+                        if (FlatSpan(a, b)) { return spot; }
                     }
                 }
                 return null;
             }
 
-            float farmSpan = Farmstead[Farmstead.Length - 1].dx;
-            float? farm = FindSpot(x0 + length * 0.5f - farmSpan * 0.5f, FarmsteadHalfSpan, farmSpan + FarmsteadHalfSpan);
-            if (farm.HasValue)
+            // Places a group near preferredLeft (its left edge); returns its extent, or null.
+            (float a, float b)? PlaceGroup(string name, (FarmProp prop, float dx)[] group, float preferredLeft, bool reserve)
             {
-                foreach (var (prop, dx) in Farmstead) { Backdrop(prop, farm.Value + dx); }
-                occupied.Add((farm.Value - FarmsteadHalfSpan, farm.Value + farmSpan + FarmsteadHalfSpan));
-            }
-            else
-            {
-                Debug.LogWarning($"[LevelBuilder] {Id}: no flat stretch long enough for the farmstead.");
+                float left = 0f, right = 0f;
+                foreach (var (prop, dx) in group)
+                {
+                    var sprite = FarmSprite(prop, art);
+                    float half = (sprite != null ? sprite.bounds.size.x * 0.5f : 1f) * 0.8f;
+                    left = Mathf.Max(left, half - dx);
+                    right = Mathf.Max(right, dx + half);
+                }
+
+                // A crowded level (pits, platforms, stairs) may have no stretch that long with the usual clearance:
+                // try again tighter, without the corn margin, before leaving the group out.
+                float? at = FindSpot(preferredLeft + left, left, right, reserve, LedgeClearance)
+                    ?? FindSpot(preferredLeft + left, left, right, false, TightLedgeClearance);
+                if (!at.HasValue)
+                {
+                    Debug.LogWarning($"[LevelBuilder] {Id}: no clear flat stretch for the {name}; left out.");
+                    return null;
+                }
+
+                foreach (var (prop, dx) in group) { Backdrop(prop, at.Value + dx); }
+                var extent = (at.Value - left, at.Value + right);
+                if (reserve) { occupied.Add(extent); }
+                return extent;
             }
 
-            foreach (var (prop, fraction, sprite) in new[] { (FarmProp.Oak, 0.22f, art?.oak), (FarmProp.GnarledTree, 0.82f, art?.gnarledTree) })
-            {
-                float half = (sprite != null ? sprite.bounds.size.x * 0.5f : 1f) * 0.6f;
-                float? x = FindSpot(x0 + length * fraction, half, half);
-                if (!x.HasValue) { continue; }
-                Backdrop(prop, x.Value);
-                occupied.Add((x.Value - half, x.Value + half));
-            }
+            PlaceGroup("entrance (water wheel, windmill, gnarled tree)", EntranceGroup, x0 + length * EntranceFraction, true);
+            PlaceGroup("farmyard (barn, cart, oak)", FarmyardGroup, x0 + length * FarmyardFraction - 4f, true);
+            var silo = PlaceGroup("silo", SiloGroup, x0 + length * SiloFraction, false);
+            if (silo.HasValue) { occupied.Add(silo.Value); }   // later groups keep off it; the corn doesn't
 
-            // Fenced corn over what's left (CornField/Fence skip gaps and steps themselves).
-            occupied.Sort((p, q) => p.a.CompareTo(q.a));
+            // Fenced corn over what's left between the entrance and farmyard groups (CornField/Fence skip gaps and
+            // steps themselves); the silo stands behind it.
+            var groups = occupied.Where(o => !silo.HasValue || o != silo.Value).OrderBy(o => o.a).ToList();
             float from = x0 + 3f;
-            foreach (var (a, b) in occupied.Append((x1 - 1f, x1 - 1f)))
+            foreach (var (a, b) in groups.Append((x1 - 1f, x1 - 1f)))
             {
                 float to = a - FieldMargin;
                 if (to - from >= 4f) { CornField(from, to).Fence(from, to); }

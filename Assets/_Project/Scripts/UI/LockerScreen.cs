@@ -64,7 +64,6 @@ namespace FarmFuryStampede.UI
         private const float BannerRowBottom = 830f;         // from the top of the 1080 canvas
 
         private readonly RectTransform _grid;
-        private readonly Text _empty;
         private readonly GameObject _suggestion;
         private readonly Image _suggestionIcon;
         private readonly Text _suggestionText;
@@ -105,9 +104,6 @@ namespace FarmFuryStampede.UI
             scroll.horizontal = false;
             scroll.movementType = ScrollRect.MovementType.Clamped;
 
-            _empty = UIKit.Label(viewport, "Empty", "Nothing here yet - visit the shop below!", 40, TextAnchor.MiddleCenter, Color.white);
-            _empty.gameObject.AddComponent<Outline>().effectDistance = new Vector2(2f, -2f);
-            UIKit.Stretch(_empty.rectTransform);
 
             // Category banners -> the purchase pages.
             float step = BannerWidth + BannerGap;
@@ -115,18 +111,20 @@ namespace FarmFuryStampede.UI
             Banner("TrailsBannerButton", Shop.trailsBanner, "TRAILS", 0f, bannerTop, CosmeticType.Trail);
             Banner("MachinesBannerButton", Shop.machinesBanner, "MACHINES", step, bannerTop, CosmeticType.Skin);
 
-            // "You may like: X!" - Cluck's card bottom-left; tapping it opens that item's page.
-            var card = IconButton(Safe, "Suggestion", Shop.lockerSuggestion, "", () => _purchasePage(_suggested.type)?.Show());
+            // "You may like: X!" - Cluck's marketing card, mid-screen, only while nothing is owned yet (the owned
+            // tiles take its place after the first purchase); tapping it opens that item's page.
+            var card = IconButton(Rect, "Suggestion", Shop.lockerSuggestion, "", () => _purchasePage(_suggested.type)?.Show());
             if (Shop.lockerSuggestion == null) { card.image.color = new Color(0.97f, 0.94f, 0.86f, 1f); }
-            float cardHeight = 200f;
-            float cardWidth = Shop.lockerSuggestion != null ? cardHeight * Shop.lockerSuggestion.rect.width / Shop.lockerSuggestion.rect.height : 520f;
-            UIKit.Place(card.image.rectTransform, Vector2.zero, Vector2.zero, new Vector2(70f, 30f), new Vector2(cardWidth, cardHeight));
+            float cardHeight = 300f;
+            float cardWidth = Shop.lockerSuggestion != null ? cardHeight * Shop.lockerSuggestion.rect.width / Shop.lockerSuggestion.rect.height : 780f;
+            float gridMiddle = -(GridTop + bannerTop - 20f) * 0.5f;   // centred in the space between the header and the banners
+            UIKit.Place(card.image.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0f, gridMiddle), new Vector2(cardWidth, cardHeight));
             _suggestion = card.gameObject;
             _suggestionIcon = UIKit.Picture(card.transform, "Icon", null);
-            UIKit.Place(_suggestionIcon.rectTransform, new Vector2(0.62f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 18f), new Vector2(90f, 90f));
-            _suggestionText = UIKit.Label(card.transform, "Text", "", 26, TextAnchor.MiddleCenter, NameColor);
+            UIKit.Place(_suggestionIcon.rectTransform, new Vector2(0.62f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 30f), new Vector2(140f, 140f));
+            _suggestionText = UIKit.Label(card.transform, "Text", "", 38, TextAnchor.MiddleCenter, NameColor);
             _suggestionText.fontStyle = FontStyle.Bold;
-            UIKit.Place(_suggestionText.rectTransform, new Vector2(0.62f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -52f), new Vector2(cardWidth * 0.6f, 50f));
+            UIKit.Place(_suggestionText.rectTransform, new Vector2(0.62f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -80f), new Vector2(cardWidth * 0.6f, 70f));
         }
 
         private void Banner(string name, Sprite sprite, string fallback, float x, float top, CosmeticType type)
@@ -205,10 +203,9 @@ namespace FarmFuryStampede.UI
                     if (save.IsCosmeticOwned(id)) { BuildTile(entry, id); } else { notOwned.Add(entry); }
                 }
             }
-            _empty.gameObject.SetActive(_tiles.Count == 0);
-
-            _suggestion.SetActive(notOwned.Count > 0);
-            if (notOwned.Count > 0)
+            bool ownsAny = _tiles.Count > 0;
+            _suggestion.SetActive(!ownsAny && notOwned.Count > 0);
+            if (!ownsAny && notOwned.Count > 0)
             {
                 _suggested = notOwned[UnityEngine.Random.Range(0, notOwned.Count)];
                 _suggestionText.text = $"You may like: {_suggested.name}!";

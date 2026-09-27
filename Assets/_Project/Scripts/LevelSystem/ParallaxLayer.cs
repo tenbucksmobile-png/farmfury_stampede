@@ -37,7 +37,10 @@ namespace FarmFuryStampede.LevelSystem
             _baseY = baseY;
             _levelCenterX = (minX + maxX) * 0.5f;
 
-            float halfCameraWidth = targetCamera.orthographicSize * targetCamera.aspect;
+            // Sized for the widest the camera gets: it zooms out to keep the ground in view (CameraFollow2D).
+            var follow = targetCamera.GetComponent<Movement.CameraFollow2D>();
+            float size = follow != null ? Mathf.Max(follow.MaxOrthographicSize, targetCamera.orthographicSize) : targetCamera.orthographicSize;
+            float halfCameraWidth = size * targetCamera.aspect;
             float levelWidth = Mathf.Max(maxX - minX, 0.01f);
 
             // The layer moves only `parallaxFactor` as far as the camera, so relative to the camera it

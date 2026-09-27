@@ -79,6 +79,13 @@ namespace FarmFuryStampede.UI
         [Tooltip("Frame behind each owned item in the Locker. (Shop/PurchaseCardFrame.png)")]
         public Sprite cardFrame;
 
+        [Header("On-screen controls (HUD)")]
+        [Tooltip("Hold to run left / right. (Btn_left.png, Btn_right.png)")]
+        public Sprite moveLeftButton;
+        public Sprite moveRightButton;
+        [Tooltip("Jump. (Btn_up.png)")]
+        public Sprite jumpButton;
+
         [Header("Character Story")]
         [Tooltip("One per character, in CharacterType order. (<Name>_ability.png)")]
         public Sprite[] abilityIcons = new Sprite[0];

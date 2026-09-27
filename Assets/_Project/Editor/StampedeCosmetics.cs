@@ -68,6 +68,10 @@ namespace FarmFuryStampede.EditorTools
             {
                 Import(path.Replace('\\', '/'), 500f / MachineWorldHeight, new Vector2(0.5f, 0.02f));   // feet (wheels) pivot, like the animals
             }
+            foreach (CharacterType c in System.Enum.GetValues(typeof(CharacterType)))
+            {
+                Import(LifeIconPath(c), 100f, new Vector2(0.5f, 0.5f));
+            }
             foreach (var t in Trails) { Import($"{UIDir}/{t.icon}", 100f, new Vector2(0.5f, 0.5f)); }
             foreach (var m in Machines) { Import($"{UIDir}/{m.icon}", 100f, new Vector2(0.5f, 0.5f)); }
             foreach (string icon in new[] { "Sombrero.png", "BaseballHat.png", "CowboyHat.png", "ChefHat.png", "CrownHat.png" })
@@ -95,6 +99,16 @@ namespace FarmFuryStampede.EditorTools
             StampedeUIArt.SetPivot(importer, pivot);
             importer.SaveAndReimport();
         }
+
+        // HUD life icons: each character's thumbs up (Cluck's in Sprites/UI, the rest copied from Arcade into UI/ThumbsUp).
+        private static string LifeIconPath(CharacterType c) => c switch
+        {
+            CharacterType.Cluck => $"{UIDir}/CluckThumbsUp.png",
+            CharacterType.Percy => $"{UIDir}/ThumbsUp/PercyThumbsup.png",
+            _ => $"{UIDir}/ThumbsUp/{c}ThumbsUp.png",
+        };
+
+        public static Sprite LifeIcon(CharacterType c) => AssetDatabase.LoadAssetAtPath<Sprite>(LifeIconPath(c));
 
         private static Sprite Hat(string file)
         {

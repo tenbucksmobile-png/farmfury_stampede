@@ -4,8 +4,8 @@ using UnityEngine.InputSystem;
 namespace FarmFuryStampede.Movement
 {
     /// <summary>
-    /// Keyboard (A/D, arrows, Space) and gamepad bindings for editor testing. Touch controls arrive
-    /// with the HUD in Phase 5. Actions are created in code so no .inputactions asset is required.
+    /// Keyboard (A/D, arrows, Space) and gamepad bindings, plus the HUD's on-screen touch buttons (left, right, jump),
+    /// which write the static Touch* values below. Actions are created in code so no .inputactions asset is required.
     /// </summary>
     public class PlayerInputReader : MonoBehaviour
     {
@@ -13,16 +13,50 @@ namespace FarmFuryStampede.Movement
         private InputAction _jump;
         private InputAction _ability;
 
-        /// <summary>Horizontal axis, -1 to 1.</summary>
-        public float Move => _move.ReadValue<float>();
+        // On-screen buttons (HudScreen): held left/right, held jump, and a jump press waiting to be read.
+        public static bool TouchLeftHeld, TouchRightHeld, TouchJumpHeld;
+        private static bool _touchJumpPending;
+        private static int _touchJumpFrame = -1;
 
-        public bool JumpHeld => _jump.IsPressed();
+        /// <summary>A touch jump press: true for the whole frame it is first read in.</summary>
+        public static void PressTouchJump()
+        {
+            _touchJumpPending = true;
+            TouchJumpHeld = true;
+        }
+
+        /// <summary>Lets go of every on-screen button (the HUD was hidden).</summary>
+        public static void ReleaseTouch()
+        {
+            TouchLeftHeld = TouchRightHeld = TouchJumpHeld = false;
+            _touchJumpPending = false;
+        }
+
+        private static bool TouchJumpPressedThisFrame
+        {
+            get
+            {
+                if (_touchJumpPending)
+                {
+                    _touchJumpPending = false;
+                    _touchJumpFrame = Time.frameCount;
+                }
+                return _touchJumpFrame == Time.frameCount;
+            }
+        }
+
+        private static float TouchMove => (TouchRightHeld ? 1f : 0f) - (TouchLeftHeld ? 1f : 0f);
+
+        /// <summary>Horizontal axis, -1 to 1.</summary>
+        public float Move => Mathf.Clamp(_move.ReadValue<float>() + TouchMove, -1f, 1f);
+
+        public bool JumpHeld => _jump.IsPressed() || TouchJumpHeld;
 
         /// <summary>True only on the frame the ability button went down. Read from Update.</summary>
         public bool AbilityPressedThisFrame => _ability.WasPressedThisFrame();
 
         /// <summary>True only on the frame the jump button went down. Read from Update.</summary>
-        public bool JumpPressedThisFrame => _jump.WasPressedThisFrame();
+        public bool JumpPressedThisFrame => _jump.WasPressedThisFrame() | TouchJumpPressedThisFrame;
 
         private void Awake()
         {

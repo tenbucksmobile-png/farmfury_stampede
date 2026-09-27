@@ -11,9 +11,9 @@ namespace FarmFuryStampede.UI
     public class MenuArt
     {
         [Header("Landing screen")]
-        [Tooltip("The landing poster, edges faded (FF_StampedePoster_Soft.png, made by setup from FF_StampedePoster.png): logo, sign and Cluck painted in; the buttons go on top.")]
+        [Tooltip("The landing poster (FF_StampedePoster.png): logo, sign, Cluck and robots painted in; shown full-screen, the buttons on top.")]
         public Sprite landingPoster;
-        [Tooltip("Behind the slightly zoomed-out poster: the same farm scene without the logo (Environment/Canvas.png).")]
+        [Tooltip("Optional scene behind a zoomed-out poster. Setup leaves it empty: the poster covers the screen on its own.")]
         public Sprite landingBackdrop;
         [Tooltip("Round play button, bottom-left. (Btn_play.png) Null = a plain PLAY button.")]
         public Sprite playButton;
@@ -27,6 +27,14 @@ namespace FarmFuryStampede.UI
         public Sprite lifeIcon;
         [Tooltip("Round pause button, bottom-left. (Btn_pause.png) Null = a plain II button.")]
         public Sprite pauseButton;
+
+        [Header("New Character")]
+        [Tooltip("New Character page backdrop: sign and logo painted in (Environment/NewCharacter_Canvas.png, widened by setup).")]
+        public Sprite newCharacterBackground;
+
+        [Header("Pause")]
+        [Tooltip("Pause backdrop: 'Pause' and the logo painted in (Environment/Pause_Canvas.png, widened by setup). Null = the plain panel menu.")]
+        public Sprite pauseBackground;
 
         [Header("Level Complete / Level Failed")]
         [Tooltip("Level Complete backdrop: title, logo and three gold stars painted in (Environment/LevelComplete_Canvas.png).")]

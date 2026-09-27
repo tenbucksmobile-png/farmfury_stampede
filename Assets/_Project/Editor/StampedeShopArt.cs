@@ -52,6 +52,9 @@ namespace FarmFuryStampede.EditorTools
             { "lockerBanner", "LockerBanner.png" },
             { "lockerSuggestion", "LockerAd.png" },
             { "cardFrame", "Shop/PurchaseCardFrame.png" },
+            { "moveLeftButton", "Btn_left.png" },
+            { "moveRightButton", "Btn_right.png" },
+            { "jumpButton", "Btn_up.png" },
         };
 
         // Array order matches StoreProducts (CoinPacks, Hats, Trails, Machines, Cosmetics) and CharacterType.

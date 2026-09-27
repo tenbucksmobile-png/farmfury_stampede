@@ -4,10 +4,17 @@ using UnityEngine.Tilemaps;
 namespace FarmFuryStampede.Movement
 {
     /// <summary>
-    /// Simple follow camera: tracks the target's X with a smoothed look-ahead in the direction of
-    /// travel; Y only moves when the target leaves a vertical dead zone, and never so high that the level floor
-    /// under the target (tilemap ground, not obstacles) drops out of the bottom of the view. Runs in LateUpdate against the
-    /// target's interpolated transform, so it stays smooth even though physics steps at a fixed rate.
+    /// Follow camera: tracks the target's X with a smoothed look-ahead in the direction of travel; Y only moves when
+    /// the target leaves a vertical dead zone. The level's ground under the target always stays in view: the nearest
+    /// Ground / BreakableFloor tilemap surface below it (ledges, platforms and stone blocks on the Platforms tilemap
+    /// and obstacle colliders are looked through), kept floorMargin above the bottom edge, with topMargin of headroom
+    /// above the target. When the normal view can't hold both - the player high on a ledge - the camera zooms out
+    /// (up to maxOrthographicSize) instead of losing the ground, and zooms back in when they come down.
+    /// The reference is always the ground nearest below the player, so underground sections (a hollow under a
+    /// Breakable Floor, lower or secret levels) frame their own floor the same way. Over a pit the last ground seen is
+    /// kept; falling below it, the camera simply follows the player.
+    /// Runs in LateUpdate against the target's interpolated transform, so it stays smooth even though physics steps at
+    /// a fixed rate.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public class CameraFollow2D : MonoBehaviour
@@ -29,7 +36,19 @@ namespace FarmFuryStampede.Movement
         [Tooltip("The level floor under the target (ignoring obstacles) stays at least this far above the bottom edge.")]
         [SerializeField] private float floorMargin = 2f;
         [Tooltip("How far below the target to look for the level floor.")]
-        [SerializeField] private float floorSearchDistance = 12f;
+        [SerializeField] private float floorSearchDistance = 30f;
+        [Tooltip("Headroom kept above the target (its feet) when zooming out to keep the ground in view.")]
+        [SerializeField] private float topMargin = 2.5f;
+
+        [Header("Zoom")]
+        [Tooltip("The normal view (the camera's orthographic size when setup runs is used if this is 0).")]
+        [SerializeField] private float baseOrthographicSize;
+        [Tooltip("Furthest the camera zooms out to keep both the player and the ground in view.")]
+        [SerializeField] private float maxOrthographicSize = 11f;
+        [SerializeField] private float zoomSmoothTime = 0.35f;
+
+        // Tilemaps that count as the level's ground (not the Platforms layer of ledges and floating platforms).
+        private static readonly string[] FloorTilemaps = { "Ground", "BreakableFloor" };
 
         [Header("Level Bounds (X)")]
         [SerializeField] private bool useXBounds;
@@ -43,10 +62,19 @@ namespace FarmFuryStampede.Movement
         private float _yVelocity;
         private float _focusY;
         private float _lastDirection = 1f;
+        private float _sizeVelocity;
+
+        /// <summary>The furthest this camera zooms out (background layers are sized for it).</summary>
+        public float MaxOrthographicSize => maxOrthographicSize;
+        private float? _floorY;
 
         private void Awake()
         {
             _camera = GetComponent<Camera>();
+            if (baseOrthographicSize <= 0f)
+            {
+                baseOrthographicSize = _camera.orthographicSize;
+            }
         }
 
         private void Start()
@@ -82,9 +110,13 @@ namespace FarmFuryStampede.Movement
             _lookAheadVelocity = 0f;
             _xVelocity = 0f;
             _yVelocity = 0f;
+            _sizeVelocity = 0f;
+            _floorY = null;
+            var (y, size) = Frame(_focusY + verticalOffset, target.position);
+            _camera.orthographicSize = size;
             Vector3 p = transform.position;
             p.x = ClampX(target.position.x);
-            p.y = ClampToFloor(_focusY + verticalOffset, target.position);
+            p.y = y;
             transform.position = p;
         }
 
@@ -114,30 +146,58 @@ namespace FarmFuryStampede.Movement
                 _focusY = targetPos.y + verticalDeadZone;
             }
 
+            var (y, size) = Frame(_focusY + verticalOffset, targetPos);
+            _camera.orthographicSize = Mathf.SmoothDamp(_camera.orthographicSize, size, ref _sizeVelocity, zoomSmoothTime);
+
             Vector3 p = transform.position;
             p.x = Mathf.SmoothDamp(p.x, ClampX(targetPos.x + _lookAhead), ref _xVelocity, xSmoothTime);
-            p.y = Mathf.SmoothDamp(p.y, ClampToFloor(_focusY + verticalOffset, targetPos), ref _yVelocity, ySmoothTime);
+            p.y = Mathf.SmoothDamp(p.y, y, ref _yVelocity, ySmoothTime);
             transform.position = p;
         }
 
-        // Caps the camera height so the first tilemap surface below the target (ground, platform, ledge - but
-        // not rock/haybale/barrel obstacles, which are plain colliders) stays in view. Over a pit, no cap.
-        private float ClampToFloor(float desiredY, Vector3 targetPos)
+        // The camera height and zoom that keep the ground under the target floorMargin above the bottom edge and
+        // topMargin of space above the target: the normal size when it fits (the desired height clamped into the
+        // band that satisfies both), otherwise zoomed out just enough, up to the maximum (then the player wins).
+        private (float y, float size) Frame(float desiredY, Vector3 targetPos)
+        {
+            float floor = FloorBelow(targetPos) ?? float.NaN;
+            if (float.IsNaN(floor) || targetPos.y < floor - 0.5f)
+            {
+                return (desiredY, baseOrthographicSize);   // no ground known, or falling below it: just follow
+            }
+
+            float bottom = floor - floorMargin;             // lowest point that must be on screen
+            float top = targetPos.y + topMargin;            // highest point that must be on screen
+            float needed = (top - bottom) * 0.5f;
+            if (needed <= baseOrthographicSize)
+            {
+                float size = baseOrthographicSize;
+                return (Mathf.Clamp(desiredY, top - size, bottom + size), size);
+            }
+
+            float zoomed = Mathf.Min(needed, maxOrthographicSize);
+            return (zoomed < needed ? top - zoomed : (top + bottom) * 0.5f, zoomed);
+        }
+
+        // Height of the nearest ground (Ground / BreakableFloor tilemap) below the target, looking through platforms,
+        // ledges and obstacles. Over a pit, the last ground seen.
+        private float? FloorBelow(Vector3 targetPos)
         {
             if (controller == null)
             {
-                return desiredY;
+                return null;
             }
 
-            var hits = Physics2D.RaycastAll(targetPos, Vector2.down, floorSearchDistance, controller.GroundMask);
-            foreach (var hit in hits)
+            var hits = Physics2D.RaycastAll(targetPos + Vector3.up * 0.1f, Vector2.down, floorSearchDistance, controller.GroundMask);
+            foreach (var hit in hits)   // sorted nearest first
             {
-                if (hit.collider.GetComponent<Tilemap>() != null)
+                if (hit.collider.GetComponent<Tilemap>() != null && System.Array.IndexOf(FloorTilemaps, hit.collider.name) >= 0)
                 {
-                    return Mathf.Min(desiredY, hit.point.y + _camera.orthographicSize - floorMargin);
+                    _floorY = hit.point.y;
+                    break;
                 }
             }
-            return desiredY;
+            return _floorY;
         }
 
         private float ClampX(float x)

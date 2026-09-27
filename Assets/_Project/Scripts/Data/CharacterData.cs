@@ -37,6 +37,11 @@ namespace FarmFuryStampede.Data
         [Tooltip("Optional framed character card (name baked in) shown on Character Select; without it the slot is a uiColor panel with the portrait.")]
         public Sprite selectCard;
 
+        [Tooltip("This character giving a thumbs up: one per life on the HUD. Null = the shared MenuArt.lifeIcon.")]
+        public Sprite lifeIcon;
+        [Tooltip("Draw size relative to the standard 1.5-unit animal (Bessie the cow is bigger). The collider is unchanged.")]
+        public float visualScale = 1f;
+
         [Header("Cosmetics")]
         [Tooltip("Where a hat sits, relative to the Visual's feet pivot, facing right (x is mirrored facing left). Measured from the idle art by Phase 6 setup.")]
         public Vector2 hatAnchor = new(0f, 1.35f);

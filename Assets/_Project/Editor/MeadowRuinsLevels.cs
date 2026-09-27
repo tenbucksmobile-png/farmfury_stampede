@@ -21,8 +21,8 @@ namespace FarmFuryStampede.EditorTools
     /// a stair of mounds/platforms. Levels 9-11 return to real gates: 9 = Breakable Floor (Bessie), 10 = chasm island behind
     /// the start (Gerald / Woolly), 11 = Breakable Wall chamber on the highest platform (Billy).
     /// Objects are added after all layout so ground-relative placement sees the final geometry.
-    /// Every level also gets PathCorn (a continuous kernel line start to goal) and, except Level 1, StandardFarm
-    /// (Level 1's farm scenery laid out automatically); both are applied in CreateAll and laid out at build time.
+    /// Every level also gets PathCorn (a continuous kernel line start to goal) and StandardFarm (the shared farm
+    /// backdrop: entrance, farmyard, silo, corn); both are applied in CreateAll and laid out at build time.
     /// </summary>
     internal static class MeadowRuinsLevels
     {
@@ -36,7 +36,7 @@ namespace FarmFuryStampede.EditorTools
             foreach (var level in levels)
             {
                 level.PathCorn();
-                if (level != levels[0]) { level.StandardFarm(); }
+                level.StandardFarm();
             }
             return levels;
         }
@@ -63,12 +63,11 @@ namespace FarmFuryStampede.EditorTools
             b.ManualScenery();                // every obstacle and backdrop piece below is placed by hand (the mockups)
             b.SecretRow(24.5f, 28.5f, 1f, 4.5f);
 
-            // Everything is to the shared world scale (StampedeUIArt.UnitsPerMetre). The farmstead appears once, mid-level,
-            // and each landmark (oak, gnarled tree, barn, silo, windmill, water wheel) only once; the rest is corn fields.
+            // Everything is to the shared world scale (StampedeUIArt.UnitsPerMetre). The farm backdrop (landmarks, corn,
+            // fences) is StandardFarm's, the same as every other level.
 
             // Opening field [-4,30): fenced corn from the start, the first Scout in front of it, and the stone
             // secret ledge above the far end of the corn.
-            b.CornField(3f, 29f).Fence(3f, 29f);
             b.Scout(18, 3);                   // robots introduced one type per level: the pink Scout first
             b.CropRow(6, 12, 2);
             b.CropRow(15, 21, 3);
@@ -83,15 +82,8 @@ namespace FarmFuryStampede.EditorTools
             b.BonusCoin(45.5f, 6);
             b.CropAt(47.4f, 3.9f).CropAt(48.65f, 3.9f);
             b.Scout(42, 2).Scout(51, 2);
-            b.CornField(40f, 54f).Fence(40f, 54f);
-            b.Backdrop(FarmProp.GnarledTree, 55.5f);
 
-            // Mockup 2 [58,92): the one farmstead the chicken runs past - water wheel, windmill and cart together,
-            // the silo tucked behind the barn, a fenced corn patch with the oak behind it, then the barrel pyramid.
-            b.Backdrop(FarmProp.WaterWheel, 60f).Backdrop(FarmProp.Windmill, 63f).Backdrop(FarmProp.Cart, 66.3f);
-            b.Backdrop(FarmProp.Silo, 69.5f).Backdrop(FarmProp.Barn, 74.5f);
-            b.CornField(79f, 86f).Fence(79f, 86.5f);
-            b.Backdrop(FarmProp.Oak, 83f);
+            // Mockup 2 [58,92): open ground, then the barrel pyramid.
             b.BarrelPyramid(89).Scout(93.5f, 1.5f);      // barrel pyramid to climb over, with a Scout waiting on the landing side
 
             // Fields to the goal [92,118): a second stone-block run over fenced corn, kernels in front of the last stretch.
@@ -100,7 +92,6 @@ namespace FarmFuryStampede.EditorTools
             b.CropAt(101.5f, 5.9f);
             b.CropAt(103.4f, 3.9f).CropAt(104.65f, 3.9f);
             b.Scout(102, 3);
-            b.CornField(95f, 117f).Fence(95f, 117f);
             b.CropRow(106, 110, 3);
 
             b.Biplane(8.5f);
@@ -203,10 +194,12 @@ namespace FarmFuryStampede.EditorTools
 
         private static LevelBuilder Level4()
         {
-            var b = new LevelBuilder("MeadowRuins_04", "Broken Bridge", -32);
-            b.SecretFlat(8);                  // [-32,-24) island across a wide chasm behind the start
-            b.Gap(15);                        // [-24,-9)
-            b.Flat(35);                       // [-9,26)
+            // The chasm's near edge is 19 behind the start, just off-screen at spawn (the view is ~16 either side), so
+            // the level doesn't look cut off; walking back to it brings the island into view across the gap.
+            var b = new LevelBuilder("MeadowRuins_04", "Broken Bridge", -42);
+            b.SecretFlat(8);                  // [-42,-34) island across a wide chasm behind the start
+            b.Gap(15);                        // [-34,-19)
+            b.Flat(45);                       // [-19,26)
             b.Gap(4);                         // [26,30)
             b.Flat(28);                       // [30,58)
             b.Gap(4);                         // [58,62)
@@ -214,7 +207,7 @@ namespace FarmFuryStampede.EditorTools
             b.Gap(3);                         // [88,91)
             b.Flat(30);                       // [91,121)
 
-            b.Gate(CharacterType.Gerald, "Island 15 units left of the start: too wide for the base jump; Puff Glide crosses it.", CharacterType.Woolly);
+            b.Gate(CharacterType.Gerald, "Island across a 15-unit chasm behind the start: too wide for the base jump; Puff Glide crosses it.", CharacterType.Woolly);
             b.Start(0).Goal(116).Checkpoint(34).Checkpoint(66);
             // The Harvester arrives: one guarding the first pit's take-off, one mid-way through the third stretch,
             // with six Scouts around them, paired up on the two middle stretches and the run to the goal.
@@ -233,7 +226,7 @@ namespace FarmFuryStampede.EditorTools
             b.CropRow(82, 86, 2);
             GapArc(b, 88, 3, 0);
             b.CropRow(94, 102, 4);
-            b.SecretRow(-30.5f, -26.5f, 1f, 0.5f);
+            b.SecretRow(-40.5f, -36.5f, 1f, 0.5f);
             return b;
         }
 
@@ -464,10 +457,12 @@ namespace FarmFuryStampede.EditorTools
         // rising terraces. The secret island sits behind the start across a chasm, as in level 4.
         private static LevelBuilder Level10()
         {
-            var b = new LevelBuilder("MeadowRuins_10", "Scarecrow Pass", -32);
-            b.SecretFlat(8);                  // [-32,-24) island across a wide chasm behind the start
-            b.Gap(15);                        // [-24,-9)
-            b.Flat(35);                       // [-9,26) top 0
+            // The chasm's near edge is 19 behind the start, just off-screen at spawn (the view is ~16 either side), so
+            // the level doesn't look cut off; walking back to it brings the island into view across the gap.
+            var b = new LevelBuilder("MeadowRuins_10", "Scarecrow Pass", -42);
+            b.SecretFlat(8);                  // [-42,-34) island across a wide chasm behind the start
+            b.Gap(15);                        // [-34,-19)
+            b.Flat(45);                       // [-19,26) top 0
             b.Gap(4);                         // [26,30)
             b.Flat(40);                       // [30,70) top 0
             b.Gap(4);                         // [70,74)
@@ -480,7 +475,7 @@ namespace FarmFuryStampede.EditorTools
             b.HayStack(40);
             b.StoneBlocks(52, 3, 4);          // bonus perch over the Chaser's stretch
 
-            b.Gate(CharacterType.Gerald, "Island 15 units left of the start: too wide for the base jump; Puff Glide crosses it.", CharacterType.Woolly);
+            b.Gate(CharacterType.Gerald, "Island across a 15-unit chasm behind the start: too wide for the base jump; Puff Glide crosses it.", CharacterType.Woolly);
             b.Start(0).Goal(133).Checkpoint(32).Checkpoint(76).Checkpoint(103);
             // 2 Chasers, 3 Drones, 3 Harvesters, 7 Scouts.
             b.Scout(10, 3).Scout(24.5f, 1);   // the second guards the first pit's take-off
@@ -503,7 +498,7 @@ namespace FarmFuryStampede.EditorTools
             GapArc(b, 98, 3, 1);
             b.CropRow(104, 119, 5);
             b.CropRow(124, 131, 3);
-            b.SecretRow(-30.5f, -26.5f, 1f, 0.5f);
+            b.SecretRow(-40.5f, -36.5f, 1f, 0.5f);
             return b;
         }
 

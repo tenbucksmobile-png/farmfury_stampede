@@ -66,8 +66,8 @@ namespace FarmFuryStampede.UI
         public const int ArtPad = 160;
         private static readonly float[] StarCentresX = { 551.5f, 639.5f, 727.5f };
         private const float StarCentreY = 369.5f, StarBox = 76f;
-        private static readonly Rect ScoreIconBox = new(528f, 416f, 60f, 60f);
-        private static readonly Rect ScoreTextBox = new(596f, 412f, 200f, 68f);   // left-aligned, beside the kernel
+        private static readonly Rect ScoreIconBox = new(528f, 436f, 60f, 60f);   // below the stars, clear of the windmill
+        private static readonly Rect ScoreTextBox = new(596f, 432f, 200f, 68f);   // left-aligned, beside the kernel
         private static readonly Rect NewCharacterSignBox = new(260f, 410f, 240f, 80f);
         private static readonly Rect WorldUnlockedSignBox = new(820f, 410f, 240f, 80f);
         private static readonly Color ScoreGold = new(1f, 0.84f, 0.25f, 1f);
@@ -76,6 +76,8 @@ namespace FarmFuryStampede.UI
         // Phase 6: coins paid for the level (top-left) and Arcade's rewarded Double Coins button + Watch Ad label (top-right).
         private readonly GameObject _payout;
         private readonly Text _payoutText;
+        private readonly RectTransform _payoutCoin;
+        private const float PayoutHeight = 80f, PayoutCoinSize = 72f, PayoutGap = 12f;
         private readonly GameObject _doubleCoins;
         private const float DoubleCoinsSize = 160f;
 
@@ -179,20 +181,23 @@ namespace FarmFuryStampede.UI
 
             _payout = UIKit.NewRect("CoinPayout", top).gameObject;
             var payoutRect = (RectTransform)_payout.transform;
-            UIKit.Place(payoutRect, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(EdgeMargin, -40f), new Vector2(600f, 80f));
+            // Top-right of the safe area (the logo is painted top-left): "+25" right-aligned, the coin just left of it.
+            UIKit.Place(payoutRect, Vector2.one, Vector2.one, new Vector2(-EdgeMargin, -40f), new Vector2(600f, PayoutHeight));
             var coin = shop.coinIcon != null ? UIKit.Picture(payoutRect, "CoinIcon", shop.coinIcon) : UIKit.Panel(payoutRect, "CoinIcon", UIKit.Accent);
-            UIKit.Place(coin.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(72f, 72f));
-            _payoutText = UIKit.Label(payoutRect, "Count", "", 52, TextAnchor.MiddleLeft, ScoreGold);
+            UIKit.Place(coin.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), Vector2.zero, new Vector2(PayoutCoinSize, PayoutCoinSize));
+            _payoutCoin = coin.rectTransform;
+            _payoutText = UIKit.Label(payoutRect, "Count", "", 52, TextAnchor.MiddleRight, ScoreGold);
             _payoutText.fontStyle = FontStyle.Bold;
             _payoutText.horizontalOverflow = HorizontalWrapMode.Overflow;
             var payoutOutline = _payoutText.gameObject.AddComponent<Outline>();
             payoutOutline.effectColor = ScoreOutline;
             payoutOutline.effectDistance = new Vector2(3f, -3f);
-            UIKit.Place(_payoutText.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(86f, 0f), new Vector2(500f, 72f));
+            UIKit.Place(_payoutText.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), Vector2.zero, new Vector2(500f, 72f));
 
             float watchAdHeight = DoubleCoinsSize * 214f / 512f;
             _doubleCoins = UIKit.NewRect("DoubleCoinsAdGroup", top).gameObject;
-            UIKit.Place((RectTransform)_doubleCoins.transform, Vector2.one, Vector2.one, new Vector2(-EdgeMargin, -40f),
+            // Under the payout, also top-right.
+            UIKit.Place((RectTransform)_doubleCoins.transform, Vector2.one, Vector2.one, new Vector2(-EdgeMargin, -40f - PayoutHeight - 10f),
                 new Vector2(DoubleCoinsSize, DoubleCoinsSize + 6f + watchAdHeight));
             var doubleButton = UIKit.MakeButton(_doubleCoins.transform, "DoubleCoinsButton", shop.doubleCoins != null ? "" : "x2",
                 shop.doubleCoins != null ? Color.white : UIKit.Accent, ClaimDoubleCoins, 48);
@@ -240,7 +245,8 @@ namespace FarmFuryStampede.UI
         private void ShowPayout(LevelRunState run)
         {
             int paid = run.coinsEarned * (run.doubleCoinsClaimed ? 2 : 1);
-            _payoutText.text = run.doubleCoinsClaimed ? $"+{paid}  (doubled!)" : $"+{paid}";
+            _payoutText.text = run.doubleCoinsClaimed ? $"{paid}  (doubled!)" : $"{paid}";
+            _payoutCoin.anchoredPosition = new Vector2(-(_payoutText.preferredWidth + PayoutGap), 0f);
             _payout.SetActive(paid > 0);
         }
 
@@ -258,7 +264,7 @@ namespace FarmFuryStampede.UI
                 {
                     _emptyStars[i].gameObject.SetActive(_art.levelCompleteStarEmpty != null && i >= run.starsEarned);
                 }
-                _newCharacterSign.gameObject.SetActive(newCharacter && _art.newCharacterSign != null);
+                _newCharacterSign.gameObject.SetActive(false);   // the New Character page announces unlocks
                 _worldUnlockedSign.gameObject.SetActive(run.worldUnlocked && _art.worldUnlockedSign != null);
                 _scoreText.text = $"{run.cropsCollectedThisRun} / {run.totalNormalCrops + run.totalSecretCrops}";
                 _score.SetActive(true);
@@ -275,7 +281,7 @@ namespace FarmFuryStampede.UI
             foreach (var s in _stars) s.gameObject.SetActive(board == null);
             // Over the board art, the body text moves down below it.
             UIKit.Place(Body.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, board != null ? -435f : -240f), new Vector2(820f, 200f));
-            ShowSign(_panelNewCharacterSign, _art.newCharacterSign, newCharacter);
+            ShowSign(_panelNewCharacterSign, _art.newCharacterSign, false);   // the New Character page announces unlocks
             ShowSign(_panelWorldUnlockedSign, _art.worldUnlockedSign, run.worldUnlocked);
 
             string body = $"Crops: {run.cropsCollectedThisRun}/{run.totalNormalCrops + run.totalSecretCrops}    Deaths: {run.deathsThisRun}";
@@ -343,7 +349,7 @@ namespace FarmFuryStampede.UI
 
         // Places a child of the backdrop over a box given in the original 1280x720 art's pixels (origin top-left), by
         // anchors on the widened sprite, so it scales and moves with the backdrop.
-        private static void PlaceInArt(RectTransform rt, Rect box)
+        internal static void PlaceInArt(RectTransform rt, Rect box)
         {
             float wide = ArtSize.x + 2f * ArtPad;
             rt.anchorMin = new Vector2((box.xMin + ArtPad) / wide, 1f - box.yMax / ArtSize.y);

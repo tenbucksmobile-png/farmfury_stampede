@@ -64,6 +64,12 @@ namespace FarmFuryStampede.UI
         private const float TitleBand = 0.37f;
         private const float EdgeMargin = 16f;          // inside the safe area
         private const float TileFill = 0.8f;           // tile size as a fraction of its cell: the rest is the gap
+        // Columns are at most this many tile widths apart (the grid centred), so on wide screens the tiles don't
+        // spread across the whole width with big gaps between them.
+        private const float MaxColumnPitch = 1.4f;
+        // The boss slot is drawn this much bigger than a level tile. It still clears its neighbours: at the column
+        // pitch (0.65 + 0.5 < 1.4 tiles) and the row pitch (0.65 + 0.5 < 1 / TileFill = 1.25 tiles).
+        private const float BossScale = 1.3f;
         // Art rect relative to the tile, so every tile's visible art is the same height. Measured off the 500px art:
         // the padlock / question plaques and the boss shield fill ~99% of their frame; the Cluck boards have a
         // transparent margin (the board is 70% of the frame tall) and sit off-centre in it, so their rect is bigger
@@ -254,6 +260,7 @@ namespace FarmFuryStampede.UI
             float cellW = (right - left) / ArtColumns;
             float cellH = (top - bottom) / rows;
             float tileSize = Mathf.Min(cellW, cellH) * TileFill;
+            cellW = Mathf.Min(cellW, tileSize * MaxColumnPitch);
             float centreX = (left + right) * 0.5f;
 
             for (int i = 0; i < _tiles.Count; i++)
@@ -263,9 +270,10 @@ namespace FarmFuryStampede.UI
                 var centre = new Vector2(centreX + (col - (inRow - 1) * 0.5f) * cellW, top - cellH * (row + 0.5f));
 
                 var tile = _tiles[i];
+                float slot = tile.level.isBossLevel ? tileSize * BossScale : tileSize;
                 UIKit.Place((RectTransform)tile.root.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), centre,
-                    new Vector2(tileSize, tileSize));
-                float artSize = tileSize * tile.artScale;
+                    new Vector2(slot, slot));
+                float artSize = slot * tile.artScale;
                 UIKit.Place(tile.art, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), tile.artOffset * artSize,
                     Vector2.one * artSize);
             }

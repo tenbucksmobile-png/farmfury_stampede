@@ -87,6 +87,12 @@ namespace FarmFuryStampede.EditorTools
         private const float BossFeetY = -1.0f;         // the Commander spawns 1.0 above the ground
         private const string DroneArtFile = "Drone.png"; // flies, so stays centre-pivoted
 
+        // Draw sizes relative to the standard 1.5-unit animal (visual only; colliders are shared).
+        private static readonly Dictionary<CharacterType, float> VisualScales = new()
+        {
+            { CharacterType.Bessie, 1.3f },   // the cow reads bigger than the chicken
+        };
+
         // Identical for every character by design (GDD/Phase 4 Section 1).
         private const float SharedMoveSpeed = 8f;
         private const float SharedJumpHeight = 3.5f;
@@ -987,6 +993,8 @@ namespace FarmFuryStampede.EditorTools
             data.displayName = spec.displayName;
             data.abilityType = spec.ability;
             data.abilityDescription = spec.description;
+            data.visualScale = VisualScales.TryGetValue(spec.type, out float scale) ? scale : 1f;
+            data.lifeIcon = StampedeCosmetics.LifeIcon(spec.type);
             data.abilityUsesPerLevel = AbilityUsesPerLevel;
             data.unlockLevelsRequired = spec.unlockLevels;
             data.moveSpeed = SharedMoveSpeed;
@@ -1331,6 +1339,8 @@ namespace FarmFuryStampede.EditorTools
             flowSo.FindProperty("menuArt.scoreIcon").objectReferenceValue = StampedeUIArt.ScoreIcon();
             flowSo.FindProperty("menuArt.levelCompleteBackground").objectReferenceValue = StampedeUIArt.LevelCompleteBackground();
             flowSo.FindProperty("menuArt.levelFailedBackground").objectReferenceValue = StampedeUIArt.LevelFailedBackground();
+            flowSo.FindProperty("menuArt.pauseBackground").objectReferenceValue = StampedeUIArt.PauseBackground();
+            flowSo.FindProperty("menuArt.newCharacterBackground").objectReferenceValue = StampedeUIArt.NewCharacterBackground();
             flowSo.FindProperty("menuArt.levelCompleteStarEmpty").objectReferenceValue = StampedeUIArt.LevelCompleteStarEmpty();
             flowSo.FindProperty("menuArt.worldSelectBackground").objectReferenceValue = StampedeUIArt.WorldSelectBackground();
             flowSo.FindProperty("menuArt.exitButton").objectReferenceValue = StampedeUIArt.ExitButton();

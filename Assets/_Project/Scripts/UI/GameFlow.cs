@@ -34,6 +34,7 @@ namespace FarmFuryStampede.UI
         public ParentalGate Gate { get; private set; }
         public RevivePromptScreen Revive { get; private set; }
         public LockerScreen Locker { get; private set; }
+        public NewCharacterScreen NewCharacter { get; private set; }
         public HudScreen Hud { get; private set; }
         public WorldSelectScreen Worlds { get; private set; }
         public LevelSelectScreen Levels { get; private set; }
@@ -59,7 +60,7 @@ namespace FarmFuryStampede.UI
             Levels = new LevelSelectScreen(canvas.transform, PickLevel, EnterWorldSelect, menuArt);
             _canvasTransform = canvas.transform;
             Results = new ResultsScreen(canvas.transform, PlayNextLevel, RestartLevel, LeaveResults, EnterLanding, OpenMenuHub, menuArt, shopArt);
-            Pause = new PauseScreen(canvas.transform, ResumeFromPause, OpenSettings, RestartLevel, QuitToLevelSelect);
+            Pause = new PauseScreen(canvas.transform, ResumeFromPause, OpenSettings, RestartLevel, QuitToLevelSelect, EnterLanding, menuArt);
         }
 
         /// <summary>
@@ -72,6 +73,7 @@ namespace FarmFuryStampede.UI
             Gate = Add(new ParentalGate(c, menuArt, shopArt));
             var useCoins = Add(new UseCoinsPrompt(c, menuArt, shopArt));
             Revive = Add(new RevivePromptScreen(c, menuArt, shopArt));
+            NewCharacter = Add(new NewCharacterScreen(c, menuArt, shopArt));
             var legal = Add(new LegalScreen(c, menuArt, shopArt));
             var story = Add(new CharacterStoryScreen(c, menuArt, shopArt));
             var worldDetail = Add(new WorldDetailScreen(c, menuArt, shopArt));
@@ -364,6 +366,11 @@ namespace FarmFuryStampede.UI
             if (state == GameState.LevelComplete)
             {
                 Results.ShowComplete(_gm);
+                // A character unlocked by this clear gets its own page (with confetti) over the results.
+                if (_gm.RunState.newlyUnlockedCharacters.Count > 0)
+                {
+                    NewCharacter.ShowUnlocks(_gm.RunState.newlyUnlockedCharacters);
+                }
             }
             else if (state == GameState.LevelFailed)
             {
