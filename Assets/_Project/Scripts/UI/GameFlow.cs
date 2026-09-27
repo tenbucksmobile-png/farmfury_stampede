@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using FarmFuryStampede.Core;
 using FarmFuryStampede.Data;
 using FarmFuryStampede.LevelSystem;
@@ -9,19 +11,29 @@ namespace FarmFuryStampede.UI
 {
     /// <summary>
     /// Owns the menu/HUD screens and the navigation between them:
-    /// Landing (Shop &amp; Settings) -> World Select -> Level Select -> Character Select -> Playing (HUD) -> Paused / Results -> Level Select.
+    /// Landing -> World Select -> Level Select -> Character Select -> Playing (HUD) -> Paused / Results -> Level Select.
     /// The screens are built in code under one canvas; GameManager's state decides which are visible.
     /// Menus hide the player and unload the level; StartLevel loads it again.
+    /// The Settings / Shop family (ported from Arcade, see <see cref="OverlayScreen"/>) opens on top of any screen:
+    /// the settings cog (landing, Level Complete) opens the menu hub, Pause's Settings opens Settings.
+    /// Phase 6 (Arcade's monetisation): the revive prompt on the last life, the HUD's Locker, the Level Complete
+    /// Double Coins ad, and the bottom banner ad on Pause and Level Failed (never with Remove Ads).
     /// </summary>
     public class GameFlow : MonoBehaviour
     {
         [SerializeField] private CharacterSelectScreen characterSelect;
         [SerializeField] private MenuArt menuArt = new();
+        [SerializeField] private ShopArt shopArt = new();
 
         public static GameFlow Instance { get; private set; }
 
         public LandingScreen Landing { get; private set; }
-        public ShopSettingsScreen ShopSettings { get; private set; }
+        public MenuHubScreen MenuHub { get; private set; }
+        public SettingsScreen Settings { get; private set; }
+        public ShopScreen ShopHub { get; private set; }
+        public ParentalGate Gate { get; private set; }
+        public RevivePromptScreen Revive { get; private set; }
+        public LockerScreen Locker { get; private set; }
         public HudScreen Hud { get; private set; }
         public WorldSelectScreen Worlds { get; private set; }
         public LevelSelectScreen Levels { get; private set; }
@@ -32,6 +44,7 @@ namespace FarmFuryStampede.UI
 
         private GameManager _gm;
         private Transform _canvasTransform;
+        private readonly List<OverlayScreen> _overlays = new();
 
         private void Awake()
         {
@@ -40,14 +53,85 @@ namespace FarmFuryStampede.UI
             var canvas = UIKit.CreateCanvas("UICanvas", 10, transform);
             UIKit.EnsureEventSystem(transform);
 
-            Landing = new LandingScreen(canvas.transform, EnterWorldSelect, ExitGame, OpenShopSettings, menuArt);
-            ShopSettings = new ShopSettingsScreen(canvas.transform, CloseShopSettings, menuArt);
-            Hud = new HudScreen(canvas.transform, OpenPause, menuArt);
+            Landing = new LandingScreen(canvas.transform, EnterWorldSelect, ExitGame, OpenMenuHub, menuArt);
+            Hud = new HudScreen(canvas.transform, OpenPause, OpenLocker, menuArt, shopArt);
             Worlds = new WorldSelectScreen(canvas.transform, EnterLevelSelect, EnterLanding, menuArt);
             Levels = new LevelSelectScreen(canvas.transform, PickLevel, EnterWorldSelect, menuArt);
             _canvasTransform = canvas.transform;
-            Results = new ResultsScreen(canvas.transform, PlayNextLevel, RestartLevel, LeaveResults, EnterLanding, OpenShopSettings, menuArt);
-            Pause = new PauseScreen(canvas.transform, ResumeFromPause, RestartLevel, QuitToLevelSelect);
+            Results = new ResultsScreen(canvas.transform, PlayNextLevel, RestartLevel, LeaveResults, EnterLanding, OpenMenuHub, menuArt, shopArt);
+            Pause = new PauseScreen(canvas.transform, ResumeFromPause, OpenSettings, RestartLevel, QuitToLevelSelect);
+        }
+
+        /// <summary>
+        /// The Settings / Shop overlays. Built in Start: the Worlds page needs DataManager for the world cards.
+        /// Each opens on top of whatever is showing and its back button returns to it.
+        /// </summary>
+        private void BuildOverlays()
+        {
+            var c = _canvasTransform;
+            Gate = Add(new ParentalGate(c, menuArt, shopArt));
+            var useCoins = Add(new UseCoinsPrompt(c, menuArt, shopArt));
+            Revive = Add(new RevivePromptScreen(c, menuArt, shopArt));
+            var legal = Add(new LegalScreen(c, menuArt, shopArt));
+            var story = Add(new CharacterStoryScreen(c, menuArt, shopArt));
+            var worldDetail = Add(new WorldDetailScreen(c, menuArt, shopArt));
+            var worldShop = Add(new ItemPurchaseScreen(c, "WorldPurchase", menuArt, shopArt, Gate, useCoins, null, menuArt.worldUnlockedSign,
+                "NEW WORLDS", WorldItems(), new Vector2(500f, 281f), 30f, shopArt.worldPrice));
+            var leaderboards = Add(new LeaderboardsScreen(c, menuArt, shopArt, worldDetail.Show, worldShop.Show));
+
+            var itemCell = new Vector2(OverlayScreen.ItemWidth, OverlayScreen.ItemHeight);
+            int trailsFirst = StoreProducts.Hats.Length;
+            int machinesFirst = trailsFirst + StoreProducts.Trails.Length;
+            var hats = Add(new ItemPurchaseScreen(c, "CosmeticsHats", menuArt, shopArt, Gate, useCoins, shopArt.hatsBanner, null, "HATS & CAPS",
+                Items(StoreProducts.Hats, shopArt.hatItems, 0), itemCell, 77f));
+            var trails = Add(new ItemPurchaseScreen(c, "CosmeticsTrails", menuArt, shopArt, Gate, useCoins, shopArt.trailsBanner, null, "TRAILS",
+                Items(StoreProducts.Trails, shopArt.trailItems, trailsFirst), itemCell, 50f));
+            var machines = Add(new ItemPurchaseScreen(c, "CosmeticsMachines", menuArt, shopArt, Gate, useCoins, shopArt.machinesBanner, null, "MACHINES",
+                Items(StoreProducts.Machines, shopArt.machineItems, machinesFirst), itemCell, 100f));
+            var chooser = Add(new CosmeticsChooserScreen(c, menuArt, shopArt, hats.Show, trails.Show, machines.Show));
+            Locker = Add(new LockerScreen(c, menuArt, shopArt, type => type switch
+            {
+                CosmeticType.Hat => hats,
+                CosmeticType.Trail => trails,
+                _ => machines,
+            }));
+            var coins = Add(new CoinPurchaseScreen(c, menuArt, shopArt, Gate));
+
+            ShopHub = Add(new ShopScreen(c, menuArt, shopArt, Gate, coins.Show, worldShop.Show, chooser.Show));
+            Settings = Add(new SettingsScreen(c, menuArt, shopArt, leaderboards.Show, story.Show, legal.Show));
+            MenuHub = Add(new MenuHubScreen(c, menuArt, shopArt, Settings.Show, ShopHub.Show));
+        }
+
+        private T Add<T>(T overlay) where T : OverlayScreen
+        {
+            _overlays.Add(overlay);
+            return overlay;
+        }
+
+        // A price plaque per product; the label (shown only without art) is the cosmetic's name.
+        private static ItemPurchaseScreen.Item[] Items(string[] productIds, Sprite[] sprites, int firstNameIndex) =>
+            productIds.Select((id, i) => new ItemPurchaseScreen.Item(id, ShopArt.At(sprites, i),
+                StoreProducts.Cosmetics[firstNameIndex + i].name)).ToArray();
+
+        /// <summary>The Worlds page: IAPManager.PurchasableWorlds (purchaseRequired worlds, else the last three).</summary>
+        private static ItemPurchaseScreen.Item[] WorldItems()
+        {
+            return IAPManager.PurchasableWorlds()
+                .Select(w => DataManager.Instance.GetWorldData(w))
+                .Where(w => w != null)
+                .Select(w => new ItemPurchaseScreen.Item(StoreProducts.World(w.worldType), w.selectCardArt, w.displayName))
+                .ToArray();
+        }
+
+        private OverlayScreen TopOverlay() =>
+            _overlays.Where(o => o.IsOpen).OrderByDescending(o => o.Root.transform.GetSiblingIndex()).FirstOrDefault();
+
+        private void CloseOverlays()
+        {
+            foreach (var overlay in _overlays)
+            {
+                overlay.Hide();
+            }
         }
 
         private void OnDestroy()
@@ -59,6 +143,7 @@ namespace FarmFuryStampede.UI
             if (_gm != null)
             {
                 _gm.StateChanged -= ApplyState;
+                if (Revive != null) { _gm.ReviveOffered -= Revive.Show; }
             }
         }
 
@@ -66,7 +151,9 @@ namespace FarmFuryStampede.UI
         {
             _gm = GameManager.Instance;
             characterSelect.Build(_canvasTransform, menuArt);   // needs DataManager, so not in Awake
+            BuildOverlays();
             _gm.StateChanged += ApplyState;
+            _gm.ReviveOffered += Revive.Show;
             EnterLanding();
         }
 
@@ -81,6 +168,8 @@ namespace FarmFuryStampede.UI
             {
                 Hud.Refresh(_gm, LevelLoader.Instance.Player);
             }
+            if (Revive != null && Revive.IsOpen) { Revive.Tick(); }
+            if (Results.Root.activeSelf) { Results.Tick(); }
 
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             {
@@ -90,18 +179,17 @@ namespace FarmFuryStampede.UI
 
         private void HandleEscape()
         {
-            if (ShopSettings.Root.activeSelf)
+            var overlay = TopOverlay();
+            if (overlay != null)
             {
-                CloseShopSettings();
+                overlay.Hide();
                 return;
             }
 
             switch (_gm.CurrentState)
             {
                 case GameState.Playing: OpenPause(); break;
-                case GameState.Paused:
-                    if (Pause.SettingsOpen) { Pause.CloseSettings(); } else { ResumeFromPause(); }
-                    break;
+                case GameState.Paused: ResumeFromPause(); break;
                 case GameState.CharacterSelect: characterSelect.Close(); break;
                 case GameState.LevelSelect: EnterWorldSelect(); break;
                 case GameState.WorldSelect: EnterLanding(); break;
@@ -119,16 +207,22 @@ namespace FarmFuryStampede.UI
             _gm.SetState(GameState.MainMenu);
         }
 
-        /// <summary>Shop &amp; Settings over whatever screen opened it (landing, Level Complete); Back returns to it.</summary>
-        public void OpenShopSettings()
+        /// <summary>The settings cog (landing, Level Complete): the menu hub over that screen; Back returns to it.</summary>
+        public void OpenMenuHub()
         {
-            ShopSettings.Root.transform.SetAsLastSibling();
-            ShopSettings.Root.SetActive(true);
+            MenuHub.Show();
         }
 
-        public void CloseShopSettings()
+        /// <summary>The HUD's Locker button: equip owned cosmetics mid-level (pauses while open).</summary>
+        public void OpenLocker()
         {
-            ShopSettings.Root.SetActive(false);
+            Locker?.Open();
+        }
+
+        /// <summary>Pause's Settings: straight to the Settings panel, over the pause menu.</summary>
+        public void OpenSettings()
+        {
+            Settings.Show();
         }
 
         /// <summary>Exit on the landing screen: quits the app (stops Play mode in the editor).</summary>
@@ -246,8 +340,8 @@ namespace FarmFuryStampede.UI
             bool inLevel = state == GameState.Playing || state == GameState.Paused
                 || state == GameState.LevelComplete || state == GameState.LevelFailed;
 
+            CloseOverlays();
             Landing.Root.SetActive(state == GameState.MainMenu);
-            if (state != GameState.MainMenu) { ShopSettings.Root.SetActive(false); }
             Hud.Root.SetActive(inLevel);
             Worlds.Root.SetActive(state == GameState.WorldSelect);
             Levels.Root.SetActive(state == GameState.LevelSelect);
@@ -257,6 +351,15 @@ namespace FarmFuryStampede.UI
             if (state != GameState.CharacterSelect) { characterSelect.HideVisual(); }
 
             if (state == GameState.Paused) { Pause.Show(); } else { Pause.Hide(); }
+
+            // Arcade's banner placements: Pause and Level Failed only, and never once Remove Ads is owned.
+            var ads = AdManager.Instance;
+            if (ads != null)
+            {
+                bool banner = (state == GameState.Paused || state == GameState.LevelFailed)
+                    && SaveManager.Instance != null && !SaveManager.Instance.AdsRemoved;
+                if (banner) { ads.ShowBanner(); } else { ads.HideBanner(); }
+            }
 
             if (state == GameState.LevelComplete)
             {

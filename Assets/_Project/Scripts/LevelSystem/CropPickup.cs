@@ -30,6 +30,9 @@ namespace FarmFuryStampede.LevelSystem
         }
         private bool _collected;
 
+        /// <summary>Set by LevelLoader on each spawn: coins this pickup pays (the bonus coin), 0 for a crop.</summary>
+        public int coinValue { get; set; }
+
         /// <summary>Set by LevelLoader on each spawn: this crop belongs to the level's secret cluster.</summary>
         public bool isSecretCluster
         {
@@ -80,6 +83,10 @@ namespace FarmFuryStampede.LevelSystem
             if (gm != null)
             {
                 gm.RunState.CollectCrop(isSecretCluster);
+                if (coinValue > 0)
+                {
+                    SaveManager.Instance?.AddCoins(coinValue);
+                }
 
                 // Finding a character-gated secret is remembered for the Level Select "undiscovered secret" icon.
                 if (isSecretCluster && gm.CurrentLevel != null && gm.CurrentLevel.hasCharacterGatedSecret && SaveManager.Instance != null)

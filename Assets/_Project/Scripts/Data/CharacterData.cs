@@ -36,5 +36,11 @@ namespace FarmFuryStampede.Data
 
         [Tooltip("Optional framed character card (name baked in) shown on Character Select; without it the slot is a uiColor panel with the portrait.")]
         public Sprite selectCard;
+
+        [Header("Cosmetics")]
+        [Tooltip("Where a hat sits, relative to the Visual's feet pivot, facing right (x is mirrored facing left). Measured from the idle art by Phase 6 setup.")]
+        public Vector2 hatAnchor = new(0f, 1.35f);
+        [Tooltip("Head width in world units; a hat's CosmeticData.hatScale is a fraction of this.")]
+        public float hatWidth = 0.7f;
     }
 }

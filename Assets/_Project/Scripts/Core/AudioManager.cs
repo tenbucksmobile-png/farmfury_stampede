@@ -23,13 +23,29 @@ namespace FarmFuryStampede.Core
                 musicSource = GetComponent<AudioSource>();
             }
 
-            if (sfxSource == null)
+            // Effects get their own source so the music toggle (SetMusicMuted) doesn't silence them too.
+            if (sfxSource == null || sfxSource == musicSource)
             {
-                sfxSource = musicSource;
+                sfxSource = gameObject.AddComponent<AudioSource>();
+                sfxSource.playOnAwake = false;
             }
 
             musicSource.loop = true;
             musicSource.playOnAwake = false;
+        }
+
+        private void Start()
+        {
+            if (SaveManager.Instance != null)
+            {
+                SetMusicMuted(!SaveManager.Instance.MusicOn);
+            }
+        }
+
+        /// <summary>Settings' music toggle. Sound effects are unaffected.</summary>
+        public void SetMusicMuted(bool muted)
+        {
+            musicSource.mute = muted;
         }
 
         /// <summary>Plays a one-shot sound effect. Logs and no-ops if clip is null.</summary>

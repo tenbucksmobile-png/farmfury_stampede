@@ -21,12 +21,27 @@ namespace FarmFuryStampede.Core
         private const string DebugCountOffsetKey = "FFS_DebugCountOffset";
         private const string BossClearedKeyPrefix = "FFS_BossCleared_";
         private const string SecretFoundKeyPrefix = "FFS_SecretFound_";
+        private const string MusicOnKey = "FFS_MusicOn";
+        private const string CoinBalanceKey = "FFS_Coins";
+        private const string AdsRemovedKey = "FFS_AdsRemoved";
+        private const string LevelsSinceInterstitialKey = "FFS_LevelsSinceInterstitial";
+        private const string CosmeticOwnedKeyPrefix = "FFS_CosmeticOwned_";
+        private const string EquippedHatKeyPrefix = "FFS_EquippedHat_";
+        private const string EquippedSkinKeyPrefix = "FFS_EquippedSkin_";
+        private const string EquippedTrailKey = "FFS_EquippedTrail";
+        private const string WorldPurchasedKeyPrefix = "FFS_WorldPurchased_";
 
         private static readonly CharacterType[] DefaultUnlockedCharacters =
         {
             CharacterType.Cluck,
             CharacterType.Bessie
         };
+
+        /// <summary>Coins (Phase 6 economy, as in Arcade): earned per level, spent on revives and cosmetics.</summary>
+        public int CoinBalance { get; private set; }
+
+        /// <summary>Raised whenever the coin balance changes (HUD chip, shop screens).</summary>
+        public event System.Action<int> CoinsChanged;
 
         protected override void Awake()
         {
@@ -44,6 +59,8 @@ namespace FarmFuryStampede.Core
         /// <summary>Ensures the starter characters are unlocked on a fresh install.</summary>
         public void LoadProgress()
         {
+            CoinBalance = GetProtectedInt(CoinBalanceKey, 0);
+
             foreach (var character in DefaultUnlockedCharacters)
             {
                 if (!PlayerPrefs.HasKey(CharacterUnlockedKeyPrefix + character))
@@ -54,6 +71,155 @@ namespace FarmFuryStampede.Core
 
             Debug.Log("[SaveManager] Progress loaded.");
         }
+
+        // ------------------------------------------------------------ settings
+
+        /// <summary>Settings' music toggle; on by default.</summary>
+        public bool MusicOn
+        {
+            get => PlayerPrefs.GetInt(MusicOnKey, 1) == 1;
+            set
+            {
+                PlayerPrefs.SetInt(MusicOnKey, value ? 1 : 0);
+                PlayerPrefs.Save();
+            }
+        }
+
+        // ------------------------------------------------------------ coins & monetisation (ported from Arcade)
+
+        public void AddCoins(int amount)
+        {
+            CoinBalance += amount;
+            PersistCoinBalance();
+        }
+
+        /// <summary>Spends coins if the balance covers it; false (nothing spent) otherwise.</summary>
+        public bool SpendCoins(int amount)
+        {
+            if (CoinBalance < amount)
+            {
+                return false;
+            }
+
+            CoinBalance -= amount;
+            PersistCoinBalance();
+            return true;
+        }
+
+        private void PersistCoinBalance()
+        {
+            SetProtectedInt(CoinBalanceKey, CoinBalance);
+            PlayerPrefs.Save();
+            CoinsChanged?.Invoke(CoinBalance);
+        }
+
+        /// <summary>Remove Ads owned: no interstitials or banners (rewarded ads stay, they're opt-in).</summary>
+        public bool AdsRemoved
+        {
+            get => GetProtectedBool(AdsRemovedKey, false);
+            set => SetProtectedBool(AdsRemovedKey, value);
+        }
+
+        public int LevelsSinceLastInterstitial => PlayerPrefs.GetInt(LevelsSinceInterstitialKey, 0);
+
+        public void SetLevelsSinceLastInterstitial(int count)
+        {
+            PlayerPrefs.SetInt(LevelsSinceInterstitialKey, count);
+        }
+
+        public bool IsCosmeticOwned(string cosmeticId)
+        {
+            return !string.IsNullOrEmpty(cosmeticId) && GetProtectedBool(CosmeticOwnedKeyPrefix + cosmeticId, false);
+        }
+
+        public void SetCosmeticOwned(string cosmeticId)
+        {
+            if (!string.IsNullOrEmpty(cosmeticId))
+            {
+                SetProtectedBool(CosmeticOwnedKeyPrefix + cosmeticId, true);
+            }
+        }
+
+        /// <summary>The hat or skin a character wears (empty = none). Hats and skins are per character.</summary>
+        public string GetEquippedCosmetic(CosmeticType type, CharacterType character)
+        {
+            return PlayerPrefs.GetString(EquippedKeyPrefix(type) + character, string.Empty);
+        }
+
+        /// <summary>Equipping a skin (a machine) takes the hat off: a hat on a tractor has nowhere to sit.</summary>
+        public void SetEquippedCosmetic(CosmeticType type, CharacterType character, string cosmeticId)
+        {
+            PlayerPrefs.SetString(EquippedKeyPrefix(type) + character, cosmeticId ?? string.Empty);
+            if (type == CosmeticType.Skin && !string.IsNullOrEmpty(cosmeticId))
+            {
+                PlayerPrefs.SetString(EquippedHatKeyPrefix + character, string.Empty);
+            }
+        }
+
+        /// <summary>The trail is shared by every character.</summary>
+        public string GetEquippedTrail() => PlayerPrefs.GetString(EquippedTrailKey, string.Empty);
+
+        public void SetEquippedTrail(string cosmeticId)
+        {
+            PlayerPrefs.SetString(EquippedTrailKey, cosmeticId ?? string.Empty);
+        }
+
+        public bool IsWorldPurchased(WorldType world) => GetProtectedBool(WorldPurchasedKeyPrefix + world, false);
+
+        public void SetWorldPurchased(WorldType world)
+        {
+            SetProtectedBool(WorldPurchasedKeyPrefix + world, true);
+            PlayerPrefs.Save();
+        }
+
+        private static string EquippedKeyPrefix(CosmeticType type) =>
+            type == CosmeticType.Skin ? EquippedSkinKeyPrefix : EquippedHatKeyPrefix;
+
+        // Arcade's tamper check for purchased/earned values: each int is stored with a checksum salted by the device
+        // id, so hand-editing the prefs file resets the value instead of granting coins or items. A value saved
+        // before its checksum existed is adopted rather than wiped.
+        private static string ProtectedSalt => SystemInfo.deviceUniqueIdentifier;
+
+        private static int ComputeChecksum(string key, int value)
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = hash * 31 + key.GetHashCode();
+                hash = hash * 31 + value;
+                hash = hash * 31 + ProtectedSalt.GetHashCode();
+                return hash;
+            }
+        }
+
+        private static void SetProtectedInt(string key, int value)
+        {
+            PlayerPrefs.SetInt(key, value);
+            PlayerPrefs.SetInt(key + "_chk", ComputeChecksum(key, value));
+        }
+
+        private static int GetProtectedInt(string key, int defaultValue)
+        {
+            int value = PlayerPrefs.GetInt(key, defaultValue);
+            string checksumKey = key + "_chk";
+            if (!PlayerPrefs.HasKey(checksumKey))
+            {
+                SetProtectedInt(key, value);
+                return value;
+            }
+
+            if (PlayerPrefs.GetInt(checksumKey) != ComputeChecksum(key, value))
+            {
+                Debug.LogWarning($"[SaveManager] Integrity check failed for '{key}' - resetting to default.");
+                SetProtectedInt(key, defaultValue);
+                return defaultValue;
+            }
+            return value;
+        }
+
+        private static bool GetProtectedBool(string key, bool defaultValue) => GetProtectedInt(key, defaultValue ? 1 : 0) == 1;
+
+        private static void SetProtectedBool(string key, bool value) => SetProtectedInt(key, value ? 1 : 0);
 
         // ------------------------------------------------------------ characters
 
@@ -157,10 +323,15 @@ namespace FarmFuryStampede.Core
             PlayerPrefs.SetInt(BossClearedKeyPrefix + world, cleared ? 1 : 0);
         }
 
-        /// <summary>A world unlocks once the previous world's boss level has been completed. Meadow Ruins is always open.</summary>
+        /// <summary>
+        /// A world unlocks once the previous world's boss level has been completed (Meadow Ruins is always open).
+        /// A purchase-gated world (WorldData.purchaseRequired) must also have been bought.
+        /// </summary>
         public bool IsWorldUnlocked(WorldType world)
         {
-            return world == WorldType.MeadowRuins || IsWorldBossCleared(world - 1);
+            bool reached = world == WorldType.MeadowRuins || IsWorldBossCleared(world - 1);
+            var data = DataManager.Instance != null ? DataManager.Instance.GetWorldData(world) : null;
+            return reached && (data == null || !data.purchaseRequired || IsWorldPurchased(world));
         }
 
         /// <summary>
@@ -224,7 +395,10 @@ namespace FarmFuryStampede.Core
             return EvaluateUnlocks();
         }
 
-        /// <summary>DEBUG: wipes all progress (completions, stars, unlocks) back to a fresh save.</summary>
+        /// <summary>DEBUG: adds coins (F1 panel), for testing revives and coin purchases.</summary>
+        public void DebugAddCoins(int amount) => AddCoins(amount);
+
+        /// <summary>DEBUG: wipes all progress (completions, stars, unlocks) back to a fresh save. Purchases and coins are kept.</summary>
         public void DebugResetProgress()
         {
             if (DataManager.Instance != null)

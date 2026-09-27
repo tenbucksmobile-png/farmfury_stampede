@@ -25,6 +25,10 @@ namespace FarmFuryStampede.Core
         public int livesRemaining;
 
         public int starsEarned;
+        /// <summary>Coins this completed level paid out (before any Double Coins ad).</summary>
+        public int coinsEarned;
+        /// <summary>The Level Complete "Double Coins" ad reward has been claimed (once per result).</summary>
+        public bool doubleCoinsClaimed;
         public bool bossCleared;
         /// <summary>True when this boss clear opened the next world for the first time (not a replay, not the finale).</summary>
         public bool worldUnlocked;
@@ -50,6 +54,8 @@ namespace FarmFuryStampede.Core
             totalSecretCrops = 0;
             livesRemaining = 0;
             starsEarned = 0;
+            coinsEarned = 0;
+            doubleCoinsClaimed = false;
             bossCleared = false;
             worldUnlocked = false;
             hasCheckpoint = false;

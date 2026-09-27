@@ -18,11 +18,13 @@ namespace FarmFuryStampede.Core
         [SerializeField] private List<RobotData> allRobots = new();
         [SerializeField] private List<LevelData> allLevels = new();
         [SerializeField] private List<WorldData> allWorlds = new();
+        [SerializeField] private List<CosmeticData> allCosmetics = new();
 
         private Dictionary<CharacterType, CharacterData> _characters;
         private Dictionary<RobotType, RobotData> _robots;
         private Dictionary<string, LevelData> _levels;
         private Dictionary<WorldType, WorldData> _worlds;
+        private Dictionary<string, CosmeticData> _cosmetics;
 
         protected override void Awake()
         {
@@ -36,9 +38,11 @@ namespace FarmFuryStampede.Core
             _robots = allRobots.Where(r => r != null).ToDictionary(r => r.robotType, r => r);
             _levels = allLevels.Where(l => l != null).ToDictionary(l => l.levelId, l => l);
             _worlds = allWorlds.Where(w => w != null).ToDictionary(w => w.worldType, w => w);
+            _cosmetics = allCosmetics.Where(c => c != null && !string.IsNullOrEmpty(c.cosmeticId))
+                .GroupBy(c => c.cosmeticId).ToDictionary(g => g.Key, g => g.First());
 
             Debug.Log($"[DataManager] Loaded {_characters.Count} characters, {_robots.Count} robots, " +
-                      $"{_levels.Count} levels, {_worlds.Count} worlds.");
+                      $"{_levels.Count} levels, {_worlds.Count} worlds, {_cosmetics.Count} cosmetics.");
         }
 
         /// <summary>Looks up a character's data by type. Returns null if not found.</summary>
@@ -91,6 +95,12 @@ namespace FarmFuryStampede.Core
         public WorldData GetWorldData(WorldType type)
         {
             return _worlds.TryGetValue(type, out var data) ? data : null;
+        }
+
+        /// <summary>Looks up a cosmetic by its id (empty/unknown = null, i.e. nothing equipped).</summary>
+        public CosmeticData GetCosmeticData(string cosmeticId)
+        {
+            return !string.IsNullOrEmpty(cosmeticId) && _cosmetics.TryGetValue(cosmeticId, out var data) ? data : null;
         }
 
         /// <summary>Returns every loaded character whose unlock condition is currently met.</summary>

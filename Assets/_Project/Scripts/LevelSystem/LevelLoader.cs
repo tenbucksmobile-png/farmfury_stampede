@@ -103,6 +103,7 @@ namespace FarmFuryStampede.LevelSystem
                 {
                     var pickup = crop.GetComponent<CropPickup>();
                     pickup.visualOverride = marker.visualOverride;
+                    pickup.coinValue = marker.coinValue;
                     pickup.isSecretCluster = marker.secretCluster;
                 }
 

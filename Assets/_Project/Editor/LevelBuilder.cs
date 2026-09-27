@@ -858,7 +858,11 @@ namespace FarmFuryStampede.EditorTools
             {
                 var crop = AddMarker<CropSpawnPoint>(markers.transform, _crops[i].coin ? $"Crop_{i:00}_Coin" : $"Crop_{i:00}", new Vector2(_crops[i].x, _crops[i].y));
                 crop.secretCluster = _crops[i].secret;
-                if (_crops[i].coin) { crop.visualOverride = assets.coinSprite; }
+                if (_crops[i].coin)
+                {
+                    crop.visualOverride = assets.coinSprite;
+                    crop.coinValue = 1;
+                }
             }
 
             for (int i = 0; i < _robots.Count; i++)

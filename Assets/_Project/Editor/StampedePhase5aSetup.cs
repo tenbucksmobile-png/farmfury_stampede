@@ -178,9 +178,11 @@ namespace FarmFuryStampede.EditorTools
                 F(4, 13, 5, 15, 240, 230, 200), F(8, 13, 9, 15, 240, 230, 200), F(12, 1, 13, 4, 90, 90, 100), F(10, 10, 11, 11, 20, 20, 20)));
 
             ImportCharacterArt();
+            StampedeCosmetics.ImportArt();
             ImportRobotArt();
             StampedeEnvironmentArt.ImportBackgroundArt();
             StampedeUIArt.ImportUIArt();
+            StampedeShopArt.ImportShopArt();
 
             CreateTile("GroundTile", StampedeProceduralTiles.CreateGroundTileSprite(), Color.white);
             CreateTile("PlatformTile", StampedeProceduralTiles.CreatePlatformTileSprite(), Color.white);
@@ -317,6 +319,8 @@ namespace FarmFuryStampede.EditorTools
             }
 
             SetWorldLevelCount(levelDatas.Count);
+            StampedeCosmetics.CreateAssets();
+            StampedeCosmetics.MeasureHatAnchors(characterDatas);
             AssetDatabase.SaveAssets();
 
             // ---- Stage 4: wire the scene.
@@ -600,6 +604,7 @@ namespace FarmFuryStampede.EditorTools
             renderer.sortingOrder = 10;
 
             visualObject.AddComponent<CharacterSpriteAnimator>();   // swaps directional art frames when a character has them
+            visualObject.AddComponent<CharacterCosmeticRenderer>(); // Phase 6: equipped hat / machine / trail, drawn after the animator
 
             root.AddComponent<PlayerInputReader>();
             var controller = root.AddComponent<CharacterController2D>();
@@ -1340,10 +1345,12 @@ namespace FarmFuryStampede.EditorTools
             flowSo.FindProperty("menuArt.threeStarBoard").objectReferenceValue = StampedeUIArt.StarBoard(3);
             flowSo.FindProperty("menuArt.newCharacterSign").objectReferenceValue = StampedeUIArt.NewCharacterSign();
             flowSo.FindProperty("menuArt.worldUnlockedSign").objectReferenceValue = StampedeUIArt.WorldUnlockedSign();
+            StampedeShopArt.Wire(flowSo, "shopArt");
             flowSo.ApplyModifiedPropertiesWithoutUndo();
             flowObject.AddComponent<DebugPanel>();
 
             WireDataManager(characters, levels, robots, worlds);
+            StampedeCosmetics.WireScene();
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);

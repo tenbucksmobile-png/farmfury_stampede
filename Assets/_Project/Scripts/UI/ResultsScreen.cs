@@ -1,5 +1,6 @@
 using System;
 using FarmFuryStampede.Core;
+using FarmFuryStampede.Data;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -72,13 +73,20 @@ namespace FarmFuryStampede.UI
         private static readonly Color ScoreGold = new(1f, 0.84f, 0.25f, 1f);
         private static readonly Color ScoreOutline = new(0.24f, 0.11f, 0.03f, 1f);
 
+        // Phase 6: coins paid for the level (top-left) and Arcade's rewarded Double Coins button + Watch Ad label (top-right).
+        private readonly GameObject _payout;
+        private readonly Text _payoutText;
+        private readonly GameObject _doubleCoins;
+        private const float DoubleCoinsSize = 160f;
+
         private const float EdgeMargin = 70f;
         private const float BottomMargin = 40f;
         private const float ButtonGap = 30f;
 
-        public ResultsScreen(Transform canvas, Action onNext, Action onRetry, Action onQuit, Action onHome, Action onSettings, MenuArt art)
+        public ResultsScreen(Transform canvas, Action onNext, Action onRetry, Action onQuit, Action onHome, Action onSettings, MenuArt art, ShopArt shop)
         {
             _art = art ?? new MenuArt();
+            shop ??= new ShopArt();
             _artLook = _art.levelCompleteBackground != null && _art.levelFailedBackground != null;
 
             var root = UIKit.NewRect("Results", canvas);
@@ -166,12 +174,81 @@ namespace FarmFuryStampede.UI
                 UIKit.Place(ContinueButton.image.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(190f, 30f), new Vector2(340f, 80f));
             }
 
+            var top = UIKit.NewRect("TopSafeArea", root);
+            top.gameObject.AddComponent<SafeAreaFitter>();
+
+            _payout = UIKit.NewRect("CoinPayout", top).gameObject;
+            var payoutRect = (RectTransform)_payout.transform;
+            UIKit.Place(payoutRect, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(EdgeMargin, -40f), new Vector2(600f, 80f));
+            var coin = shop.coinIcon != null ? UIKit.Picture(payoutRect, "CoinIcon", shop.coinIcon) : UIKit.Panel(payoutRect, "CoinIcon", UIKit.Accent);
+            UIKit.Place(coin.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), Vector2.zero, new Vector2(72f, 72f));
+            _payoutText = UIKit.Label(payoutRect, "Count", "", 52, TextAnchor.MiddleLeft, ScoreGold);
+            _payoutText.fontStyle = FontStyle.Bold;
+            _payoutText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            var payoutOutline = _payoutText.gameObject.AddComponent<Outline>();
+            payoutOutline.effectColor = ScoreOutline;
+            payoutOutline.effectDistance = new Vector2(3f, -3f);
+            UIKit.Place(_payoutText.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(86f, 0f), new Vector2(500f, 72f));
+
+            float watchAdHeight = DoubleCoinsSize * 214f / 512f;
+            _doubleCoins = UIKit.NewRect("DoubleCoinsAdGroup", top).gameObject;
+            UIKit.Place((RectTransform)_doubleCoins.transform, Vector2.one, Vector2.one, new Vector2(-EdgeMargin, -40f),
+                new Vector2(DoubleCoinsSize, DoubleCoinsSize + 6f + watchAdHeight));
+            var doubleButton = UIKit.MakeButton(_doubleCoins.transform, "DoubleCoinsButton", shop.doubleCoins != null ? "" : "x2",
+                shop.doubleCoins != null ? Color.white : UIKit.Accent, ClaimDoubleCoins, 48);
+            if (shop.doubleCoins != null)
+            {
+                doubleButton.image.sprite = shop.doubleCoins;
+                doubleButton.image.preserveAspect = true;
+            }
+            UIKit.Place(doubleButton.image.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), Vector2.zero, Vector2.one * DoubleCoinsSize);
+            Graphic watchAd = shop.watchAd != null
+                ? UIKit.Picture(_doubleCoins.transform, "WatchAdLabel", shop.watchAd)
+                : UIKit.Label(_doubleCoins.transform, "WatchAdLabel", "Watch Ad", 30);
+            UIKit.Place(watchAd.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -(DoubleCoinsSize + 6f)),
+                new Vector2(DoubleCoinsSize, watchAdHeight));
+            _doubleCoins.SetActive(false);
+
             Root.SetActive(false);
+        }
+
+        private GameManager _gm;
+
+        /// <summary>Called every frame by GameFlow while shown: Double Coins shows only while an ad is ready and unclaimed.</summary>
+        public void Tick()
+        {
+            bool show = _gm != null && _gm.CurrentState == GameState.LevelComplete && !_gm.RunState.doubleCoinsClaimed &&
+                _gm.RunState.coinsEarned > 0 && AdManager.Instance != null && AdManager.Instance.IsRewardedAdReady;
+            if (_doubleCoins.activeSelf != show)
+            {
+                _doubleCoins.SetActive(show);
+            }
+        }
+
+        private void ClaimDoubleCoins()
+        {
+            AdManager.Instance?.ShowRewardedAd("double_coins_level_complete", rewarded =>
+            {
+                if (rewarded && _gm != null && _gm.ClaimDoubleCoinsViaAd())
+                {
+                    ShowPayout(_gm.RunState);
+                }
+                Tick();
+            });
+        }
+
+        private void ShowPayout(LevelRunState run)
+        {
+            int paid = run.coinsEarned * (run.doubleCoinsClaimed ? 2 : 1);
+            _payoutText.text = run.doubleCoinsClaimed ? $"+{paid}  (doubled!)" : $"+{paid}";
+            _payout.SetActive(paid > 0);
         }
 
         public void ShowComplete(GameManager gm)
         {
             var run = gm.RunState;
+            _gm = gm;
+            ShowPayout(run);
             bool newCharacter = run.newlyUnlockedCharacters.Count > 0;
 
             if (_artLook)
@@ -217,6 +294,8 @@ namespace FarmFuryStampede.UI
 
         public void ShowFailed()
         {
+            _payout.SetActive(false);
+            _doubleCoins.SetActive(false);
             if (_artLook)
             {
                 SetArt(_art.levelFailedBackground);
