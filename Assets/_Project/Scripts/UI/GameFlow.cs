@@ -40,6 +40,8 @@ namespace FarmFuryStampede.UI
         public LevelSelectScreen Levels { get; private set; }
         public PauseScreen Pause { get; private set; }
         public ResultsScreen Results { get; private set; }
+        public RarePelletCelebration PelletCelebration { get; private set; }
+        public SwapCharacterScreen Swap { get; private set; }
         public CharacterSelectScreen CharacterSelect => characterSelect;
         public WorldType CurrentWorld { get; private set; } = WorldType.MeadowRuins;
 
@@ -55,12 +57,23 @@ namespace FarmFuryStampede.UI
             UIKit.EnsureEventSystem(transform);
 
             Landing = new LandingScreen(canvas.transform, EnterWorldSelect, ExitGame, OpenMenuHub, menuArt);
-            Hud = new HudScreen(canvas.transform, OpenPause, OpenLocker, menuArt, shopArt);
+            Hud = new HudScreen(canvas.transform, OpenPause, OpenLocker, OpenSwap, menuArt, shopArt);
             Worlds = new WorldSelectScreen(canvas.transform, EnterLevelSelect, EnterLanding, menuArt);
             Levels = new LevelSelectScreen(canvas.transform, PickLevel, EnterWorldSelect, menuArt);
             _canvasTransform = canvas.transform;
             Results = new ResultsScreen(canvas.transform, PlayNextLevel, RestartLevel, LeaveResults, EnterLanding, OpenMenuHub, menuArt, shopArt);
             Pause = new PauseScreen(canvas.transform, ResumeFromPause, OpenSettings, RestartLevel, QuitToLevelSelect, EnterLanding, menuArt);
+            Swap = new SwapCharacterScreen(canvas.transform, menuArt);
+            PelletCelebration = RarePelletCelebration.Create(canvas.transform, menuArt);
+        }
+
+        /// <summary>The HUD's swap button (and Tab): the character picker, over a frozen level.</summary>
+        public void OpenSwap()
+        {
+            if (_gm.CurrentState == GameState.Playing && !_gm.ReviveDecisionPending && !PelletCelebration.IsOpen)
+            {
+                Swap.Open();
+            }
         }
 
         /// <summary>
@@ -177,10 +190,25 @@ namespace FarmFuryStampede.UI
             {
                 HandleEscape();
             }
+            else if (Keyboard.current != null && Keyboard.current.tabKey.wasPressedThisFrame)
+            {
+                if (Swap.IsOpen) { Swap.Close(); } else { OpenSwap(); }
+            }
         }
 
         private void HandleEscape()
         {
+            if (PelletCelebration != null && PelletCelebration.IsOpen)
+            {
+                PelletCelebration.Skip();
+                return;
+            }
+            if (Swap != null && Swap.IsOpen)
+            {
+                Swap.Close();
+                return;
+            }
+
             var overlay = TopOverlay();
             if (overlay != null)
             {
@@ -258,7 +286,9 @@ namespace FarmFuryStampede.UI
                 return;
             }
 
-            characterSelect.Open(level);
+            // No character pick before a level any more: it starts as whoever the player last played (swapped to
+            // or started with); they can swap mid-level from the HUD.
+            _gm.StartLevel(level, SaveManager.Instance.LastCharacter);
         }
 
         public void OpenPause()
@@ -343,6 +373,7 @@ namespace FarmFuryStampede.UI
                 || state == GameState.LevelComplete || state == GameState.LevelFailed;
 
             CloseOverlays();
+            if (state != GameState.Playing) { PelletCelebration.Close(); Swap.Hide(); }
             Landing.Root.SetActive(state == GameState.MainMenu);
             Hud.Root.SetActive(inLevel);
             Worlds.Root.SetActive(state == GameState.WorldSelect);

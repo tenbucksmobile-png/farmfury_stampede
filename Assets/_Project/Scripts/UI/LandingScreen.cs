@@ -10,7 +10,9 @@ namespace FarmFuryStampede.UI
     /// bottom-left, Exit and the settings cog bottom-right (buttons kept inside the device safe area).
     /// Play -> World Select, Exit -> quit the app, cog -> Shop &amp; Settings.
     /// Button positions are in the 1920x1080 reference canvas, measured off the 1280x720 mockup (x1.5). The poster is
-    /// shown covering the screen (<see cref="ZoomedCover"/>). If a backdrop scene is assigned it is instead drawn slightly
+    /// shown covering the screen (<see cref="ZoomedCover"/>, aspect kept). The poster is painted ~2.2:1 with the logo and
+    /// Cluck in the central 16:9, so wide phones see all of it at its own size and 16:9 screens lose only plain
+    /// field/sky off the sides. If a backdrop scene is assigned it is instead drawn slightly
     /// zoomed out (<see cref="PosterZoom"/>) over that backdrop; setup assigns none, so the poster covers on its own.
     /// Any remaining overflow is cropped mostly off the bottom (the road) so the logo at the top survives.
     /// Without the poster the screen shows a plain title instead.

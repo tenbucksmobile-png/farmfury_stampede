@@ -15,7 +15,8 @@ namespace FarmFuryStampede.UI
     /// level. Everything sits inside the device safe area. Refreshed every frame by GameFlow.
     /// Phase 6 (Arcade's HUD): the coin balance (coin glyph + count) top-left.
     /// On-screen controls: hold-to-run left and right, then pause, along the bottom-left; jump in the bottom-right
-    /// corner with the Locker beside it. The life icons are the played character giving a thumbs up.
+    /// corner with the Locker beside it and the character swap above it. The life icons are the played character
+    /// giving a thumbs up.
     /// Without art the lives fall back to red squares and pause to a plain "II" button.
     /// </summary>
     public class HudScreen
@@ -23,6 +24,7 @@ namespace FarmFuryStampede.UI
         public GameObject Root { get; private set; }
         public Button PauseButton { get; private set; }
         public Button LockerButton { get; private set; }
+        public Button SwapButton { get; private set; }
         private readonly Text _coins;
 
         private readonly List<Image> _lifeIcons = new();
@@ -50,7 +52,7 @@ namespace FarmFuryStampede.UI
             }
         }
 
-        public HudScreen(Transform canvas, Action onPause, Action onLocker, MenuArt art, ShopArt shop)
+        public HudScreen(Transform canvas, Action onPause, Action onLocker, Action onSwap, MenuArt art, ShopArt shop)
         {
             art ??= new MenuArt();
             shop ??= new ShopArt();
@@ -108,6 +110,17 @@ namespace FarmFuryStampede.UI
             }
             UIKit.Place(LockerButton.image.rectTransform, Vector2.right, Vector2.right,
                 new Vector2(-EdgeMargin - ControlSize - ControlGap, EdgeMargin + roundLift), Vector2.one * UIKit.RoundButtonSize);
+
+            // Swap character: directly above jump, centred on it.
+            SwapButton = UIKit.MakeButton(safe, "SwapButton", art.swapCharacterButton != null ? "" : "SWAP",
+                art.swapCharacterButton != null ? Color.white : new Color(0.2f, 0.25f, 0.38f, 0.95f), () => onSwap?.Invoke(), 30);
+            if (art.swapCharacterButton != null)
+            {
+                SwapButton.image.sprite = art.swapCharacterButton;
+                SwapButton.image.preserveAspect = true;
+            }
+            UIKit.Place(SwapButton.image.rectTransform, Vector2.right, Vector2.right,
+                new Vector2(-EdgeMargin - roundLift, EdgeMargin + ControlSize + ControlGap), Vector2.one * UIKit.RoundButtonSize);
 
             // Coin balance, top-left (the lives have the top-right).
             const float coinSize = 72f;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using FarmFuryStampede.Characters;
 using FarmFuryStampede.Core;
 using FarmFuryStampede.Data;
@@ -204,6 +205,34 @@ namespace FarmFuryStampede.Movement
         /// </summary>
         public void SetCharacter(CharacterType type)
         {
+            _usesLeft.Clear();   // a new attempt: every character starts with its full uses
+            ApplyCharacter(type);
+            UsesRemaining = UsesPerLevel;
+        }
+
+        /// <summary>
+        /// Swaps to another character mid-level (the in-level swap): position and motion carry on, any active ability
+        /// of the old character is cancelled, and ability uses are remembered per character for the attempt, so
+        /// swapping back and forth never refills them.
+        /// </summary>
+        public void SwitchCharacter(CharacterType type)
+        {
+            if (_characterAssigned && type == Character)
+            {
+                return;
+            }
+
+            _usesLeft[Character] = UsesRemaining;
+            _ability?.Reset(this);
+            ApplyCharacter(type);
+            UsesRemaining = _usesLeft.TryGetValue(type, out int left) ? left : UsesPerLevel;
+        }
+
+        // Ability uses left per character this attempt (SwitchCharacter).
+        private readonly Dictionary<CharacterType, int> _usesLeft = new();
+
+        private void ApplyCharacter(CharacterType type)
+        {
             _characterAssigned = true;
             Character = type;
             Data = DataManager.Instance != null ? DataManager.Instance.GetCharacterData(type) : null;
@@ -231,7 +260,6 @@ namespace FarmFuryStampede.Movement
             }
 
             RecalculateJump();
-            UsesRemaining = UsesPerLevel;
             _abilityQueued = false;
             _waterTime = 0f;
             _ability?.Reset(this);

@@ -73,6 +73,10 @@ namespace FarmFuryStampede.UI
         public Sprite newCharacterSign;
         [Tooltip("Results sign shown when a boss clear unlocked the next world.")]
         public Sprite worldUnlockedSign;
+        [Tooltip("The rare pellet (crystal apple, RarePellets_apple.png): its celebration and the pellet count on locked Character Select cards.")]
+        public Sprite rarePellet;
+        [Tooltip("HUD button that opens the in-level character swap (SwapCharacterIcon.png, Arcade's swap art).")]
+        public Sprite swapCharacterButton;
 
         public Sprite StarBoard(int stars) => stars switch
         {

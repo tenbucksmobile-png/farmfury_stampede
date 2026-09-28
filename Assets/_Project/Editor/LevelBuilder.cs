@@ -42,6 +42,8 @@ namespace FarmFuryStampede.EditorTools
         public Sprite stoneBlockSprite;
         /// <summary>Art for BonusCoin() crops (CropSpawnPoint.visualOverride).</summary>
         public Sprite coinSprite;
+        /// <summary>The rare pellet (crystal apple) placed by RarePellet(); null places none.</summary>
+        public Sprite rarePelletSprite;
     }
 
     /// <summary>Background-only farm art (no colliders). Any missing piece is skipped where a level asks for it.</summary>
@@ -594,6 +596,7 @@ namespace FarmFuryStampede.EditorTools
 
         private void Validate()
         {
+            ValidateRarePellet();
             if (_playerStart == null) { Error("No player start."); }
             if (_goal == null && !_noGoal) { Error("No goal."); }
             if (_surfaces.Count == 0) { return; }
@@ -825,6 +828,7 @@ namespace FarmFuryStampede.EditorTools
             pit.AddComponent<PitDeathZone>();
 
             RemoveOverlappingCrops();
+            PlaceRarePellet(root.transform, assets);
 
             var markers = new GameObject("Markers");
             markers.transform.SetParent(root.transform, false);
@@ -913,6 +917,77 @@ namespace FarmFuryStampede.EditorTools
 
         // Drops any crop whose icon would overlap one already kept (hand-placed groups, arcs and secret rows are
         // authored 1 unit apart). Secret-cluster crops are kept first so no secret loses its reward.
+        // Rare pellet (see RarePelletPickup): at most one per level, where RarePellet() put it - always somewhere every
+        // character can reach (a normal or double jump from the path or an open stair), never behind an ability gate,
+        // since any character may find it and it unlocks the next character. Baked into the prefab, which is
+        // instantiated fresh on every load, so it needs no marker or pool.
+        private const float RarePelletRadius = 0.6f;
+        private const int RarePelletSortingOrder = 6;   // over the crops (5)
+        private Vector2? _rarePellet;
+
+        /// <summary>The level's rare pellet, centred at (x, y). Keep it reachable by every character (see PlaceRarePellet).</summary>
+        public LevelBuilder RarePellet(float x, float y)
+        {
+            if (_rarePellet.HasValue)
+            {
+                Error("Only one rare pellet per level.");
+            }
+            _rarePellet = new Vector2(x, y);
+            return this;
+        }
+
+        // The pellet must float clear of every solid surface (checked in Validate, before anything is built).
+        private void ValidateRarePellet()
+        {
+            if (!_rarePellet.HasValue)
+            {
+                return;
+            }
+
+            var spot = _rarePellet.Value;
+            foreach (var s in _surfaces)
+            {
+                float bottom = s.kind == Kind.Floating ? s.baseTop : GroundDepth;
+                if (spot.x > s.x0 - RarePelletRadius && spot.x < s.x1 + RarePelletRadius
+                    && spot.y - RarePelletRadius < s.top && spot.y + RarePelletRadius > bottom)
+                {
+                    Error($"Rare pellet at {spot} overlaps solid ground/platform [{s.x0},{s.x1}) top {s.top}.");
+                }
+            }
+        }
+
+        private void PlaceRarePellet(Transform root, LevelAssets assets)
+        {
+            if (!_rarePellet.HasValue || assets.rarePelletSprite == null)
+            {
+                return;
+            }
+
+            var spot = _rarePellet.Value;
+            // No crop hidden behind the apple.
+            _crops.RemoveAll(c => Vector2.Distance(new Vector2(c.x, c.y), spot) < RarePelletRadius * 2f);
+
+            var pellet = new GameObject("RarePellet");
+            pellet.transform.SetParent(root, false);
+            pellet.transform.position = new Vector3(spot.x, spot.y, 0f);
+            var trigger = pellet.AddComponent<CircleCollider2D>();
+            trigger.isTrigger = true;
+            trigger.radius = RarePelletRadius;
+            var art = new GameObject("Art");
+            art.transform.SetParent(pellet.transform, false);
+            var renderer = art.AddComponent<SpriteRenderer>();
+            renderer.sprite = assets.rarePelletSprite;
+            renderer.sortingOrder = RarePelletSortingOrder;
+            var pickup = pellet.AddComponent<RarePelletPickup>();
+            var so = new SerializedObject(pickup);
+            so.FindProperty("visual").objectReferenceValue = renderer;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            RarePelletPosition = new Vector2(spot.x, spot.y);
+        }
+
+        /// <summary>Where this level's rare pellet was placed (after Build), or null when it has none.</summary>
+        public Vector2? RarePelletPosition { get; private set; }
+
         private void RemoveOverlappingCrops()
         {
             var kept = new List<CropRec>();
@@ -1393,8 +1468,8 @@ namespace FarmFuryStampede.EditorTools
                 Spawn($"{prop}_{x}", sprite, new Vector2(x, top.Value), scale, flip, BackdropTint, order);
             }
 
-            // Background corn only grows on the level's base ground (the height at the start): none on mounds,
-            // terraces or other raised ground, which read as hills.
+            // Background corn, fences and wildflowers only go on the level's base ground (the height at the start):
+            // none on mounds, terraces or other raised ground, which read as hills and stay clean.
             int baseTop = GroundTopAt(_playerStart?.x ?? _startX, out _);
             if (art.cornStalks.Length > 0)
             {
@@ -1431,7 +1506,7 @@ namespace FarmFuryStampede.EditorTools
                     for (float x = run.x + width * 0.5f; x + width * 0.5f <= run.y + 0.01f; x += width * 0.97f)
                     {
                         int? top = FlatTop(x, width * 0.5f);
-                        if (top == null) { continue; }
+                        if (top == null || top.Value > baseTop) { continue; }
                         Spawn($"Fence_{x:0.00}", art.fence, new Vector2(x, top.Value), 1f, false, BackdropTint, -4);
                         first ??= x - width * 0.5f;
                         last = x + width * 0.5f;
@@ -1442,7 +1517,7 @@ namespace FarmFuryStampede.EditorTools
                     foreach (var (end, outward) in new[] { (first.Value, -1f), (last.Value, 1f) })
                     {
                         int? top = FlatTop(end, 0.3f);
-                        if (top == null) { continue; }
+                        if (top == null || top.Value > baseTop) { continue; }
                         Spawn($"Wildflowers_{end:0.00}", art.wildflowers, new Vector2(end, top.Value), Range(1.05f, 1.2f),
                             random.Next(2) == 0, Color.white, -3);
                         Spawn($"Wildflowers_{end:0.00}_b", art.wildflowers, new Vector2(end + outward * 0.45f, top.Value),
@@ -1593,6 +1668,7 @@ namespace FarmFuryStampede.EditorTools
 
             bool Near(Vector2? p, float range) => p.HasValue && Mathf.Abs(p.Value.x - x) < range;
             if (Near(_playerStart, 6f) || Near(_goal, 4f)) { return false; }
+            if (Near(_rarePellet, ObstacleWidth * 0.5f + 2f)) { return false; }   // the pellet floats over open ground
             if (_checkpoints.Any(c => Mathf.Abs(c.x - x) < 3f)) { return false; }
             if (_robots.Any(r => Mathf.Abs(r.x - x) < r.patrol + ObstacleWidth * 0.5f + 1.2f)) { return false; }
             if (_breakables.Any(b => x > b.x - 2f && x < b.x + b.length + 2f)) { return false; }

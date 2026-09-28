@@ -31,8 +31,7 @@ namespace FarmFuryStampede.EditorTools
         // of its source resolution.
         private const float CropTargetWorldSize = 0.6f;   // well under the 1.5-unit characters/robots
         // The smiling corn kernel only: the cob was camouflaged against the cobs on the backdrop corn stalks as an
-        // everyday pickup, so it is kept for the (rarer, off-path) secret crops. The other crop art (maize pellet, carrot, cabbage, cherry, grain sack, loaf, apple, sunflower pellet, rare apple
-        // pellet) stays in Sprites/UI unused.
+        // everyday pickup, so it is kept for the (rarer, off-path) secret crops. The other crop art (maize pellet, carrot, cabbage, cherry, grain sack, loaf, apple, sunflower pellet) stays in Sprites/UI unused.
         private static readonly string[] NormalCropFiles = { "CornKernel.png" };
         // Per-marker art override (CropSpawnPoint.visualOverride): the bonus coin on a stone tower top.
         private const string CoinFile = "Collectable Coin.png";
@@ -45,7 +44,10 @@ namespace FarmFuryStampede.EditorTools
             { "CornKernel.png", 0.9f },          // mockup size: reads clearly on the stone blocks
             { CoinFile, 0.9f },
             { "CornCob.png", 1.2f },
+            { RarePelletFile, 1.3f },            // the rare pellet: bigger than any crop, so it reads as special
         };
+        // The rare pellet (RarePelletPickup): a glowing crystal apple at the end of each gated secret.
+        private const string RarePelletFile = "RarePellets_apple.png";
 
         // Framed Character Select cards (name baked into the art).
         private const float CardPixelsPerUnit = 100f; // UI-only; the Image sizes it
@@ -107,6 +109,8 @@ namespace FarmFuryStampede.EditorTools
         private const string SettingsButtonFile = "Btn_settings.png";
         // The landing poster, shown full-screen as it is (logo, sign, Cluck and robots painted in). It is its own
         // scene, so no backdrop is drawn behind it any more (was: a zoomed-out, edge-faded copy over Canvas.png).
+        // It is painted wide (2560x1164, ~2.2:1) with everything important in the central 16:9, so it covers phones
+        // up to ~2.2:1 without being enlarged; narrower screens only lose plain field/sky off the sides.
         private const string LandingPosterFile = "FF_StampedePoster.png";
         private static readonly string[] StarBoardFiles = { "LevelWin_1.png", "LevelComplete_2.png", "LevelComplete_3.png" };
         private const string NewCharacterSignFile = "NewCharacter.png";
@@ -156,6 +160,7 @@ namespace FarmFuryStampede.EditorTools
             foreach (string file in NormalCropFiles) { ImportCropIcon(file); }
             foreach (string file in SecretCropFiles) { ImportCropIcon(file); }
             ImportCropIcon(CoinFile);
+            ImportCropIcon(RarePelletFile);
             foreach (string file in CharacterCardFiles.Values) { ImportCentered(file, CardPixelsPerUnit); }
             foreach (var (file, pivotY, metres) in ObstacleFiles) { ImportToScale(file, pivotY, metres); }
 
@@ -180,6 +185,7 @@ namespace FarmFuryStampede.EditorTools
             yield return $"{UIDir}/{HomeButtonFile}";
             yield return $"{UIDir}/{LifeIconFile}";
             yield return $"{UIDir}/{PauseButtonFile}";
+            yield return $"{UIDir}/{SwapButtonFile}";
             yield return WorldSelectBackgroundPath;
             yield return LevelCompleteBackgroundPath;
             yield return LevelFailedBackgroundPath;
@@ -216,6 +222,7 @@ namespace FarmFuryStampede.EditorTools
             importer.mipmapEnabled = false;
             importer.alphaIsTransparency = true;
             importer.spritePixelsPerUnit = 100f;
+            importer.maxTextureSize = 4096;   // the 2560px-wide landing poster would otherwise be halved to 2048
             SetPivot(importer, new Vector2(0.5f, 0.5f));
             importer.SaveAndReimport();
         }
@@ -228,6 +235,9 @@ namespace FarmFuryStampede.EditorTools
         public static Sprite HomeButton() => Load(HomeButtonFile);
         public static Sprite LifeIcon() => Load(LifeIconFile);
         public static Sprite PauseButton() => Load(PauseButtonFile);
+        public static Sprite SwapButton() => Load(SwapButtonFile);
+        // The HUD's in-level character swap (Arcade's swap art).
+        private const string SwapButtonFile = "SwapCharacterIcon.png";
         public static Sprite QuitButton() => Load(QuitButtonFile);
         /// <summary>The corn kernel pickup, reused as the Level Complete score icon.</summary>
         public static Sprite ScoreIcon() => Load(NormalCropFiles[0]);
@@ -409,6 +419,7 @@ namespace FarmFuryStampede.EditorTools
         public static Sprite ChamberBackdrop() => Load(ChamberBackdropFile);
         public static Sprite[] NormalCrops() => Load(NormalCropFiles);
         public static Sprite[] SecretCrops() => Load(SecretCropFiles);
+        public static Sprite RarePellet() => Load(RarePelletFile);
 
         /// <summary>The character's Character Select card, or null if it has none.</summary>
         public static Sprite CharacterCard(CharacterType type) =>

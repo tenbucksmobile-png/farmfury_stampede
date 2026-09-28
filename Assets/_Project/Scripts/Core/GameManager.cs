@@ -52,6 +52,7 @@ namespace FarmFuryStampede.Core
         {
             CurrentLevel = level;
             CurrentCharacter = character;
+            if (SaveManager.Instance != null) { SaveManager.Instance.LastCharacter = character; }
             RunState.Reset();
             RunState.livesRemaining = LivesPerAttempt;
             Time.timeScale = 1f;
@@ -248,6 +249,30 @@ namespace FarmFuryStampede.Core
             ChangeState(completed ? GameState.LevelComplete : GameState.LevelFailed);
 
             Debug.Log($"[GameManager] EndLevel: completed={completed}, stars={stars}, state={CurrentState}.");
+        }
+
+        /// <summary>
+        /// The in-level swap: turns the player into another unlocked character where they stand (see
+        /// CharacterController2D.SwitchCharacter), and remembers it so the next level starts as them. False when not
+        /// allowed right now (not playing, mid-death, revive pending, or the character is locked).
+        /// </summary>
+        public bool SwapCharacter(CharacterType character)
+        {
+            var loader = LevelLoader.Instance;
+            if (CurrentState != GameState.Playing || ReviveDecisionPending || loader == null || loader.IsRespawning
+                || (SaveManager.Instance != null && !SaveManager.Instance.IsCharacterUnlocked(character)))
+            {
+                return false;
+            }
+
+            if (character != CurrentCharacter)
+            {
+                CurrentCharacter = character;
+                loader.Player.SwitchCharacter(character);
+                if (SaveManager.Instance != null) { SaveManager.Instance.LastCharacter = character; }
+                Debug.Log($"[GameManager] Swapped to {character}.");
+            }
+            return true;
         }
 
         /// <summary>Pauses gameplay without ending the level attempt.</summary>

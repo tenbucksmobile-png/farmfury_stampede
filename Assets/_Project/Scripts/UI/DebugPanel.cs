@@ -42,6 +42,7 @@ namespace FarmFuryStampede.UI
             Row(ref y, rect.x, "Levels cleared +5", () => save.DebugSetCompletedLevelCount(save.CompletedLevelCount + 5));
             Row(ref y, rect.x, "Levels cleared = 40", () => save.DebugSetCompletedLevelCount(40));
             Row(ref y, rect.x, $"Coins +1000 ({save.CoinBalance})", () => save.DebugAddCoins(1000));
+            Row(ref y, rect.x, $"Rare pellet +1 ({save.RarePelletCount})", () => save.DebugAddRarePellet());
             Row(ref y, rect.x, "RESET SAVE", () => save.DebugResetProgress());
             GUI.Label(new Rect(rect.x + 10, y, 300, 40), $"Levels cleared: {save.CompletedLevelCount}");
         }

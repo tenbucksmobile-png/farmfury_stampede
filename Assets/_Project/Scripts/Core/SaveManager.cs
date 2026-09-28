@@ -10,7 +10,9 @@ namespace FarmFuryStampede.Core
     /// Persists player progress via PlayerPrefs behind a stable API: per-level stars, distinct levels
     /// completed, and character unlocks. Cluck and Bessie are unlocked on a fresh save (GDD Section 4);
     /// the rest unlock when the distinct-level-completion count reaches each CharacterData's
-    /// unlockLevelsRequired (0, 0, 5, 10, 15, 20, 30, 40).
+    /// unlockLevelsRequired (0, 0, 5, 10, 15, 20, 30, 40). Each rare pellet found unlocks the next locked character
+    /// in that order straight away (CollectRarePellet), so pellets are the fast route and the level count the
+    /// fallback. Unlocks are never taken back.
     /// </summary>
     public class SaveManager : MonoSingleton<SaveManager>
     {
@@ -21,6 +23,9 @@ namespace FarmFuryStampede.Core
         private const string DebugCountOffsetKey = "FFS_DebugCountOffset";
         private const string BossClearedKeyPrefix = "FFS_BossCleared_";
         private const string SecretFoundKeyPrefix = "FFS_SecretFound_";
+        private const string RarePelletKeyPrefix = "FFS_RarePellet_";
+        private const string RarePelletCountKey = "FFS_RarePelletCount";
+        private const string LastCharacterKey = "FFS_LastCharacter";
         private const string MusicOnKey = "FFS_MusicOn";
         private const string CoinBalanceKey = "FFS_Coins";
         private const string AdsRemovedKey = "FFS_AdsRemoved";
@@ -295,6 +300,84 @@ namespace FarmFuryStampede.Core
             return newlyUnlocked;
         }
 
+        // ------------------------------------------------------------ rare pellets
+
+        /// <summary>Rare pellets found so far (one per level at most), the pellet route to character unlocks.</summary>
+        public int RarePelletCount => PlayerPrefs.GetInt(RarePelletCountKey, 0);
+
+        public bool IsRarePelletFound(string levelId)
+        {
+            return PlayerPrefs.GetInt(RarePelletKeyPrefix + levelId, 0) == 1;
+        }
+
+        /// <summary>
+        /// Records the level's rare pellet (once per level; a repeat does nothing and returns an empty list) and
+        /// unlocks the next locked character with it, then saves. Returns the characters unlocked (empty when every
+        /// character was already unlocked).
+        /// </summary>
+        public List<CharacterType> CollectRarePellet(string levelId)
+        {
+            if (IsRarePelletFound(levelId))
+            {
+                return new List<CharacterType>();
+            }
+
+            PlayerPrefs.SetInt(RarePelletKeyPrefix + levelId, 1);
+            Debug.Log($"[SaveManager] Rare pellet found in {levelId} ({RarePelletCount + 1} total).");
+            return AddRarePellet();
+        }
+
+        /// <summary>DEBUG: a rare pellet without a level (F1 panel): unlocks the next character like a real one.</summary>
+        public List<CharacterType> DebugAddRarePellet() => AddRarePellet();
+
+        private List<CharacterType> AddRarePellet()
+        {
+            PlayerPrefs.SetInt(RarePelletCountKey, RarePelletCount + 1);
+            var unlocked = new List<CharacterType>();
+            var next = NextLockedCharacter();
+            if (next != null)
+            {
+                UnlockCharacter(next.characterType);
+                unlocked.Add(next.characterType);
+                Debug.Log($"[SaveManager] Rare pellet unlocked {next.characterType}.");
+            }
+            PlayerPrefs.Save();
+            return unlocked;
+        }
+
+        /// <summary>The next character still locked, in the unlock ladder's order; null when all are unlocked.</summary>
+        public CharacterData NextLockedCharacter()
+        {
+            if (DataManager.Instance == null)
+            {
+                return null;
+            }
+
+            return DataManager.Instance.GetAllCharacters()
+                .Where(c => !IsCharacterUnlocked(c.characterType))
+                .OrderBy(c => c.unlockLevelsRequired)
+                .ThenBy(c => (int)c.characterType)
+                .FirstOrDefault();
+        }
+
+        /// <summary>
+        /// The character the player last played as (swapped to, or started a level with): the next level starts as
+        /// them. Cluck on a fresh save, or when that character is locked.
+        /// </summary>
+        public CharacterType LastCharacter
+        {
+            get
+            {
+                var type = (CharacterType)PlayerPrefs.GetInt(LastCharacterKey, (int)CharacterType.Cluck);
+                return System.Enum.IsDefined(typeof(CharacterType), type) && IsCharacterUnlocked(type) ? type : CharacterType.Cluck;
+            }
+            set
+            {
+                PlayerPrefs.SetInt(LastCharacterKey, (int)value);
+                PlayerPrefs.Save();
+            }
+        }
+
         // ------------------------------------------------------------ secrets, worlds, level locks
 
         /// <summary>True once any crop of the level's character-gated secret cluster has been collected.</summary>
@@ -408,6 +491,7 @@ namespace FarmFuryStampede.Core
                     PlayerPrefs.DeleteKey(LevelCompletedKeyPrefix + level.levelId);
                     PlayerPrefs.DeleteKey(LevelStarsKeyPrefix + level.levelId);
                     PlayerPrefs.DeleteKey(SecretFoundKeyPrefix + level.levelId);
+                    PlayerPrefs.DeleteKey(RarePelletKeyPrefix + level.levelId);
                 }
 
                 foreach (var character in DataManager.Instance.GetAllCharacters())
@@ -423,6 +507,8 @@ namespace FarmFuryStampede.Core
 
             PlayerPrefs.DeleteKey(CompletedCountKey);
             PlayerPrefs.DeleteKey(DebugCountOffsetKey);
+            PlayerPrefs.DeleteKey(RarePelletCountKey);
+            PlayerPrefs.DeleteKey(LastCharacterKey);
             LoadProgress();
             PlayerPrefs.Save();
             Debug.Log("[SaveManager] DEBUG: progress reset to a fresh save.");

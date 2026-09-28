@@ -255,6 +255,7 @@ namespace FarmFuryStampede.EditorTools
                 farmArt = StampedeUIArt.FarmBackdrop(),
                 stoneBlockSprite = StampedeUIArt.StoneBlock(),
                 coinSprite = StampedeUIArt.Coin(),
+                rarePelletSprite = StampedeUIArt.RarePellet(),
                 ledgeSprite = StampedeUIArt.LedgeStone(),
                 invisibleTile = AssetDatabase.LoadAssetAtPath<Tile>(InvisibleTilePath),
                 obstaclesPerLevel = ObstaclesPerLevel
@@ -1254,6 +1255,10 @@ namespace FarmFuryStampede.EditorTools
             data.levelPrefab = prefab;
             data.isBossLevel = builder.IsBoss;
             data.hasCharacterGatedSecret = builder.HasGate;
+            if (builder.RarePelletPosition.HasValue)
+            {
+                Debug.Log($"[Phase5aSetup] {builder.Id}: rare pellet at {builder.RarePelletPosition.Value} ({builder.GatePrimary} secret).");
+            }
             data.characterGatedSecretCharacter = builder.HasGate ? builder.GatePrimary : CharacterType.Cluck;
             data.alsoOpensSecret = builder.GateAlso;
             data.secretDescription = builder.GateDescription;
@@ -1331,6 +1336,8 @@ namespace FarmFuryStampede.EditorTools
             flowSo.FindProperty("menuArt.levelTileLocked").objectReferenceValue = StampedeUIArt.LevelTileLocked();
             flowSo.FindProperty("menuArt.levelTileNext").objectReferenceValue = StampedeUIArt.LevelTileNext();
             flowSo.FindProperty("menuArt.backButton").objectReferenceValue = StampedeUIArt.BackButton();
+            flowSo.FindProperty("menuArt.rarePellet").objectReferenceValue = StampedeUIArt.RarePellet();
+            flowSo.FindProperty("menuArt.swapCharacterButton").objectReferenceValue = StampedeUIArt.SwapButton();
             flowSo.FindProperty("menuArt.playButton").objectReferenceValue = StampedeUIArt.PlayButton();
             flowSo.FindProperty("menuArt.homeButton").objectReferenceValue = StampedeUIArt.HomeButton();
             flowSo.FindProperty("menuArt.lifeIcon").objectReferenceValue = StampedeUIArt.LifeIcon();

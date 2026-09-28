@@ -80,10 +80,10 @@ namespace FarmFuryStampede.UI
         public Sprite cardFrame;
 
         [Header("On-screen controls (HUD)")]
-        [Tooltip("Hold to run left / right. (Btn_left.png, Btn_right.png)")]
+        [Tooltip("Hold to run left / right. (left.png, right.png)")]
         public Sprite moveLeftButton;
         public Sprite moveRightButton;
-        [Tooltip("Jump. (Btn_up.png)")]
+        [Tooltip("Jump. (up.png)")]
         public Sprite jumpButton;
 
         [Header("Character Story")]
