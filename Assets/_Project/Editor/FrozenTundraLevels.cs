@@ -98,7 +98,7 @@ namespace FarmFuryStampede.EditorTools
             b.BreakableFloor(66, 4);          // hollow beneath: Bessie's Ground Pound
             b.Gate(CharacterType.Bessie, "Cracked wooden floor at x=66..70 hides a hollow below; only Ground Pound breaks it.");
             b.SecretRow(66.5f, 69.5f, 1f, -2.5f);
-            b.SecretPassage(64f, 5, 92f);     // secret passage (rare pellet + coins): sign on the top snow slab, back up past the last pit
+            b.SecretPassage(64f, 5, 92f, PassageLayout.Zigzag);     // secret passage (rare pellet + coins): sign on the top snow slab, back up past the last pit
 
             b.Start(0).Goal(114).Checkpoint(49);
             b.Scout(12, 3);
@@ -203,7 +203,7 @@ namespace FarmFuryStampede.EditorTools
             // level, a double jump up from the platform, carrying the passage sign.
             b.StoneBlocks(65, 6, 13);
             b.CropAt(66.5f, 9.5f).CropAt(69f, 9.5f);
-            b.SecretPassage(68f, 13, 74.5f);  // secret passage (rare pellet + coins): sign on the top level, back up on the top-1 terrace
+            b.SecretPassage(68f, 13, 74.5f, PassageLayout.Tunnel);  // secret passage (rare pellet + coins): sign on the top level, back up on the top-1 terrace
 
             b.Start(0).Goal(116).Checkpoint(24).Checkpoint(72);
             b.Scout(10, 3).Harvester(17, 2.5f);
@@ -309,7 +309,7 @@ namespace FarmFuryStampede.EditorTools
 
             b.Mound(98, 3, 2);                // stair over the last big gap
             b.Floating(102, 4, 8);
-            b.SecretPassage(104.5f, 8, 110.5f);   // secret passage (rare pellet + coins): sign on the platform over the gap
+            b.SecretPassage(104.5f, 8, 110.5f, PassageLayout.Ledges);   // secret passage (rare pellet + coins): sign on the platform over the gap
 
             b.Start(0).Goal(128).Checkpoint(30).Checkpoint(58).Checkpoint(82).Checkpoint(111);
             b.Scout(9, 3).Harvester(18, 3);
@@ -352,7 +352,7 @@ namespace FarmFuryStampede.EditorTools
             b.BreakableFloor(78, 4);          // hollow beneath: Bessie's Ground Pound
             b.Gate(CharacterType.Bessie, "Cracked wooden floor at x=78..82 on the plateau hides a hollow; only Ground Pound breaks it.");
             b.SecretRow(78.5f, 81.5f, 1f, 1.5f);
-            b.SecretPassage(62f, 8, 86.5f);   // secret passage (rare pellet + coins): sign on the plateau perch, back up past the cracked floor
+            b.SecretPassage(62f, 8, 86.5f, PassageLayout.Staircase);   // secret passage (rare pellet + coins): sign on the plateau perch, back up past the cracked floor
 
             b.Start(0).Goal(128).Checkpoint(27).Checkpoint(47).Checkpoint(84).Checkpoint(111);
             b.Scout(7, 2).Harvester(17.5f, 2.5f);
@@ -394,7 +394,7 @@ namespace FarmFuryStampede.EditorTools
             // Secret passage (rare pellet + coins): its sign on an ice-block perch just ahead of the start, in view
             // from spawn and a double jump up; back up on the frozen run.
             b.StoneBlocks(3, 3, 4);
-            b.SecretPassage(4.5f, 4, 36f);
+            b.SecretPassage(4.5f, 4, 36f, PassageLayout.Pyramid);
             b.Gate(CharacterType.Gerald, "Island across a 15-unit crevasse behind the start: too wide for the base jump; Puff Glide crosses it.", CharacterType.Woolly);
             b.SecretRow(-40.5f, -36.5f, 1f, 0.5f);
 
@@ -443,7 +443,7 @@ namespace FarmFuryStampede.EditorTools
             b.Chamber(106, 10, 4);            // sealed by a Breakable Wall: Billy's Charge Break
             b.Gate(CharacterType.Billy, "Sealed chamber on the highest platform, above the last gap but one; its Breakable Wall only breaks to Charge Break.");
             b.SecretRow(107.5f, 110.5f, 1f, 10.5f);
-            b.SecretPassage(109f, 14, 113.5f);   // secret passage (rare pellet + coins): sign on the chamber's roof
+            b.SecretPassage(109f, 14, 113.5f, PassageLayout.Pillars);   // secret passage (rare pellet + coins): sign on the chamber's roof
 
             b.Start(0).Goal(158).Checkpoint(26).Checkpoint(51).Checkpoint(91).Checkpoint(114).Checkpoint(141);
             b.Scout(8, 3).Harvester(15.5f, 2.5f);

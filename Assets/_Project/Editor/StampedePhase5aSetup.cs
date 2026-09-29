@@ -336,7 +336,7 @@ namespace FarmFuryStampede.EditorTools
                 Debug.Log($"[Phase5aSetup] {builder.Id} '{builder.Title}': {builder.CropCount} crops " +
                           $"({builder.SecretCropCount} secret), {builder.RobotCount} robots, {builder.CheckpointCount} checkpoints" +
                           $"{(builder.HasGate ? $", gated secret for {builder.GatePrimary}" : "")}" +
-                          $"{(builder.PassageRoom.HasValue ? $", secret passage room at {builder.PassageRoom.Value.position}" : "")}" +
+                          $"{(builder.PassageRoom.HasValue ? $", secret passage room ({builder.PassageLayoutUsed}) at {builder.PassageRoom.Value.position}" : "")}" +
                           $"{(builder.RarePelletPosition.HasValue ? $", rare pellet at {builder.RarePelletPosition.Value}" : "")}.");
             }
 

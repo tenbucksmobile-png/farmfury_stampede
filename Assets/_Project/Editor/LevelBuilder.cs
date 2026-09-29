@@ -9,6 +9,9 @@ using UnityEngine.Tilemaps;
 
 namespace FarmFuryStampede.EditorTools
 {
+
+    /// <summary>Shape of a secret passage room (LevelBuilder.SecretPassage); each world uses each at most once.</summary>
+    public enum PassageLayout { Steps, Staircase, Pyramid, Ledges, Pillars, Tunnel, Zigzag }
     /// <summary>Assets a level prefab is built from.</summary>
     internal sealed class LevelAssets
     {
@@ -1088,7 +1091,7 @@ namespace FarmFuryStampede.EditorTools
         // exitX, further along the level. The room is generated, not authored, and is laid out so every coin and the
         // pellet are reachable with the ordinary jump and double jump; the author only picks the entrance and exit.
 
-        private struct PassageRec { public float x; public int top; public float exitX; }
+        private struct PassageRec { public float x; public int top; public float exitX; public PassageLayout layout; }
         private PassageRec? _passage;
 
         private const int RoomWidth = 34;        // interior cells
@@ -1099,36 +1102,66 @@ namespace FarmFuryStampede.EditorTools
         private const float ExitRobotClearance = 2.5f;   // open ground between the exit landing and a patrol's end
         private const int PassageSignSortingOrder = 3;   // over the farm backdrop, under crops (5) and actors
         private static readonly Color BackwallTint = new(0.3f, 0.24f, 0.2f, 1f);
-        // Stone-block steps inside the room: (x from the room's left, width, top above the floor).
-        private static readonly (int dx, int width, int height)[] RoomSteps = { (8, 3, 2), (15, 3, 3), (22, 3, 2) };
-        // Coin positions: (x from the room's left, centre height above the floor).
-        private static readonly Vector2[] PassageCoins =
-        {
-            new(3f, 0.9f), new(4.5f, 0.9f), new(6f, 0.9f),              // floor run-in
-            new(8.6f, 2.9f), new(10.4f, 2.9f),                            // first step
-            new(12.5f, 0.9f), new(13.9f, 0.9f), new(12.5f, 5f), new(13.9f, 5f),   // gap below / high row above
-            new(19f, 4.6f), new(20.4f, 4.1f),                             // arc down off the tall step
-            new(22.6f, 2.9f), new(24.4f, 2.9f),                           // third step
-            new(26.5f, 0.9f), new(28f, 0.9f), new(29.5f, 0.9f),           // floor run-out
-        };
-        private static readonly Vector2 PassagePelletOffset = new(16.5f, 4.2f);   // over the tall middle step
         private const float RoomEntryX = 2f, RoomExitX = 32f;
+
+        // ---- room layouts: every passage names one, and no world repeats one, so each secret room plays differently.
+        // Blocks are in room cells: dx from the room's left wall, width, top above the floor, and bottom (0 = a solid
+        // column down to the floor; otherwise a one-block-thick floating slab, bottom = top - 1). Keep dx within
+        // [5, 28] so the entry (x 2) and exit sign (x 32) stay on open floor, and tops at most MaxRoomTop so a
+        // character standing there clears the 7-high ceiling. The pellet floats over the layout's high point.
+        private readonly struct RoomBlock
+        {
+            public readonly int dx, width, top, bottom;
+            public RoomBlock(int dx, int width, int top, int bottom) { this.dx = dx; this.width = width; this.top = top; this.bottom = bottom; }
+        }
+
+        private static RoomBlock Col(int dx, int width, int top) => new(dx, width, top, 0);
+        private static RoomBlock Slab(int dx, int width, int top) => new(dx, width, top, top - 1);
+
+        private static readonly Dictionary<PassageLayout, (RoomBlock[] blocks, Vector2 pellet)> RoomLayouts = new()
+        {
+            // Three steps, 2 / 3 / 2 high; the pellet over the tall middle one (the original room).
+            { PassageLayout.Steps, (new[] { Col(8, 3, 2), Col(15, 3, 3), Col(22, 3, 2) }, new Vector2(16.5f, 4.2f)) },
+            // A staircase climbing one block at a time to a 4-high landing, then a drop and a last low step.
+            { PassageLayout.Staircase, (new[] { Col(7, 3, 1), Col(10, 3, 2), Col(13, 3, 3), Col(16, 3, 4), Col(24, 2, 1) }, new Vector2(17.5f, 5.2f)) },
+            // A stepped pyramid up to a 4-high summit and down the other side.
+            { PassageLayout.Pyramid, (new[] { Col(9, 2, 1), Col(11, 2, 2), Col(13, 2, 3), Col(15, 3, 4), Col(18, 2, 3), Col(20, 2, 2), Col(22, 2, 1) }, new Vector2(16.5f, 5.2f)) },
+            // Floating ledges over an open floor (the floor runs underneath); the pellet on the highest.
+            { PassageLayout.Ledges, (new[] { Slab(7, 3, 3), Slab(13, 3, 4), Slab(20, 3, 3), Col(26, 2, 1) }, new Vector2(14.5f, 5.2f)) },
+            // Thin pillars rising and falling; the pellet hangs between the two tallest, a jump off either.
+            { PassageLayout.Pillars, (new[] { Col(7, 1, 1), Col(10, 1, 2), Col(13, 1, 3), Col(17, 1, 3), Col(21, 1, 2), Col(25, 1, 1) }, new Vector2(15.5f, 4.6f)) },
+            // A long roof over a low tunnel: up a block onto it, the pellet at its far end; the coins run below.
+            { PassageLayout.Tunnel, (new[] { Col(5, 2, 2), Slab(8, 18, 4) }, new Vector2(24f, 5.2f)) },
+            // Low and high slabs in turn: hop the low ones, run under or over the high ones; the pellet on the last high one.
+            { PassageLayout.Zigzag, (new[] { Slab(6, 3, 2), Slab(11, 3, 4), Slab(16, 3, 2), Slab(21, 3, 4), Slab(26, 2, 2) }, new Vector2(22.5f, 5.2f)) },
+        };
+
+        private const int MaxRoomTop = 5;              // a character standing here still clears the ceiling
+        private const float RoomJumpRise = 3f;         // reachable with the single base jump (3.5) and some margin
+        private const float RoomJumpReach = 3.5f;      // horizontal gap a jump comfortably crosses between surfaces
+        private const float PassableClearance = 2f;    // a slab this high off the floor can be walked under
+        private const int PassageCoinCount = 16;
+        private const float PassageCoinFirstX = 3f, PassageCoinLastX = 29.5f, CoinRest = 0.9f, CoinHalf = 0.45f;
 
         /// <summary>
         /// The level's secret passage: its entrance sign stands at x on a surface whose top is 'top' (ground, mound,
         /// platform, ledge or a Chamber roof), and its exit brings the player back up on the level ground at exitX. The
         /// passage room holds the level's rare pellet, so don't also call RarePellet(). Put the sign somewhere
-        /// optional (entering is automatic) that every character can reach.
+        /// optional (entering is automatic) that every character can reach. 'layout' picks the room's shape (see
+        /// RoomLayouts); give each passage in a world a different one.
         /// </summary>
-        public LevelBuilder SecretPassage(float x, int top, float exitX)
+        public LevelBuilder SecretPassage(float x, int top, float exitX, PassageLayout layout)
         {
             if (_passage.HasValue)
             {
                 Error("Only one secret passage per level.");
             }
-            _passage = new PassageRec { x = x, top = top, exitX = exitX };
+            _passage = new PassageRec { x = x, top = top, exitX = exitX, layout = layout };
             return this;
         }
+
+        /// <summary>The passage room's layout (after Build), or null when the level has no passage.</summary>
+        public PassageLayout? PassageLayoutUsed => _passage?.layout;
 
         private void ValidatePassage()
         {
@@ -1142,6 +1175,7 @@ namespace FarmFuryStampede.EditorTools
             {
                 Error("A level with a secret passage keeps its rare pellet in the passage room: remove RarePellet().");
             }
+            ValidateRoomLayout(p.layout);
 
             bool onSurface = _surfaces.Any(s => s.top == p.top && p.x >= s.x0 + 0.5f && p.x <= s.x1 - 0.5f);
             bool onChamberRoof = _chambers.Any(c => c.floorTop + 4 == p.top && p.x >= c.x0 + 0.5f && p.x <= c.x0 + c.interiorWidth + 1.5f);
@@ -1199,26 +1233,27 @@ namespace FarmFuryStampede.EditorTools
             Fill(backwall, assets.groundTile, r0 - 30, r1 + 30, f - 16, f + RoomHeight + 18);
             backwall.color = BackwallTint;
 
-            // Stone-block steps, solid down to the floor (nothing to crawl under).
-            foreach (var (dx, width, height) in RoomSteps)
+            // The layout's stone blocks: solid columns down to the floor, or one-block floating slabs.
+            var (blocks, pellet) = RoomLayouts[p.layout];
+            bool stoneArt = assets.stoneBlockSprite != null && assets.invisibleTile != null;
+            foreach (var block in blocks)
             {
-                for (int row = 1; row <= height; row++)
+                for (int row = block.bottom + 1; row <= block.top; row++)
                 {
-                    var step = new Surface { x0 = r0 + dx, x1 = r0 + dx + width, top = f + row, baseTop = f + row - 1, kind = Kind.Floating, stone = true, blocks = true };
-                    bool stoneArt = assets.stoneBlockSprite != null && assets.invisibleTile != null;
-                    Fill(platforms, stoneArt ? assets.invisibleTile : assets.platformTile, step.x0, step.x1 - 1, step.top - 1, step.top - 1);
+                    var cell = new Surface { x0 = r0 + block.dx, x1 = r0 + block.dx + block.width, top = f + row, baseTop = f + row - 1, kind = Kind.Floating, stone = true, blocks = true };
+                    Fill(platforms, stoneArt ? assets.invisibleTile : assets.platformTile, cell.x0, cell.x1 - 1, cell.top - 1, cell.top - 1);
                     if (stoneArt)
                     {
-                        AddStoneSlabs(root, assets.stoneBlockSprite, step);
+                        AddStoneSlabs(root, assets.stoneBlockSprite, cell);
                     }
                 }
             }
 
-            foreach (var coin in PassageCoins)
+            foreach (var coin in RoomCoins(blocks, pellet))
             {
                 _crops.Add(new CropRec { x = r0 + coin.x, y = f + coin.y, coin = true, passage = true });
             }
-            _rarePellet = new Vector2(r0 + PassagePelletOffset.x, f + PassagePelletOffset.y);
+            _rarePellet = new Vector2(r0 + pellet.x, f + pellet.y);
 
             // No crop left inside the entrance sign (the ledge's secret row, path corn).
             _crops.RemoveAll(c => !c.passage && Mathf.Abs(c.x - p.x) < 1f && c.y > p.top && c.y < p.top + DoorHeight + 0.5f);
@@ -1236,6 +1271,98 @@ namespace FarmFuryStampede.EditorTools
 
         /// <summary>The passage room's interior cells (after Build), or null when the level has no passage.</summary>
         public RectInt? PassageRoom { get; private set; }
+
+        // Blocks that stand in the way at floor level (solid columns, and slabs too low to walk under).
+        private static bool Obstructs(RoomBlock b) => b.bottom < PassableClearance;
+
+        // PassageCoinCount coins spread evenly across the room, each resting on whatever it's over: the top of a
+        // block in the way, else the floor (also under a slab high enough to walk beneath). None on the pellet.
+        private static IEnumerable<Vector2> RoomCoins(RoomBlock[] blocks, Vector2 pellet)
+        {
+            float step = (PassageCoinLastX - PassageCoinFirstX) / (PassageCoinCount - 1);
+            for (int i = 0; i < PassageCoinCount; i++)
+            {
+                float x = PassageCoinFirstX + i * step;
+                float rest = 0f;
+                foreach (var b in blocks)
+                {
+                    if (Obstructs(b) && x + CoinHalf > b.dx && x - CoinHalf < b.dx + b.width) { rest = Mathf.Max(rest, b.top); }
+                }
+                var coin = new Vector2(x, rest + CoinRest);
+                if (Vector2.Distance(coin, pellet) < 1.3f) { coin.y += 1.3f; }
+                yield return coin;
+            }
+        }
+
+        // The room must be crossable from the entry to the exit and its pellet reachable with the single base jump
+        // (every character, no ability), standing surfaces must clear the ceiling, and nothing may sit on the entry,
+        // the exit sign or the pellet.
+        private void ValidateRoomLayout(PassageLayout layout)
+        {
+            if (!RoomLayouts.TryGetValue(layout, out var def))
+            {
+                Error($"Unknown passage layout {layout}.");
+                return;
+            }
+            var (blocks, pellet) = def;
+
+            foreach (var b in blocks)
+            {
+                if (b.dx < 5 || b.dx + b.width > 29) { Error($"Passage layout {layout}: block at {b.dx} crowds the entry or exit."); }
+                if (b.top > MaxRoomTop) { Error($"Passage layout {layout}: block top {b.top} leaves no headroom under the ceiling."); }
+                if (pellet.x + RarePelletRadius > b.dx && pellet.x - RarePelletRadius < b.dx + b.width
+                    && pellet.y - RarePelletRadius < b.top && pellet.y + RarePelletRadius > b.bottom)
+                {
+                    Error($"Passage layout {layout}: the pellet overlaps the block at {b.dx}.");
+                }
+            }
+            if (pellet.y + RarePelletRadius > RoomHeight) { Error($"Passage layout {layout}: the pellet is in the ceiling."); }
+
+            // Standing surfaces: every block top, and the floor between the blocks in the way.
+            var surfaces = new List<(float x0, float x1, float top)>();
+            foreach (var b in blocks) { surfaces.Add((b.dx, b.dx + b.width, b.top)); }
+            var cuts = blocks.Where(Obstructs).OrderBy(b => b.dx).ToList();
+            float floorStart = 0f;
+            foreach (var b in cuts)
+            {
+                if (b.dx > floorStart) { surfaces.Add((floorStart, b.dx, 0f)); }
+                floorStart = Mathf.Max(floorStart, b.dx + b.width);
+            }
+            if (floorStart < RoomWidth) { surfaces.Add((floorStart, RoomWidth, 0f)); }
+
+            // Reachable from the entry floor: a surface is reached from another within a jump's rise and reach
+            // (dropping down any height is fine).
+            int start = surfaces.FindIndex(s => s.top == 0f && RoomEntryX >= s.x0 && RoomEntryX <= s.x1);
+            var reached = new bool[surfaces.Count];
+            var queue = new Queue<int>();
+            if (start >= 0) { reached[start] = true; queue.Enqueue(start); }
+            while (queue.Count > 0)
+            {
+                var a = surfaces[queue.Dequeue()];
+                for (int i = 0; i < surfaces.Count; i++)
+                {
+                    if (reached[i]) { continue; }
+                    var s = surfaces[i];
+                    float gap = Mathf.Max(0f, Mathf.Max(s.x0 - a.x1, a.x0 - s.x1));
+                    if (gap <= RoomJumpReach && s.top - a.top <= RoomJumpRise)
+                    {
+                        reached[i] = true;
+                        queue.Enqueue(i);
+                    }
+                }
+            }
+
+            if (!surfaces.Where((s, i) => reached[i]).Any(s => s.top == 0f && RoomExitX >= s.x0 && RoomExitX <= s.x1))
+            {
+                Error($"Passage layout {layout}: the exit sign can't be reached from the entry with a single jump.");
+            }
+            bool pelletReached = surfaces.Where((s, i) => reached[i]).Any(s =>
+                pellet.x >= s.x0 - 1.5f && pellet.x <= s.x1 + 1.5f && pellet.y - RarePelletRadius - s.top <= RoomJumpRise + 1.5f);
+            if (!pelletReached)
+            {
+                Error($"Passage layout {layout}: the pellet can't be reached with a single jump.");
+            }
+        }
 
         // A sign standing at feet with a trigger over its post; the exit's sign faces back the other way.
         private static SecretPassageDoor AddDoor(Transform root, string doorName, Vector2 feet, Sprite sign, bool flip)

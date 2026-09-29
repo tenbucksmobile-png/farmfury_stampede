@@ -58,7 +58,7 @@ namespace FarmFuryStampede.EditorTools
 
             b.SecretLedge(24, 5, 4);          // 4 above the ground: out of a single jump's reach, easy with the double jump
 
-            b.SecretPassage(28f, 4, 57f);     // secret passage (rare pellet + coins): sign on the high stone ledge (every character's double jump reaches it), back up at 57
+            b.SecretPassage(28f, 4, 57f, PassageLayout.Steps);     // secret passage (rare pellet + coins): sign on the high stone ledge (every character's double jump reaches it), back up at 57
             b.Gate(CharacterType.Cluck, "High ledge 4 units up: needs extra height (the double jump every character has, or Woolly's Cloud Step).", CharacterType.Woolly);
             b.Start(0).Goal(112);
             b.ManualScenery();                // every obstacle and backdrop piece below is placed by hand (the mockups)
@@ -119,7 +119,7 @@ namespace FarmFuryStampede.EditorTools
             b.Floating(69, 4, 5);
             b.BreakableFloor(74, 4);          // hollow beneath: Bessie's Ground Pound
 
-            b.SecretPassage(72f, 5, 90.5f);   // secret passage (rare pellet + coins): sign on the top stepping platform, back up past the third pit
+            b.SecretPassage(72f, 5, 90.5f, PassageLayout.Staircase);   // secret passage (rare pellet + coins): sign on the top stepping platform, back up past the third pit
             b.Gate(CharacterType.Bessie, "Cracked Breakable Floor at x=74..78 hides a chamber below; only Ground Pound breaks it.");
             b.Start(0).Goal(114);
             b.HayPyramid(22);                 // 3-2-1 bales, 4.5 high, on the run-up to the first pit: climb it, leap off the top
@@ -212,7 +212,7 @@ namespace FarmFuryStampede.EditorTools
             // Secret passage (rare pellet + coins): its sign on a stone-block perch just ahead of the start, in view
             // from spawn and a double jump up (was behind the start, where nobody looked); back up at 38.
             b.StoneBlocks(3, 3, 4);
-            b.SecretPassage(4.5f, 4, 38f);
+            b.SecretPassage(4.5f, 4, 38f, PassageLayout.Pyramid);
             b.Gate(CharacterType.Gerald, "Island across a 15-unit chasm behind the start: too wide for the base jump; Puff Glide crosses it.", CharacterType.Woolly);
             b.Start(0).Goal(116).Checkpoint(34).Checkpoint(66);
             // The Harvester arrives: one guarding the first pit's take-off, one mid-way through the third stretch,
@@ -255,7 +255,7 @@ namespace FarmFuryStampede.EditorTools
             // The Barrier-sealed chamber that stood on the high platform was removed (2026-09-29); its roof is now a
             // stone-block top level, a double jump up from the platform, carrying the passage sign.
             b.StoneBlocks(65, 6, 13);
-            b.SecretPassage(68f, 13, 74.5f);  // secret passage (rare pellet + coins): sign on the top level, back up on the top-1 terrace
+            b.SecretPassage(68f, 13, 74.5f, PassageLayout.Ledges);  // secret passage (rare pellet + coins): sign on the top level, back up on the top-1 terrace
             b.Start(0).Goal(116).Checkpoint(24).Checkpoint(72);
             // One robot per terrace section, two on the long ones: 3 Harvesters, 6 Scouts.
             b.Scout(10, 3).Harvester(17, 2.5f);
@@ -427,7 +427,7 @@ namespace FarmFuryStampede.EditorTools
             b.Floating(59, 4, 8);
             b.BreakableFloor(78, 4);          // hollow beneath: Bessie's Ground Pound
 
-            b.SecretPassage(62f, 8, 86.5f);   // secret passage (rare pellet + coins): sign on the plateau perch, back up past the cracked floor
+            b.SecretPassage(62f, 8, 86.5f, PassageLayout.Pillars);   // secret passage (rare pellet + coins): sign on the plateau perch, back up past the cracked floor
             b.Gate(CharacterType.Bessie, "Cracked Breakable Floor at x=78..82 on the plateau hides a hollow; only Ground Pound breaks it.");
             b.Start(0).Goal(128).Checkpoint(27).Checkpoint(47).Checkpoint(84).Checkpoint(111);
             // 1 Chaser, 3 Drones, 3 Harvesters, 7 Scouts: every terrace and perch is guarded, the Chaser waits on
@@ -485,7 +485,7 @@ namespace FarmFuryStampede.EditorTools
 
             // Secret passage (rare pellet + coins): the same perch just ahead of the start as level 4; back up at 34.5.
             b.StoneBlocks(3, 3, 4);
-            b.SecretPassage(4.5f, 4, 34.5f);
+            b.SecretPassage(4.5f, 4, 34.5f, PassageLayout.Tunnel);
             b.Gate(CharacterType.Gerald, "Island across a 15-unit chasm behind the start: too wide for the base jump; Puff Glide crosses it.", CharacterType.Woolly);
             b.Start(0).Goal(133).Checkpoint(32).Checkpoint(76).Checkpoint(103);
             // 2 Chasers, 3 Drones, 3 Harvesters, 7 Scouts.
@@ -540,7 +540,7 @@ namespace FarmFuryStampede.EditorTools
             b.Floating(102, 10, 10);
             b.Chamber(106, 10, 4);            // sealed by a Breakable Wall: Billy's Charge Break
 
-            b.SecretPassage(109f, 14, 113.5f);   // secret passage (rare pellet + coins): sign on the sealed chamber's roof, back up past the last gap but one
+            b.SecretPassage(109f, 14, 113.5f, PassageLayout.Zigzag);   // secret passage (rare pellet + coins): sign on the sealed chamber's roof, back up past the last gap but one
             b.Gate(CharacterType.Billy, "Sealed chamber on the highest platform, above the last gap; its Breakable Wall only breaks to Charge Break.");
             b.Start(0).Goal(158).Checkpoint(26).Checkpoint(51).Checkpoint(91).Checkpoint(114).Checkpoint(141);
             // The capstone: 2 Chasers, 4 Drones, 4 Harvesters, 8 Scouts.
