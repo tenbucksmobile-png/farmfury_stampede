@@ -7,68 +7,88 @@ using UnityEngine.UI;
 namespace FarmFuryStampede.UI
 {
     /// <summary>
-    /// Arcade's Leaderboards screen (Settings -> Leaderboards): the Leaderboard sign over every world's World Select
-    /// card (two rows of three here - Stampede has six worlds), locked worlds greyed. Tapping an unlocked world opens
-    /// its <see cref="WorldDetailScreen"/>; a locked purchase-gated world opens the world shop; any other locked
-    /// world shows how to unlock it. The stats are this device's own records (no online board until the shared
-    /// Supabase backend exists).
+    /// Settings -> Leaderboards, per the Leaderboard mockup (Leaderboard_Mock.png): the Farm Fury Stampede logo
+    /// top-left, the LeaderBoard sign top-right and the six world names as lettering in two rows of three over the
+    /// wooden sign, in the mockup's order (Meadow Ruins, Watermill Village, Frozen Tundra / Sky Island, Sunken City,
+    /// Mothership), on an even grid. Locked worlds are greyed. Tapping an unlocked world opens its
+    /// <see cref="WorldDetailScreen"/>; a locked purchase-gated world opens the world shop; any other locked world
+    /// says how to unlock it. The records are this device's own (no online board until the shared backend exists).
     /// </summary>
-    public class LeaderboardsScreen : OverlayScreen
+    public class LeaderboardsScreen : LeaderboardPage
     {
-        private static readonly Vector2 CardSize = new(480f, 270f);   // World Select cards are 16:9
-        private const float CardGap = 40f;
-        private const float TopRowY = 20f;
-        private static readonly Color LockedTint = new(0.65f, 0.65f, 0.65f, 1f);
+        // Mockup order, left to right, top row first.
+        private static readonly WorldType[] GridOrder =
+        {
+            WorldType.MeadowRuins, WorldType.WatermillVillage, WorldType.FrozenTundra,
+            WorldType.SkyIslands, WorldType.SunkenCity, WorldType.RobotMothership,
+        };
+        // Name slots: equal column pitch (246) and row pitch (170), sized so neighbouring names never touch.
+        private static readonly float[] ColumnX = { 185f, 431f, 677f };
+        private static readonly float[] RowY = { 365f, 535f };
+        private const float NameWidth = 210f, NameHeight = 110f;
+        private static readonly Rect LogoBox = new(105f, 68f, 135f, 95f);
+        private static readonly Rect HintBox = new(100f, 612f, 700f, 40f);
+        private static readonly Color LockedTint = new(0.55f, 0.55f, 0.55f, 0.8f);
 
-        private readonly Button[] _cards;
-        private readonly WorldType[] _worlds;
+        private readonly Button[] _names = new Button[GridOrder.Length];
         private readonly Text _hint;
         private readonly Action<WorldType> _onWorld;
         private readonly Action _onBuyWorld;
 
-        public LeaderboardsScreen(Transform canvas, MenuArt art, ShopArt shop, Action<WorldType> onWorld, Action onBuyWorld)
-            : base(canvas, "Leaderboards", art, shop)
+        public LeaderboardsScreen(Transform canvas, MenuArt art, ShopArt shop, LeaderboardArt boards,
+            Action<WorldType> onWorld, Action onBuyWorld)
+            : base(canvas, "Leaderboards", art, shop, boards)
         {
             _onWorld = onWorld;
             _onBuyWorld = onBuyWorld;
-            HeaderSign(Shop.leaderboardSign, "LEADERBOARDS");
 
-            _worlds = (WorldType[])Enum.GetValues(typeof(WorldType));
-            _cards = new Button[_worlds.Length];
-            for (int i = 0; i < _worlds.Length; i++)
+            if (Boards.logo != null)
             {
-                var world = _worlds[i];
-                int column = i % 3, rowIndex = i / 3;
-                _cards[i] = IconButton(Rect, $"WorldCard_{world}", null, world.ToString(), () => Tapped(world));
-                UIKit.Place(_cards[i].image.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                    new Vector2((column - 1) * (CardSize.x + CardGap), TopRowY - rowIndex * (CardSize.y + CardGap)), CardSize);
+                PlaceInArt(UIKit.Picture(Board, "Logo", Boards.logo).rectTransform, LogoBox);
             }
 
-            _hint = StatusText(30f);
+            for (int i = 0; i < GridOrder.Length; i++)
+            {
+                var world = GridOrder[i];
+                var sprite = Boards.WorldName(world);
+                var button = UIKit.MakeButton(Board, $"World_{world}", "", Color.white, () => Tapped(world));
+                if (sprite != null)
+                {
+                    button.image.sprite = sprite;
+                    button.image.preserveAspect = true;
+                }
+                else
+                {
+                    button.image.color = Color.clear;   // text only, the whole slot still tappable
+                    var label = button.GetComponentInChildren<Text>();
+                    label.gameObject.SetActive(false);
+                    var text = OutlinedText(button.transform, "Name", WorldName(world), ValueGold);
+                    UIKit.Stretch(text.rectTransform);
+                }
+                PlaceInArt(button.image.rectTransform, Centred(ColumnX[i % 3], RowY[i / 3], NameWidth, NameHeight));
+                _names[i] = button;
+            }
+
+            _hint = OutlinedText(Board, "Hint", "", Color.white);
+            PlaceInArt(_hint.rectTransform, HintBox);
         }
 
         protected override void OnShow()
         {
             _hint.text = "";
-            for (int i = 0; i < _worlds.Length; i++)
+            for (int i = 0; i < GridOrder.Length; i++)
             {
-                var data = DataManager.Instance != null ? DataManager.Instance.GetWorldData(_worlds[i]) : null;
-                var card = _cards[i];
-                var label = card.GetComponentInChildren<Text>(true);
-                if (data != null && data.selectCardArt != null)
+                bool unlocked = SaveManager.Instance != null && SaveManager.Instance.IsWorldUnlocked(GridOrder[i]);
+                var tint = unlocked ? Color.white : LockedTint;
+                var image = _names[i].image;
+                if (image.sprite != null)
                 {
-                    card.image.sprite = data.selectCardArt;
-                    card.image.preserveAspect = true;
-                    label.text = "";
+                    image.color = tint;
                 }
                 else
                 {
-                    label.text = data != null ? data.displayName : _worlds[i].ToString();
+                    _names[i].transform.Find("Name").GetComponent<Text>().color = unlocked ? ValueGold : ValueGold * LockedTint;
                 }
-
-                bool unlocked = SaveManager.Instance != null && SaveManager.Instance.IsWorldUnlocked(_worlds[i]);
-                var baseColor = card.image.sprite != null ? Color.white : Wood;
-                card.image.color = unlocked ? baseColor : baseColor * LockedTint;
             }
         }
 

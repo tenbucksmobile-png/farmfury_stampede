@@ -1,6 +1,9 @@
 namespace FarmFuryStampede.Data
 {
-    /// <summary>The six themed worlds in Stampede's campaign.</summary>
+    /// <summary>
+    /// Stampede's worlds: the six free story worlds, then the three paid post-finale worlds (WorldData.purchaseRequired;
+    /// unlocked by purchase alone). Values are serialized as ints, so only ever append.
+    /// </summary>
     public enum WorldType
     {
         MeadowRuins,
@@ -8,6 +11,9 @@ namespace FarmFuryStampede.Data
         WatermillVillage,
         SkyIslands,
         SunkenCity,
-        RobotMothership
+        RobotMothership,
+        DustbowlCanyon,
+        HarvestFairground,
+        CropFactory
     }
 }

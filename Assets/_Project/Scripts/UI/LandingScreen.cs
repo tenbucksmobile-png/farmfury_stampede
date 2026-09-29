@@ -7,7 +7,7 @@ namespace FarmFuryStampede.UI
     /// <summary>
     /// The first screen when the game opens (GameState.MainMenu), laid out from the landing mockup: the finished
     /// poster art (FF_StampedePoster.png - logo, sign and Cluck painted in) across the screen, a round play button
-    /// bottom-left, Exit and the settings cog bottom-right (buttons kept inside the device safe area).
+    /// bottom-left with Exit beside it, the settings cog bottom-right (buttons kept inside the device safe area).
     /// Play -> World Select, Exit -> quit the app, cog -> Shop &amp; Settings.
     /// Button positions are in the 1920x1080 reference canvas, measured off the 1280x720 mockup (x1.5). The poster is
     /// shown covering the screen (<see cref="ZoomedCover"/>, aspect kept). The poster is painted ~2.2:1 with the logo and
@@ -71,7 +71,7 @@ namespace FarmFuryStampede.UI
             SettingsButton = ArtButton(safe, "SettingsButton", art.settingsButton, "SET", onSettings,
                 new Vector2(1f, 0f), new Vector2(-EdgeMargin, BottomMargin), new Vector2(ButtonSize, ButtonSize));
             ExitButton = ArtButton(safe, "ExitButton", art.exitButton, "EXIT", onExit,
-                new Vector2(1f, 0f), new Vector2(-EdgeMargin - ButtonSize - ButtonGap, BottomMargin), ExitSize);
+                new Vector2(0f, 0f), new Vector2(EdgeMargin + 60f + ButtonSize + ButtonGap, BottomMargin), ExitSize);
 
             Root.SetActive(false);
         }

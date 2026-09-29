@@ -14,6 +14,12 @@ namespace FarmFuryStampede.LevelSystem
         [Tooltip("0 = present from the start. N > 0 = a reinforcement wave that spawns when the boss takes its Nth hit.")]
         public int wave;
 
+        [Header("World art (optional; empty keeps the robot prefab's own art)")]
+        [Tooltip("This world's look for the robot, e.g. Frozen Tundra's Ice Harvester. Right + left make a pair; right alone is flipped.")]
+        public Sprite artRight;
+        public Sprite artLeft;
+        public Sprite artDefeat;
+
         private void OnDrawGizmos()
         {
             MarkerGizmos.Draw(transform, Color.red, Vector3.one);

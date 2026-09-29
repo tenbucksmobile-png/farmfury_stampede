@@ -24,6 +24,7 @@ namespace FarmFuryStampede.UI
         [SerializeField] private CharacterSelectScreen characterSelect;
         [SerializeField] private MenuArt menuArt = new();
         [SerializeField] private ShopArt shopArt = new();
+        [SerializeField] private LeaderboardArt leaderboardArt = new();
 
         public static GameFlow Instance { get; private set; }
 
@@ -58,7 +59,7 @@ namespace FarmFuryStampede.UI
 
             Landing = new LandingScreen(canvas.transform, EnterWorldSelect, ExitGame, OpenMenuHub, menuArt);
             Hud = new HudScreen(canvas.transform, OpenPause, OpenLocker, OpenSwap, menuArt, shopArt);
-            Worlds = new WorldSelectScreen(canvas.transform, EnterLevelSelect, EnterLanding, menuArt);
+            Worlds = new WorldSelectScreen(canvas.transform, EnterLevelSelect, OpenWorldShop, EnterLanding, menuArt, shopArt);
             Levels = new LevelSelectScreen(canvas.transform, PickLevel, EnterWorldSelect, menuArt);
             _canvasTransform = canvas.transform;
             Results = new ResultsScreen(canvas.transform, PlayNextLevel, RestartLevel, LeaveResults, EnterLanding, OpenMenuHub, menuArt, shopArt);
@@ -89,10 +90,12 @@ namespace FarmFuryStampede.UI
             NewCharacter = Add(new NewCharacterScreen(c, menuArt, shopArt));
             var legal = Add(new LegalScreen(c, menuArt, shopArt));
             var story = Add(new CharacterStoryScreen(c, menuArt, shopArt));
-            var worldDetail = Add(new WorldDetailScreen(c, menuArt, shopArt));
+            var worldDetail = Add(new WorldDetailScreen(c, menuArt, shopArt, leaderboardArt));
             var worldShop = Add(new ItemPurchaseScreen(c, "WorldPurchase", menuArt, shopArt, Gate, useCoins, null, menuArt.worldUnlockedSign,
                 "NEW WORLDS", WorldItems(), new Vector2(500f, 281f), 30f, shopArt.worldPrice));
-            var leaderboards = Add(new LeaderboardsScreen(c, menuArt, shopArt, worldDetail.Show, worldShop.Show));
+            _worldShop = worldShop;
+            worldShop.Closed += () => { if (Worlds.Root.activeSelf) { Worlds.Refresh(); } };   // a bought world opens at once
+            var leaderboards = Add(new LeaderboardsScreen(c, menuArt, shopArt, leaderboardArt, worldDetail.Show, worldShop.Show));
 
             var itemCell = new Vector2(OverlayScreen.ItemWidth, OverlayScreen.ItemHeight);
             int trailsFirst = StoreProducts.Hats.Length;
@@ -117,6 +120,11 @@ namespace FarmFuryStampede.UI
             MenuHub = Add(new MenuHubScreen(c, menuArt, shopArt, Settings.Show, ShopHub.Show));
         }
 
+        private ItemPurchaseScreen _worldShop;
+
+        /// <summary>A paid world's card on World Select: the world shop ($3.99 each).</summary>
+        private void OpenWorldShop() => _worldShop?.Show();
+
         private T Add<T>(T overlay) where T : OverlayScreen
         {
             _overlays.Add(overlay);
@@ -128,7 +136,7 @@ namespace FarmFuryStampede.UI
             productIds.Select((id, i) => new ItemPurchaseScreen.Item(id, ShopArt.At(sprites, i),
                 StoreProducts.Cosmetics[firstNameIndex + i].name)).ToArray();
 
-        /// <summary>The Worlds page: IAPManager.PurchasableWorlds (purchaseRequired worlds, else the last three).</summary>
+        /// <summary>The Worlds page: IAPManager.PurchasableWorlds (purchaseRequired worlds; none yet, so it says "coming soon").</summary>
         private static ItemPurchaseScreen.Item[] WorldItems()
         {
             return IAPManager.PurchasableWorlds()

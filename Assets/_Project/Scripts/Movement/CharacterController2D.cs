@@ -414,6 +414,10 @@ namespace FarmFuryStampede.Movement
                 {
                     rate *= airControl;
                 }
+                else
+                {
+                    rate *= GroundTraction;   // ice: slow to get going, slower still to stop or turn
+                }
                 _velocity.x = Mathf.MoveTowards(_velocity.x, targetSpeed, rate * dt);
             }
 
@@ -535,8 +539,23 @@ namespace FarmFuryStampede.Movement
 
         private bool GroundCheck()
         {
-            return Cast(_position, Vector2.down, groundCheckDistance + skinWidth).collider != null;
+            var ground = Cast(_position, Vector2.down, groundCheckDistance + skinWidth).collider;
+            if (ground != _groundCollider)
+            {
+                _groundCollider = ground;
+                var ice = ground != null ? ground.GetComponent<LevelSystem.IceSurface>() : null;
+                GroundTraction = ice != null ? ice.traction : 1f;
+            }
+            return ground != null;
         }
+
+        private Collider2D _groundCollider;
+
+        /// <summary>Traction of what the character last stood on: 1 on normal ground, lower on ice (IceSurface).</summary>
+        public float GroundTraction { get; private set; } = 1f;
+
+        /// <summary>True while standing on ice.</summary>
+        public bool OnIce => _grounded && GroundTraction < 1f;
 
         // The cast box is the collider inset by skinWidth so a body resting on a surface never
         // starts the cast inside it.

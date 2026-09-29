@@ -38,6 +38,24 @@ namespace FarmFuryStampede.Robots
         [SerializeField] private Sprite defeatSprite;
 
         private Vector3 _visualScale = Vector3.one;
+        private Sprite _prefabRight, _prefabLeft, _prefabDefeat;
+
+        /// <summary>
+        /// Gives this (pooled) robot a world's own art for this spawn, or its prefab art back when all are null
+        /// (LevelLoader calls it on every spawn, so a reused robot never keeps another world's look).
+        /// </summary>
+        public void SetWorldArt(Sprite right, Sprite left, Sprite defeat)
+        {
+            bool custom = right != null;
+            spriteRight = custom ? right : _prefabRight;
+            spriteLeft = custom ? left : _prefabLeft;
+            defeatSprite = custom ? (defeat != null ? defeat : _prefabDefeat) : _prefabDefeat;
+            if (visual != null)
+            {
+                visual.flipX = false;
+                if (spriteRight != null) { visual.sprite = spriteRight; }
+            }
+        }
 
         /// <summary>
         /// Points the visual left or right. Robots with separate left/right art swap sprites (the art is not a
@@ -75,6 +93,9 @@ namespace FarmFuryStampede.Robots
             {
                 _visualScale = visual.transform.localScale;
             }
+            _prefabRight = spriteRight;
+            _prefabLeft = spriteLeft;
+            _prefabDefeat = defeatSprite;
         }
 
         protected virtual void OnEnable()

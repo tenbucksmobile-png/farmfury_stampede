@@ -104,16 +104,14 @@ namespace FarmFuryStampede.Core
             _storeController.FetchProducts(definitions);
         }
 
-        /// <summary>Worlds sold in the shop: those marked purchaseRequired, else (until that's decided) the last three.</summary>
+        /// <summary>
+        /// Worlds sold in the shop: only those marked purchaseRequired. The six story worlds are all free (decided
+        /// 2026-09-29, replacing the GDD's paid Worlds 4-6); the paid worlds will be new ones added after them.
+        /// </summary>
         public static List<WorldType> PurchasableWorlds()
         {
             var worlds = DataManager.Instance != null ? DataManager.Instance.GetAllWorlds() : new List<WorldData>();
-            var gated = worlds.Where(w => w.purchaseRequired).Select(w => w.worldType).ToList();
-            if (gated.Count == 0)
-            {
-                gated = worlds.Select(w => w.worldType).OrderBy(w => w).Skip(Mathf.Max(0, worlds.Count - 3)).ToList();
-            }
-            return gated;
+            return worlds.Where(w => w.purchaseRequired).Select(w => w.worldType).OrderBy(w => w).ToList();
         }
 
         private void HandleStoreDisconnected(StoreConnectionFailureDescription description)

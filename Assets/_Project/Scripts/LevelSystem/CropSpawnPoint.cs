@@ -11,6 +11,8 @@ namespace FarmFuryStampede.LevelSystem
         public Sprite visualOverride;
         [Tooltip("Coins paid out on pickup (the bonus coin; Arcade's CoinPickup.coinValue). 0 for a plain crop.")]
         public int coinValue;
+        [Tooltip("A coin in a secret underground passage: pays coinValue but is not a crop (no corn count, stars or score).")]
+        public bool passageCoin;
 
         private void OnDrawGizmos()
         {

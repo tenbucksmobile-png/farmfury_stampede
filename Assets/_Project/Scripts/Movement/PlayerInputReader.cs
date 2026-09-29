@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 namespace FarmFuryStampede.Movement
 {
     /// <summary>
-    /// Keyboard (A/D, arrows, Space) and gamepad bindings, plus the HUD's on-screen touch buttons (left, right, jump),
+    /// Keyboard (A/D, arrows, Space) and gamepad bindings, plus the HUD's on-screen touch buttons (left, right, jump, ability),
     /// which write the static Touch* values below. Actions are created in code so no .inputactions asset is required.
     /// </summary>
     public class PlayerInputReader : MonoBehaviour
@@ -25,11 +25,30 @@ namespace FarmFuryStampede.Movement
             TouchJumpHeld = true;
         }
 
+        /// <summary>A touch ability press (the HUD's ability button): read once, like the keyboard's.</summary>
+        public static void PressTouchAbility() => _touchAbilityPending = true;
+        private static bool _touchAbilityPending;
+        private static int _touchAbilityFrame = -1;
+
         /// <summary>Lets go of every on-screen button (the HUD was hidden).</summary>
         public static void ReleaseTouch()
         {
             TouchLeftHeld = TouchRightHeld = TouchJumpHeld = false;
             _touchJumpPending = false;
+            _touchAbilityPending = false;
+        }
+
+        private static bool TouchAbilityPressedThisFrame
+        {
+            get
+            {
+                if (_touchAbilityPending)
+                {
+                    _touchAbilityPending = false;
+                    _touchAbilityFrame = Time.frameCount;
+                }
+                return _touchAbilityFrame == Time.frameCount;
+            }
         }
 
         private static bool TouchJumpPressedThisFrame
@@ -53,7 +72,7 @@ namespace FarmFuryStampede.Movement
         public bool JumpHeld => _jump.IsPressed() || TouchJumpHeld;
 
         /// <summary>True only on the frame the ability button went down. Read from Update.</summary>
-        public bool AbilityPressedThisFrame => _ability.WasPressedThisFrame();
+        public bool AbilityPressedThisFrame => _ability.WasPressedThisFrame() | TouchAbilityPressedThisFrame;
 
         /// <summary>True only on the frame the jump button went down. Read from Update.</summary>
         public bool JumpPressedThisFrame => _jump.WasPressedThisFrame() | TouchJumpPressedThisFrame;

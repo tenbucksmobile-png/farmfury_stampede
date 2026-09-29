@@ -35,6 +35,13 @@ namespace FarmFuryStampede.Core
         private const string EquippedSkinKeyPrefix = "FFS_EquippedSkin_";
         private const string EquippedTrailKey = "FFS_EquippedTrail";
         private const string WorldPurchasedKeyPrefix = "FFS_WorldPurchased_";
+        // Leaderboard records (best completed run per level; coins earned per world).
+        private const string BestScoreKeyPrefix = "FFS_BestScore_";
+        private const string BestScoreCharacterKeyPrefix = "FFS_BestScoreChar_";
+        private const string FastestTimeKeyPrefix = "FFS_FastestTime_";
+        private const string BestCropsKeyPrefix = "FFS_BestCrops_";
+        private const string CropTotalKeyPrefix = "FFS_CropTotal_";
+        private const string WorldCoinsEarnedKeyPrefix = "FFS_WorldCoins_";
 
         private static readonly CharacterType[] DefaultUnlockedCharacters =
         {
@@ -407,14 +414,17 @@ namespace FarmFuryStampede.Core
         }
 
         /// <summary>
-        /// A world unlocks once the previous world's boss level has been completed (Meadow Ruins is always open).
-        /// A purchase-gated world (WorldData.purchaseRequired) must also have been bought.
+        /// A story world unlocks once the previous world's boss level has been completed (Meadow Ruins is always open).
+        /// A purchase-gated world (WorldData.purchaseRequired: the three paid post-finale worlds) unlocks when bought.
         /// </summary>
         public bool IsWorldUnlocked(WorldType world)
         {
-            bool reached = world == WorldType.MeadowRuins || IsWorldBossCleared(world - 1);
             var data = DataManager.Instance != null ? DataManager.Instance.GetWorldData(world) : null;
-            return reached && (data == null || !data.purchaseRequired || IsWorldPurchased(world));
+            if (data != null && data.purchaseRequired)
+            {
+                return IsWorldPurchased(world);   // the paid post-finale worlds: buying one opens it, no boss needed
+            }
+            return world == WorldType.MeadowRuins || IsWorldBossCleared(world - 1);
         }
 
         /// <summary>
@@ -452,6 +462,63 @@ namespace FarmFuryStampede.Core
         public int GetWorldMaxStars(WorldType world)
         {
             return DataManager.Instance == null ? 0 : DataManager.Instance.GetWorldLevels(world).Count * 3;
+        }
+
+        // ------------------------------------------------------------ leaderboard records
+
+        /// <summary>
+        /// Records a completed run for the Leaderboard, keeping each record's best: the highest score (and the
+        /// character who set it), the fastest time, the most crops (with the level's crop total, so a world can show
+        /// "collected / total"). Saved with the rest of the level's progress by the caller.
+        /// </summary>
+        public void RecordLevelResult(string levelId, int score, float seconds, int crops, int cropTotal, CharacterType character)
+        {
+            if (score > GetBestScore(levelId) || !PlayerPrefs.HasKey(BestScoreKeyPrefix + levelId))
+            {
+                PlayerPrefs.SetInt(BestScoreKeyPrefix + levelId, score);
+                PlayerPrefs.SetInt(BestScoreCharacterKeyPrefix + levelId, (int)character);
+            }
+
+            float fastest = GetFastestTime(levelId);
+            if (seconds > 0f && (fastest <= 0f || seconds < fastest))
+            {
+                PlayerPrefs.SetFloat(FastestTimeKeyPrefix + levelId, seconds);
+            }
+
+            PlayerPrefs.SetInt(BestCropsKeyPrefix + levelId, Mathf.Max(GetBestCrops(levelId), crops));
+            PlayerPrefs.SetInt(CropTotalKeyPrefix + levelId, Mathf.Max(cropTotal, crops));
+        }
+
+        public int GetBestScore(string levelId) => PlayerPrefs.GetInt(BestScoreKeyPrefix + levelId, 0);
+
+        /// <summary>The character who set the level's best score, or null before it has been completed.</summary>
+        public CharacterType? GetBestScoreCharacter(string levelId)
+        {
+            if (!PlayerPrefs.HasKey(BestScoreCharacterKeyPrefix + levelId))
+            {
+                return null;
+            }
+            var type = (CharacterType)PlayerPrefs.GetInt(BestScoreCharacterKeyPrefix + levelId);
+            return System.Enum.IsDefined(typeof(CharacterType), type) ? type : null;
+        }
+
+        /// <summary>Fastest completion in seconds (paused time excluded); 0 = none yet.</summary>
+        public float GetFastestTime(string levelId) => PlayerPrefs.GetFloat(FastestTimeKeyPrefix + levelId, 0f);
+
+        public int GetBestCrops(string levelId) => PlayerPrefs.GetInt(BestCropsKeyPrefix + levelId, 0);
+
+        /// <summary>Crops the level holds (as of its last completion); 0 before it has been completed.</summary>
+        public int GetLevelCropTotal(string levelId) => PlayerPrefs.GetInt(CropTotalKeyPrefix + levelId, 0);
+
+        /// <summary>Coins earned by playing the world's levels (payouts and Double Coins), for the Leaderboard.</summary>
+        public int GetWorldCoinsEarned(WorldType world) => PlayerPrefs.GetInt(WorldCoinsEarnedKeyPrefix + world, 0);
+
+        public void AddWorldCoinsEarned(WorldType world, int amount)
+        {
+            if (amount > 0)
+            {
+                PlayerPrefs.SetInt(WorldCoinsEarnedKeyPrefix + world, GetWorldCoinsEarned(world) + amount);
+            }
         }
 
         // ------------------------------------------------------------ debug (testing only)
@@ -492,6 +559,11 @@ namespace FarmFuryStampede.Core
                     PlayerPrefs.DeleteKey(LevelStarsKeyPrefix + level.levelId);
                     PlayerPrefs.DeleteKey(SecretFoundKeyPrefix + level.levelId);
                     PlayerPrefs.DeleteKey(RarePelletKeyPrefix + level.levelId);
+                    PlayerPrefs.DeleteKey(BestScoreKeyPrefix + level.levelId);
+                    PlayerPrefs.DeleteKey(BestScoreCharacterKeyPrefix + level.levelId);
+                    PlayerPrefs.DeleteKey(FastestTimeKeyPrefix + level.levelId);
+                    PlayerPrefs.DeleteKey(BestCropsKeyPrefix + level.levelId);
+                    PlayerPrefs.DeleteKey(CropTotalKeyPrefix + level.levelId);
                 }
 
                 foreach (var character in DataManager.Instance.GetAllCharacters())
@@ -503,6 +575,7 @@ namespace FarmFuryStampede.Core
             foreach (WorldType world in System.Enum.GetValues(typeof(WorldType)))
             {
                 PlayerPrefs.DeleteKey(BossClearedKeyPrefix + world);
+                PlayerPrefs.DeleteKey(WorldCoinsEarnedKeyPrefix + world);
             }
 
             PlayerPrefs.DeleteKey(CompletedCountKey);

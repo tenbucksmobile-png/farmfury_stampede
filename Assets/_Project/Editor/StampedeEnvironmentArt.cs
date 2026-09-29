@@ -30,7 +30,7 @@ namespace FarmFuryStampede.EditorTools
         private const int FloorDirtPixels = 126;
 
         /// <summary>Tile transform Y scale that stretches a floor variant's dirt body to exactly one cell tall.</summary>
-        public static float FloorTileScaleY(Sprite variant) => variant.rect.width / Mathf.Min(FloorDirtPixels, variant.rect.height);
+        public static float FloorTileScaleY(Sprite variant) => variant.rect.width / Mathf.Max(1f, variant.pivot.y * 2f);   // pivot = dirt centre
 
         // Far -> near. DistantBarn.png is intentionally excluded: its softer painterly style doesn't match
         // Layer1-3's flat-cartoon look yet - drop it in here once it's regenerated to match.
@@ -79,10 +79,33 @@ namespace FarmFuryStampede.EditorTools
             Debug.Log("[EnvironmentArt] Meadow Ruins parallax background imported and wired.");
         }
 
+        // ---- Frozen Tundra (World 2) ----------------------------------------------------------------------------
+        // Parallax, far to near: the aurora sky over distant peaks, then the full scene (mountains and the snow plain).
+        // Both paintings are opaque, so (as with Meadow Ruins' three) only the nearer one shows; true depth needs a
+        // near layer with a transparent sky. They replace the background layers per level (LevelPrefabRoot.parallaxLayers).
+        private static readonly string[] TundraLayers = { "FT_Paralax_mid (1).png", "FT_Paralax_Far.png" };
+        // The frosted-grass floor strip: four blocks inside transparent margins (opaque x 39-641, y 77-326 from the top
+        // of the 666x375 image); each block's dirt body is its bottom 160 rows.
+        private const string TundraFloorPath = "Assets/_Project/Sprites/UI/FrozenTundra/FT_Ground.png";
+        private static readonly RectInt TundraFloorArea = new(40, 49, 600, 249);   // bottom-up pixel rows
+        private const int TundraFloorVariants = 4, TundraFloorDirtPixels = 160;
+
+        /// <summary>Frozen Tundra's parallax layers, far to near (missing ones left out).</summary>
+        public static Sprite[] TundraParallax() => TundraLayers
+            .Select(f => AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/{f}"))
+            .Where(s => s != null)
+            .ToArray();
+
+        /// <summary>Frozen Tundra's sliced frosted-grass floor variants, left to right; empty if the art is missing.</summary>
+        public static Sprite[] TundraFloorArt() => AssetDatabase.LoadAllAssetsAtPath(TundraFloorPath)
+            .OfType<Sprite>()
+            .OrderBy(s => s.name)
+            .ToArray();
+
         /// <summary>Imports every configured layer file as a smooth, opaque sprite. Idempotent; missing files warn and are skipped.</summary>
         public static void ImportBackgroundArt()
         {
-            foreach (var (file, _, _) in Layers)
+            foreach (string file in Layers.Select(l => l.file).Concat(TundraLayers))
             {
                 string path = $"{EnvironmentDir}/{file}";
                 if (!File.Exists(path))
@@ -103,24 +126,36 @@ namespace FarmFuryStampede.EditorTools
                 importer.SaveAndReimport();
             }
 
-            ImportFloorTileArt();
+            string floorPath = $"{EnvironmentDir}/{FloorTileFile}";
+            if (File.Exists(floorPath))
+            {
+                var importer = (TextureImporter)AssetImporter.GetAtPath(floorPath);
+                importer.GetSourceTextureWidthAndHeight(out int width, out int height);
+                SliceFloorStrip(floorPath, "FloorTile", new RectInt(0, 0, width, height), FloorVariants, FloorDirtPixels);
+            }
+            else
+            {
+                Debug.LogWarning($"[EnvironmentArt] Missing art file {floorPath}; the ground surface falls back to the procedural GroundTile.");
+            }
+            SliceFloorStrip(TundraFloorPath, "FT_Ground", TundraFloorArea, TundraFloorVariants, TundraFloorDirtPixels);
         }
 
-        // Slices FloorTile.png into FloorVariants equal-width sprites, each pivoted on the centre of its dirt body.
-        private static void ImportFloorTileArt()
+        // Slices a strip of grass-topped dirt blocks (inside 'area', bottom-up pixels) into equal-width sprites named
+        // <prefix>_0..n-1, one cell wide, each pivoted on the centre of its dirt body (its bottom dirtPixels rows) -
+        // FloorTileScaleY reads the dirt height back from that pivot.
+        private static void SliceFloorStrip(string path, string prefix, RectInt area, int variants, int dirtPixels)
         {
-            string path = $"{EnvironmentDir}/{FloorTileFile}";
             if (!File.Exists(path))
             {
-                Debug.LogWarning($"[EnvironmentArt] Missing art file {path}; the ground surface falls back to the procedural GroundTile.");
+                Debug.LogWarning($"[EnvironmentArt] Missing floor strip {path}; that world's ground surface falls back to plain dirt.");
                 return;
             }
 
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);
-            importer.GetSourceTextureWidthAndHeight(out int width, out int height);
-            int sliceWidth = width / FloorVariants;
-            int dirt = Mathf.Min(FloorDirtPixels, height);
+            int sliceWidth = area.width / variants;
+            int height = area.height;
+            int dirt = Mathf.Min(dirtPixels, height);
 
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Multiple;
@@ -137,15 +172,15 @@ namespace FarmFuryStampede.EditorTools
             provider.InitSpriteEditorDataProvider();
             var existing = provider.GetSpriteRects();
 
-            var rects = new SpriteRect[FloorVariants];
-            for (int i = 0; i < FloorVariants; i++)
+            var rects = new SpriteRect[variants];
+            for (int i = 0; i < variants; i++)
             {
-                string spriteName = $"FloorTile_{i}";
+                string spriteName = $"{prefix}_{i}";
                 var previous = System.Array.Find(existing, r => r.name == spriteName);
                 rects[i] = new SpriteRect
                 {
                     name = spriteName,
-                    rect = new Rect(i * sliceWidth, 0, sliceWidth, height),
+                    rect = new Rect(area.x + i * sliceWidth, area.y, sliceWidth, height),
                     alignment = SpriteAlignment.Custom,
                     pivot = new Vector2(0.5f, dirt * 0.5f / height),
                     spriteID = previous != null ? previous.spriteID : GUID.Generate(),

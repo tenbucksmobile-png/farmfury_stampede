@@ -201,6 +201,10 @@ namespace FarmFuryStampede.Core
             }
 
             SaveManager.Instance.AddCoins(RunState.coinsEarned);
+            if (CurrentLevel != null)
+            {
+                SaveManager.Instance.AddWorldCoinsEarned(CurrentLevel.worldType, RunState.coinsEarned);
+            }
             SaveManager.Instance.SaveProgress();
             RunState.doubleCoinsClaimed = true;
             return true;
@@ -234,12 +238,17 @@ namespace FarmFuryStampede.Core
                 SaveManager.Instance.AddCoins(RunState.coinsEarned);
                 AnalyticsManager.Instance?.LogLevelComplete(LevelIndex(CurrentLevel), stars, RunState.cropsCollectedThisRun, Elapsed);
                 SaveManager.Instance.SetLevelStars(CurrentLevel.levelId, stars);
+                SaveManager.Instance.AddWorldCoinsEarned(CurrentLevel.worldType, RunState.coinsEarned);
+                SaveManager.Instance.RecordLevelResult(CurrentLevel.levelId, ScoreCalculator.Compute(RunState, stars), Elapsed,
+                    RunState.cropsCollectedThisRun, RunState.totalNormalCrops + RunState.totalSecretCrops, CurrentCharacter);
                 var unlocked = SaveManager.Instance.RecordLevelCompleted(CurrentLevel.levelId);
                 RunState.newlyUnlockedCharacters.AddRange(unlocked);
                 if (CurrentLevel.isBossLevel)
                 {
                     RunState.bossCleared = true;
-                    RunState.worldUnlocked = CurrentLevel.worldType != WorldType.RobotMothership
+                    // Only a story world's boss opens the next world (the finale's next worlds are the paid ones).
+                    var next = DataManager.Instance != null ? DataManager.Instance.GetWorldData(CurrentLevel.worldType + 1) : null;
+                    RunState.worldUnlocked = next != null && !next.purchaseRequired
                         && !SaveManager.Instance.IsWorldBossCleared(CurrentLevel.worldType);
                     SaveManager.Instance.SetWorldBossCleared(CurrentLevel.worldType, true);
                 }

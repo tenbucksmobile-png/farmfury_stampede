@@ -8,5 +8,10 @@ namespace FarmFuryStampede.LevelSystem
         [Header("Camera")]
         public float cameraMinX;
         public float cameraMaxX;
+
+        [Header("Background")]
+        [Tooltip("This world's parallax art, far to near, replacing the background's own layers (Meadow Ruins' Layer1-3) " +
+                 "one for one; a layer past the end of the list is hidden. Empty keeps the default layers.")]
+        public Sprite[] parallaxLayers = new Sprite[0];
     }
 }

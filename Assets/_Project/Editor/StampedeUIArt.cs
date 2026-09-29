@@ -123,7 +123,17 @@ namespace FarmFuryStampede.EditorTools
             { WorldType.SkyIslands, "SkyIsland" },
             { WorldType.SunkenCity, "SunkenCity" },
             { WorldType.RobotMothership, "Mothership" },
+            { WorldType.DustbowlCanyon, "DustbowlCanyon" },
+            { WorldType.HarvestFairground, "HarvestFairground" },
+            { WorldType.CropFactory, "CropFactory" },
         };
+        // World Select card files whose name differs from the Level Select backdrop's (WS_<name>.png).
+        private static readonly Dictionary<WorldType, string> WorldCardNames = new()
+        {
+            { WorldType.HarvestFairground, "Fairground" },
+        };
+        private static string CardName(WorldType world) =>
+            WorldCardNames.TryGetValue(world, out string card) ? card : WorldArtNames[world];
 
         // ---- World scale -------------------------------------------------------------------------------------
         // Every world prop (obstacles, barrels, bales, buildings, trees, crops-in-the-field, fences) is sized from ONE
@@ -169,6 +179,7 @@ namespace FarmFuryStampede.EditorTools
 
             foreach (var (file, pivotY, metres) in SceneryFiles) { ImportToScale(file, pivotY, metres); }
             ImportToScale(BarrelFile, BarrelPivotY, BarrelMetres);
+            ImportTundraArt();
 
             foreach (string file in MenuSpriteFiles()) { ImportMenuSprite(file); }
         }
@@ -199,9 +210,9 @@ namespace FarmFuryStampede.EditorTools
             foreach (string file in StarBoardFiles) { yield return $"{UIDir}/{file}"; }
             yield return $"{UIDir}/{NewCharacterSignFile}";
             yield return $"{UIDir}/{WorldUnlockedSignFile}";
-            foreach (string name in WorldArtNames.Values)
+            foreach (var (world, name) in WorldArtNames)
             {
-                yield return $"{EnvironmentDir}/WS_{name}.png";
+                yield return $"{EnvironmentDir}/WS_{CardName(world)}.png";
                 yield return $"{EnvironmentDir}/{name}.png";
             }
         }
@@ -256,7 +267,7 @@ namespace FarmFuryStampede.EditorTools
         // Writes a copy of a results backdrop with ResultsScreen.ArtPad columns added to each side, mirrored out from
         // the edge (the stone walls and hills carry on naturally); across the logo's rows on the left the edge column
         // is repeated instead (plain sky). Rebuilt on every setup run so replaced art is picked up.
-        private static void BuildWideResultsArt(string source, string destination)
+        internal static void BuildWideResultsArt(string source, string destination)
         {
             if (!File.Exists(source))
             {
@@ -297,7 +308,7 @@ namespace FarmFuryStampede.EditorTools
 
         /// <summary>The world's World Select card art (name centred), or null.</summary>
         public static Sprite WorldSelectCard(WorldType world) =>
-            WorldArtNames.TryGetValue(world, out string name) ? AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/WS_{name}.png") : null;
+            WorldArtNames.ContainsKey(world) ? AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/WS_{CardName(world)}.png") : null;
 
         /// <summary>The world's Level Select backdrop (name along the top), or null.</summary>
         public static Sprite LevelSelectBackground(WorldType world) =>
@@ -372,7 +383,55 @@ namespace FarmFuryStampede.EditorTools
             ("WoodenFence.png", 0.22f, 1.2f),   // ~0.8 tall (sections tile edge to edge)
             ("WildFlowers.png", 0.08f, 0.9f),   // ~0.6
             ("Plane.png", 0.5f, 2.2f),          // not to scale: a distant plane, drawn ~1.4 units across the sky
+            ("SecretSign.png", 0.01f, 4.6f),    // ~3 units: the secret-passage signpost (apple bursting through), feet at the post's foot
         };
+        // ---- Frozen Tundra (World 2) props, in Sprites/UI/FrozenTundra, to the same world scale. Each stands in
+        // for a Meadow Ruins farm prop in the shared scenery layout (LevelBuilder.StandardFarm), see TundraBackdrop.
+        private const string TundraDir = "FrozenTundra/";
+        private static readonly (string file, float pivotY, float metres)[] TundraFiles =
+        {
+            ("Igloo.png", 0.03f, 4.5f),            // ~2.9 units (the barn's place)
+            ("FrozenWaterfall.png", 0.05f, 9f),    // ~5.9 (the windmill's)
+            ("IceSpire.png", 0.01f, 10f),          // ~6.5 (the silo's)
+            ("IceTree.png", 0.02f, 8f),            // ~5.2 (the oak's)
+            ("IceCrystals.png", 0.04f, 4f),        // ~2.6 (the gnarled tree's)
+            ("BuriedRuin.png", 0.03f, 5f),         // ~3.3 (the water wheel's)
+            ("Snowdrift.png", 0.02f, 2.5f),        // ~1.6 (the cart's, in front)
+            ("IceSign.png", 0.05f, 2.6f),          // ~1.7: the THIN ICE warning at the start of every ice stretch
+            ("IceBoulder.png", 0.05f, 3.2f),       // ~2.1: the random obstacle (as the rock), on its 2.1x1.95 collider
+            ("IceBarrel.png", 0.1f, 2.6f),         // ~1.7 with its snow puff: the barrel-pyramid barrel
+        };
+        // One-cell tiles and slabs: pixels-per-unit = the opaque height, so each is one unit tall.
+        private static readonly (string file, float pixelsPerUnit)[] TundraBlocks =
+        {
+            ("Ice_block.png", 110f),    // StoneBlocks() squares and the Ice tilemap (IceFlat)
+            ("Snow_block.png", 93f),    // Floating() / SecretLedge() slabs
+            ("WoodBlock.png", 122f),    // Bessie's breakable floor
+        };
+
+        /// <summary>Imports the Frozen Tundra prop and block art (called by ImportUIArt).</summary>
+        private static void ImportTundraArt()
+        {
+            foreach (var (file, pivotY, metres) in TundraFiles) { ImportToScale(TundraDir + file, pivotY, metres); }
+            foreach (var (file, ppu) in TundraBlocks) { ImportCentered(TundraDir + file, ppu); }
+        }
+
+        public static Sprite Tundra(string file) => Load(TundraDir + file);
+
+        /// <summary>Frozen Tundra's scenery in the farm-prop roles; the farm-only pieces (corn, fence, flowers, biplane) stay empty.</summary>
+        internal static FarmBackdropArt TundraBackdrop() => new()
+        {
+            barn = Tundra("Igloo.png"),
+            windmill = Tundra("FrozenWaterfall.png"),
+            silo = Tundra("IceSpire.png"),
+            oak = Tundra("IceTree.png"),
+            gnarledTree = Tundra("IceCrystals.png"),
+            waterWheel = Tundra("BuriedRuin.png"),
+            cart = Tundra("Snowdrift.png"),
+        };
+
+        /// <summary>The secret-passage signpost (LevelBuilder.SecretPassage): marks both ends of a passage.</summary>
+        public static Sprite SecretSign() => Load("SecretSign.png");
         public static Sprite Barn() => Load("DamagedBarn.png");
         public static Sprite Windmill() => Load("Windmill.png");
 

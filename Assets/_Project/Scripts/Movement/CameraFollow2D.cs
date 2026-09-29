@@ -48,7 +48,7 @@ namespace FarmFuryStampede.Movement
         [SerializeField] private float zoomSmoothTime = 0.35f;
 
         // Tilemaps that count as the level's ground (not the Platforms layer of ledges and floating platforms).
-        private static readonly string[] FloorTilemaps = { "Ground", "BreakableFloor" };
+        private static readonly string[] FloorTilemaps = { "Ground", "BreakableFloor", "Ice" };
 
         [Header("Level Bounds (X)")]
         [SerializeField] private bool useXBounds;

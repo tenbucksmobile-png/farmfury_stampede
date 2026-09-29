@@ -43,13 +43,18 @@ namespace FarmFuryStampede.UI
             ("Stomp the Robots", "Land on a robot from above to stomp it flat. Bump into one any other way and you " +
                 "lose a life."),
             ("Lives & Checkpoints", "You have 3 lives each try. Lose one and you're back at the last checkpoint " +
-                "flag - lose all three and it's time to try the level again."),
+                "flag. Lose the last one and you can spend 5 coins or watch an ad for one more life - or try the " +
+                "level again."),
+            ("Swap Animals", "Tap the swap button (or press Tab) any time to switch to another animal you've " +
+                "unlocked, right where you stand. Your next level starts as whoever you finished with."),
             ("Corn & Stars", "Finish a level for 1 star. Collect at least three-quarters of the corn for a second, " +
-                "and find the level's secret for the third (no secret? Finish without losing a life)."),
-            ("Secrets", "Every level hides a secret only one animal's ability can reach. Come back with a different " +
-                "friend to find it!"),
-            ("New Friends", "Clear more levels to unlock new animals: Percy at 5, Woolly at 10, Ducky at 15, Horace " +
-                "at 20, Gerald at 30 and Billy at 40."),
+                "and find the level's secret for the third (no secret? Finish without losing a life). More stars " +
+                "earn more coins."),
+            ("Secrets", "Every level hides a secret only one animal's ability can reach. Swap to the right friend " +
+                "to get to it!"),
+            ("New Friends", "Find a glowing crystal apple - a rare pellet - to unlock a new animal on the spot. " +
+                "Clearing levels unlocks them too: Percy at 5, Woolly at 10, Ducky at 15, Horace at 20, Gerald at " +
+                "30 and Billy at 40."),
         };
 
         private static readonly Dictionary<CharacterType, (string ability, string story)> Characters = new()
@@ -87,8 +92,6 @@ namespace FarmFuryStampede.UI
                 "into one to knock it down, or let Horace's horseshoe do the job."),
             (RobotType.Chaser, "Chaser", "Sleeps until you come close, then races after you. It's quick - but not " +
                 "as quick as you. Keep moving, or turn and stomp it."),
-            (RobotType.BarrierUnit, "Barrier Unit", "A wall of solid steel that shrugs off every hit. Only Billy's " +
-                "Charge Break can knock it over - and what it guards is usually worth it."),
             (RobotType.Commander, "Commander", "The boss of every territory. It takes three hits, gets faster after " +
                 "each one and calls in reinforcements. Beat it to free the world."),
         };
@@ -187,13 +190,8 @@ namespace FarmFuryStampede.UI
                 {
                     var (ability, story) = Characters.TryGetValue(data.characterType, out var entry) ? entry : ("", data.abilityDescription);
                     string unlock = data.unlockLevelsRequired > 0 ? $"\nJoins the Squad after {data.unlockLevelsRequired} levels." : "\nReady from the start.";
-                    var row = InfoRow(_lists[2], data.selectCard != null ? data.selectCard : data.placeholderSprite, 300f,
+                    InfoRow(_lists[2], data.selectCard != null ? data.selectCard : data.placeholderSprite, 300f,
                         data.displayName, $"Ability: {ability}\n{story}{unlock}");
-                    var abilityIcon = Shop.AbilityIcon(data.characterType);
-                    if (abilityIcon != null)
-                    {
-                        Icon(row, abilityIcon, 200f);
-                    }
                 }
             }
 

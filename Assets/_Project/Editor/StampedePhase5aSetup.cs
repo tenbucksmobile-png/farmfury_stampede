@@ -43,6 +43,9 @@ namespace FarmFuryStampede.EditorTools
         private const string PlatformTilePath = SpritesDir + "/PlatformTile.asset";
         private const string BreakableTilePath = SpritesDir + "/BreakableTile.asset";
         private const string GroundSurfaceTileName = "GroundSurfaceTile";
+        private const string TundraSurfaceTileName = "TundraSurfaceTile";
+        private const string TundraIceTileName = "TundraIceTile";
+        private const string TundraBreakableTileName = "TundraBreakableTile";
         private const string WaterTilePath = SpritesDir + "/WaterTile.asset";
         private const string InvisibleTilePath = SpritesDir + "/InvisibleTile.asset";
         private const string OldClusterPrefabPath = PrefabsDir + "/Cluck.prefab";
@@ -189,6 +192,7 @@ namespace FarmFuryStampede.EditorTools
             StampedeEnvironmentArt.ImportBackgroundArt();
             StampedeUIArt.ImportUIArt();
             StampedeShopArt.ImportShopArt();
+            StampedeLeaderboardArt.ImportLeaderboardArt();
 
             CreateTile("GroundTile", StampedeProceduralTiles.CreateGroundTileSprite(), Color.white);
             CreateTile("PlatformTile", StampedeProceduralTiles.CreatePlatformTileSprite(), Color.white);
@@ -206,6 +210,16 @@ namespace FarmFuryStampede.EditorTools
             }
             CreateTile("WaterTile", square, new Color(0.25f, 0.5f, 0.95f, 0.6f));
             CreateTile("InvisibleTile", null, Color.white);   // collision only; art is drawn separately (stone ledges)
+
+            // Frozen Tundra: frosted-grass surface variants (FT_Ground.png), the ice of IceFlat stretches and the
+            // wooden breakable floor.
+            Sprite[] tundraFloor = StampedeEnvironmentArt.TundraFloorArt();
+            for (int i = 0; i < tundraFloor.Length; i++)
+            {
+                CreateTile($"{TundraSurfaceTileName}_{i}", tundraFloor[i], Color.white, FloorTileTransform(tundraFloor[i]));
+            }
+            CreateTile(TundraIceTileName, StampedeUIArt.Tundra("Ice_block.png"), Color.white);
+            CreateTile(TundraBreakableTileName, StampedeUIArt.Tundra("WoodBlock.png"), Color.white);
 
             BuildCloudPrefab(square, groundLayer, ImportCentredArt(CloudArtFile, CloudArtWidth));
             BuildHorseshoePrefab(ImportCentredArt(HorseshoeArtFile, HorseshoeHeight) ?? horseshoeSprite);
@@ -256,10 +270,13 @@ namespace FarmFuryStampede.EditorTools
                 stoneBlockSprite = StampedeUIArt.StoneBlock(),
                 coinSprite = StampedeUIArt.Coin(),
                 rarePelletSprite = StampedeUIArt.RarePellet(),
+                secretSignSprite = StampedeUIArt.SecretSign(),
                 ledgeSprite = StampedeUIArt.LedgeStone(),
                 invisibleTile = AssetDatabase.LoadAssetAtPath<Tile>(InvisibleTilePath),
                 obstaclesPerLevel = ObstaclesPerLevel
             };
+
+            var tundraAssets = TundraAssets(assets);
 
             var harvesterRobot = AssetDatabase.LoadAssetAtPath<GameObject>(HarvesterPrefabPath);
             var droneRobot = AssetDatabase.LoadAssetAtPath<GameObject>(DronePrefabPath);
@@ -297,22 +314,30 @@ namespace FarmFuryStampede.EditorTools
 
             var worldDatas = CreateWorldDatas();
 
-            // ---- Stage 3: build and validate the Meadow Ruins level prefabs (11 + boss) and their LevelData.
+            // ---- Stage 3: build and validate every built world's level prefabs (11 + boss each) and their LevelData.
             var errors = new List<string>();
             var levelDatas = new List<LevelData>();
-            foreach (var builder in MeadowRuinsLevels.CreateAll())
+            var worlds = new (WorldType world, List<LevelBuilder> levels, LevelAssets art)[]
+            {
+                (WorldType.MeadowRuins, MeadowRuinsLevels.CreateAll(), assets),
+                (WorldType.FrozenTundra, FrozenTundraLevels.CreateAll(), tundraAssets),
+            };
+            foreach (var (world, levels, art) in worlds)
+            foreach (var builder in levels)
             {
                 string prefabPath = $"{LevelPrefabsDir}/{builder.Id}.prefab";
-                GameObject prefab = builder.BuildPrefab(assets, prefabPath, errors);
+                GameObject prefab = builder.BuildPrefab(art, prefabPath, errors);
                 if (prefab == null)
                 {
                     continue;
                 }
 
-                levelDatas.Add(CreateLevelData(builder, prefab));
+                levelDatas.Add(CreateLevelData(builder, prefab, world));
                 Debug.Log($"[Phase5aSetup] {builder.Id} '{builder.Title}': {builder.CropCount} crops " +
                           $"({builder.SecretCropCount} secret), {builder.RobotCount} robots, {builder.CheckpointCount} checkpoints" +
-                          $"{(builder.HasGate ? $", gated secret for {builder.GatePrimary}" : "")}.");
+                          $"{(builder.HasGate ? $", gated secret for {builder.GatePrimary}" : "")}" +
+                          $"{(builder.PassageRoom.HasValue ? $", secret passage room at {builder.PassageRoom.Value.position}" : "")}" +
+                          $"{(builder.RarePelletPosition.HasValue ? $", rare pellet at {builder.RarePelletPosition.Value}" : "")}.");
             }
 
             if (errors.Count > 0)
@@ -325,7 +350,10 @@ namespace FarmFuryStampede.EditorTools
                 return;
             }
 
-            SetWorldLevelCount(levelDatas.Count);
+            foreach (var group in levelDatas.GroupBy(l => l.worldType))
+            {
+                SetWorldLevelCount(group.Key, group.Count());
+            }
             StampedeCosmetics.CreateAssets();
             StampedeCosmetics.MeasureHatAnchors(characterDatas);
             AssetDatabase.SaveAssets();
@@ -551,6 +579,53 @@ namespace FarmFuryStampede.EditorTools
         }
 
         private static readonly Color BreakableFloorTint = new Color(1f, 0.7f, 0.5f);
+
+        // Frozen Tundra's robot art (Sprites/Robots): the tracked Ice Harvester takes the Harvester's place and the
+        // walking Glacier Harvester the Scout's. The Chaser, Drone and Commander have no Tundra art yet and keep
+        // Meadow Ruins' look.
+        private static readonly (RobotType type, string right, string left)[] TundraRobotArt =
+        {
+            (RobotType.Harvester, "Iceharvestor_right.png", "IceHarvestor_left.png"),
+            (RobotType.Scout, "GlacierHarvestor_Right.png", "GlacierHarvestor_left.png"),
+        };
+
+        /// <summary>
+        /// Frozen Tundra's level kit: Meadow Ruins' assets with the Tundra art swapped in - frosted-grass surface,
+        /// ice and wooden breakable tiles, snow-slab platforms, ice-block steps, ice boulders, ice-barrel pyramids,
+        /// the Tundra props in the farm-scenery roles, the aurora parallax and the ice robots. Anything missing keeps
+        /// Meadow Ruins' piece.
+        /// </summary>
+        private static LevelAssets TundraAssets(LevelAssets meadow)
+        {
+            var tundra = meadow.Clone();
+            var surface = Enumerable.Range(0, 16)
+                .Select(i => AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{TundraSurfaceTileName}_{i}.asset"))
+                .TakeWhile(t => t != null)
+                .ToArray();
+            if (surface.Length > 0) { tundra.groundSurfaceTiles = surface; }
+
+            tundra.iceTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{TundraIceTileName}.asset");
+            tundra.breakableTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{TundraBreakableTileName}.asset") ?? meadow.breakableTile;
+            tundra.iceSignSprite = StampedeUIArt.Tundra("IceSign.png");
+            tundra.ledgeSprite = StampedeUIArt.Tundra("Snow_block.png") ?? meadow.ledgeSprite;
+            tundra.stoneBlockSprite = StampedeUIArt.Tundra("Ice_block.png") ?? meadow.stoneBlockSprite;
+            tundra.barrelSprite = StampedeUIArt.Tundra("IceBarrel.png") ?? meadow.barrelSprite;
+            var boulder = StampedeUIArt.Tundra("IceBoulder.png");
+            tundra.obstacleSprites = boulder != null ? new[] { boulder } : meadow.obstacleSprites;
+            tundra.haybaleSprite = null;   // no hay in the Tundra: no bale obstacles or barns behind them
+            tundra.barnSprite = null;
+            tundra.windmillSprite = null;
+            tundra.farmArt = StampedeUIArt.TundraBackdrop();
+            tundra.parallaxLayers = StampedeEnvironmentArt.TundraParallax();
+
+            tundra.robotArt = new Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)>();
+            foreach (var (type, right, left) in TundraRobotArt)
+            {
+                var art = RobotArt(right, left, "Robot_defeated.png");
+                if (art.right != null) { tundra.robotArt[type] = art; }
+            }
+            return tundra;
+        }
 
         // Stretches a floor variant so its dirt body fills the cell exactly; the grass overhangs the cell above.
         private static Matrix4x4 FloorTileTransform(Sprite variant) =>
@@ -1125,8 +1200,12 @@ namespace FarmFuryStampede.EditorTools
                 var importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
                 importer.textureType = TextureImporterType.Sprite;
                 importer.spriteImportMode = SpriteImportMode.Single;
-                importer.spritePixelsPerUnit = ArtPixelsPerUnit;
-                StampedeUIArt.SetPivot(importer, Path.GetFileName(assetPath) == DroneArtFile ? CentrePivot : FeetPivot);
+                // Every ground robot's frame is drawn ActorVisualHeight tall whatever its pixel size (the 500px Meadow
+                // Ruins frames come out as before; Frozen Tundra's 256/426px frames match them).
+                importer.GetSourceTextureWidthAndHeight(out _, out int frameHeight);
+                bool drone = Path.GetFileName(assetPath) == DroneArtFile;
+                importer.spritePixelsPerUnit = drone ? ArtPixelsPerUnit : Mathf.Max(1, frameHeight) / ActorVisualHeight;
+                StampedeUIArt.SetPivot(importer, drone ? CentrePivot : FeetPivot);
                 importer.filterMode = FilterMode.Bilinear;
                 importer.mipmapEnabled = false;
                 importer.alphaIsTransparency = true;
@@ -1216,14 +1295,18 @@ namespace FarmFuryStampede.EditorTools
 
         private static List<WorldData> CreateWorldDatas()
         {
-            var specs = new (WorldType type, string name, int levels, string blurb)[]
+            // The six story worlds are free; the last three are the paid post-finale worlds ($3.99 each).
+            var specs = new (WorldType type, string name, int levels, string blurb, bool paid)[]
             {
-                (WorldType.MeadowRuins, "Meadow Ruins", 11, "Grassland tutorial world, wood/stone robot outposts."),
-                (WorldType.FrozenTundra, "Frozen Tundra", 11, "Ice physics: reduced traction, frozen lake platforming."),
-                (WorldType.WatermillVillage, "Watermill Village", 11, "Water-wheel village with timed fire-spread hazards."),
-                (WorldType.SkyIslands, "Sky Islands", 11, "Vertical platforming across floating islands, wind gusts."),
-                (WorldType.SunkenCity, "Sunken City", 11, "Flooded ruins: underwater sections with reduced gravity."),
-                (WorldType.RobotMothership, "Robot Mothership", 11, "Zero-G platforming; the Robot Overlord waits at the end."),
+                (WorldType.MeadowRuins, "Meadow Ruins", 11, "Grassland tutorial world, wood/stone robot outposts.", false),
+                (WorldType.FrozenTundra, "Frozen Tundra", 11, "Ice physics: reduced traction, frozen lake platforming.", false),
+                (WorldType.WatermillVillage, "Watermill Village", 11, "Water-wheel village with timed fire-spread hazards.", false),
+                (WorldType.SkyIslands, "Sky Islands", 11, "Vertical platforming across floating islands, wind gusts.", false),
+                (WorldType.SunkenCity, "Sunken City", 11, "Flooded ruins: underwater sections with reduced gravity.", false),
+                (WorldType.RobotMothership, "Robot Mothership", 11, "Zero-G platforming; the Robot Overlord waits at the end.", false),
+                (WorldType.DustbowlCanyon, "Dustbowl Canyon", 11, "Drought-cracked ranch and red-rock canyon: sandstorms hide the path, quicksand slows, tumbleweeds roll. Boss: the Drill Rig.", true),
+                (WorldType.HarvestFairground, "Harvest Fairground", 11, "The county fair at night: hay-bale trampolines, ferris-wheel platforms, conveyor rides. Boss: the Ringmaster Bot.", true),
+                (WorldType.CropFactory, "Crop Factory", 11, "The robots' processing plant: conveyors, rhythm crushers, laser gates. Boss: Harvester Prime.", true),
             };
 
             var list = new List<WorldData>();
@@ -1240,18 +1323,19 @@ namespace FarmFuryStampede.EditorTools
                 data.blurb = spec.blurb;
                 data.selectCardArt = StampedeUIArt.WorldSelectCard(spec.type);
                 data.levelSelectBackground = StampedeUIArt.LevelSelectBackground(spec.type);
+                data.purchaseRequired = spec.paid;
                 EditorUtility.SetDirty(data);
                 list.Add(data);
             }
             return list;
         }
 
-        private static LevelData CreateLevelData(LevelBuilder builder, GameObject prefab)
+        private static LevelData CreateLevelData(LevelBuilder builder, GameObject prefab, WorldType world)
         {
             var data = LoadOrCreate<LevelData>($"{LevelDataDir}/LevelData_{builder.Id}.asset");
             data.levelId = builder.Id;
             data.displayName = builder.Title;
-            data.worldType = WorldType.MeadowRuins;
+            data.worldType = world;
             data.levelPrefab = prefab;
             data.isBossLevel = builder.IsBoss;
             data.hasCharacterGatedSecret = builder.HasGate;
@@ -1266,10 +1350,10 @@ namespace FarmFuryStampede.EditorTools
             return data;
         }
 
-        private static void SetWorldLevelCount(int count)
+        private static void SetWorldLevelCount(WorldType type, int count)
         {
             // WorldData.levelCount is the number of regular levels; the boss is tracked by bossLevelId.
-            var world = AssetDatabase.LoadAssetAtPath<WorldData>(WorldDataPath);
+            var world = AssetDatabase.LoadAssetAtPath<WorldData>(type == WorldType.MeadowRuins ? WorldDataPath : $"{WorldDataDir}/WorldData_{type}.asset");
             if (world != null)
             {
                 world.levelCount = count - 1;
@@ -1363,6 +1447,7 @@ namespace FarmFuryStampede.EditorTools
             flowSo.FindProperty("menuArt.newCharacterSign").objectReferenceValue = StampedeUIArt.NewCharacterSign();
             flowSo.FindProperty("menuArt.worldUnlockedSign").objectReferenceValue = StampedeUIArt.WorldUnlockedSign();
             StampedeShopArt.Wire(flowSo, "shopArt");
+            StampedeLeaderboardArt.Wire(flowSo, "leaderboardArt");
             flowSo.ApplyModifiedPropertiesWithoutUndo();
             flowObject.AddComponent<DebugPanel>();
 

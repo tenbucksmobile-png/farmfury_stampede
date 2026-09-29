@@ -14,9 +14,10 @@ namespace FarmFuryStampede.UI
     /// with each death), the round pause button bottom-left, and the Commander's hit count top-centre in a boss
     /// level. Everything sits inside the device safe area. Refreshed every frame by GameFlow.
     /// Phase 6 (Arcade's HUD): the coin balance (coin glyph + count) top-left.
-    /// On-screen controls: hold-to-run left and right, then pause, along the bottom-left; jump in the bottom-right
-    /// corner with the Locker beside it and the character swap above it. The life icons are the played character
-    /// giving a thumbs up.
+    /// On-screen controls, one row along the bottom, all the same size: hold-to-run left and right, then pause,
+    /// bottom-left; the character swap and the Locker centred; the played character's ability card (dimmed once its
+    /// uses are spent) and jump bottom-right, jump in the corner. The life icons are the played character giving a
+    /// thumbs up.
     /// Without art the lives fall back to red squares and pause to a plain "II" button.
     /// </summary>
     public class HudScreen
@@ -33,10 +34,15 @@ namespace FarmFuryStampede.UI
         private const float EdgeMargin = 40f;
         private const float LifeIconHeight = 96f;
         private const float LifeIconGap = 10f;
-        private const float ControlSize = 150f;      // left / right / jump: bigger than the round menu buttons
+        private const float ControlSize = 150f;      // every HUD button: bigger than the round menu buttons
         private const float ControlGap = 24f;
         private readonly Sprite _defaultLife;
         private CharacterType? _lifeCharacter;
+        private readonly Sprite[] _abilityIcons;
+        private readonly Image _ability;
+        private readonly Text _abilityLabel;
+        private static readonly Color AbilitySpent = new(0.45f, 0.45f, 0.45f, 0.7f);
+        private static readonly Color PlainButton = new(0.2f, 0.25f, 0.38f, 0.8f);
 
         public string BossText => _boss.gameObject.activeSelf ? _boss.text : "";
         public int LifeIconsShown
@@ -84,22 +90,30 @@ namespace FarmFuryStampede.UI
                 PauseButton.image.sprite = art.pauseButton;
                 PauseButton.image.preserveAspect = true;
             }
-            // Bottom-left: left, right, then pause (vertically centred on the bigger controls).
-            float roundLift = (ControlSize - UIKit.RoundButtonSize) * 0.5f;
+            // One row along the bottom, every button the same size (ControlSize) and ControlGap apart:
+            // left, right, pause bottom-left | swap, Locker centred | ability, jump bottom-right (jump in the corner).
+            const float pitch = ControlSize + ControlGap;
             var left = HoldControl(safe, "MoveLeftButton", shop.moveLeftButton, "<", Vector2.zero, new Vector2(EdgeMargin, EdgeMargin));
             left.Pressed += () => PlayerInputReader.TouchLeftHeld = true;
             left.Released += () => PlayerInputReader.TouchLeftHeld = false;
             var right = HoldControl(safe, "MoveRightButton", shop.moveRightButton, ">", Vector2.zero,
-                new Vector2(EdgeMargin + ControlSize + ControlGap, EdgeMargin));
+                new Vector2(EdgeMargin + pitch, EdgeMargin));
             right.Pressed += () => PlayerInputReader.TouchRightHeld = true;
             right.Released += () => PlayerInputReader.TouchRightHeld = false;
             UIKit.Place(PauseButton.image.rectTransform, Vector2.zero, Vector2.zero,
-                new Vector2(EdgeMargin + 2f * (ControlSize + ControlGap), EdgeMargin + roundLift), Vector2.one * UIKit.RoundButtonSize);
+                new Vector2(EdgeMargin + 2f * pitch, EdgeMargin), Vector2.one * ControlSize);
 
-            // Bottom-right: jump in the corner, the Locker beside it.
             var jump = HoldControl(safe, "JumpButton", shop.jumpButton, "^", Vector2.right, new Vector2(-EdgeMargin, EdgeMargin));
             jump.Pressed += PlayerInputReader.PressTouchJump;
             jump.Released += () => PlayerInputReader.TouchJumpHeld = false;
+
+            // Ability: the played character's ability card, left of jump; dimmed once its uses are spent.
+            _abilityIcons = shop.abilityIcons;
+            var ability = HoldControl(safe, "AbilityButton", null, "ABILITY", Vector2.right, new Vector2(-EdgeMargin - pitch, EdgeMargin));
+            ability.Pressed += PlayerInputReader.PressTouchAbility;
+            _ability = ability.GetComponent<Image>();
+            _abilityLabel = ability.GetComponentInChildren<Text>();
+            if (_abilityLabel != null) { _abilityLabel.fontSize = 30; }
 
             LockerButton = UIKit.MakeButton(safe, "LockerButton", shop.lockerIcon != null ? "" : "LOCKER",
                 shop.lockerIcon != null ? Color.white : new Color(0.2f, 0.25f, 0.38f, 0.95f), () => onLocker?.Invoke(), 26);
@@ -108,10 +122,10 @@ namespace FarmFuryStampede.UI
                 LockerButton.image.sprite = shop.lockerIcon;
                 LockerButton.image.preserveAspect = true;
             }
-            UIKit.Place(LockerButton.image.rectTransform, Vector2.right, Vector2.right,
-                new Vector2(-EdgeMargin - ControlSize - ControlGap, EdgeMargin + roundLift), Vector2.one * UIKit.RoundButtonSize);
+            UIKit.Place(LockerButton.image.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 0f),
+                new Vector2(ControlGap * 0.5f, EdgeMargin), Vector2.one * ControlSize);
 
-            // Swap character: directly above jump, centred on it.
+            // Swap character: bottom-centre, left of the Locker (the pair centred on the screen).
             SwapButton = UIKit.MakeButton(safe, "SwapButton", art.swapCharacterButton != null ? "" : "SWAP",
                 art.swapCharacterButton != null ? Color.white : new Color(0.2f, 0.25f, 0.38f, 0.95f), () => onSwap?.Invoke(), 30);
             if (art.swapCharacterButton != null)
@@ -119,8 +133,8 @@ namespace FarmFuryStampede.UI
                 SwapButton.image.sprite = art.swapCharacterButton;
                 SwapButton.image.preserveAspect = true;
             }
-            UIKit.Place(SwapButton.image.rectTransform, Vector2.right, Vector2.right,
-                new Vector2(-EdgeMargin - roundLift, EdgeMargin + ControlSize + ControlGap), Vector2.one * UIKit.RoundButtonSize);
+            UIKit.Place(SwapButton.image.rectTransform, new Vector2(0.5f, 0f), new Vector2(1f, 0f),
+                new Vector2(-ControlGap * 0.5f, EdgeMargin), Vector2.one * ControlSize);
 
             // Coin balance, top-left (the lives have the top-right).
             const float coinSize = 72f;
@@ -173,7 +187,14 @@ namespace FarmFuryStampede.UI
                     icon.sprite = sprite;
                     icon.color = sprite != null ? Color.white : new Color(0.9f, 0.25f, 0.3f, 1f);
                 }
+
+                _ability.sprite = ShopArt.At(_abilityIcons, (int)gm.CurrentCharacter);
+                _ability.preserveAspect = true;
+                if (_abilityLabel != null) { _abilityLabel.gameObject.SetActive(_ability.sprite == null); }
             }
+
+            bool abilityLeft = player == null || player.UsesRemaining > 0;
+            _ability.color = _ability.sprite != null ? (abilityLeft ? Color.white : AbilitySpent) : (abilityLeft ? PlainButton : AbilitySpent);
             for (int i = 0; i < _lifeIcons.Count; i++)
             {
                 // Icons are laid out left to right; lives are lost from the right-hand end.

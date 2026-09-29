@@ -70,7 +70,15 @@ namespace FarmFuryStampede.UI
                 _badges[i].gameObject.SetActive(false);
             }
 
-            if (priceSign != null)
+            if (items.Length == 0)
+            {
+                // Nothing on sale yet (the Worlds page before any paid world exists).
+                var soon = UIKit.Label(Rect, "ComingSoon", "Coming soon!", 72, TextAnchor.MiddleCenter, UIKit.Accent);
+                soon.fontStyle = FontStyle.Bold;
+                soon.gameObject.AddComponent<Outline>().effectDistance = new Vector2(3f, -3f);
+                UIKit.Place(soon.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -60f), new Vector2(1200f, 120f));
+            }
+            else if (priceSign != null)
             {
                 var price = UIKit.Picture(Rect, "PriceSign", priceSign);
                 UIKit.Place(price.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, 65f), new Vector2(340f, 180f));

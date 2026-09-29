@@ -105,8 +105,10 @@ namespace FarmFuryStampede.LevelSystem
                     pickup.visualOverride = marker.visualOverride;
                     pickup.coinValue = marker.coinValue;
                     pickup.isSecretCluster = marker.secretCluster;
+                    pickup.isPassageCoin = marker.passageCoin;
                 }
 
+                if (marker.passageCoin) { continue; }   // passage coins pay coins, they aren't crops
                 if (marker.secretCluster) { run.totalSecretCrops++; } else { run.totalNormalCrops++; }
             }
 
@@ -149,11 +151,17 @@ namespace FarmFuryStampede.LevelSystem
                 PlacePlayer(start.transform.position);
             }
 
+            if (root != null)
+            {
+                _levelMinX = root.cameraMinX;
+                _levelMaxX = root.cameraMaxX;
+            }
+
             if (cameraFollow != null && root != null)
             {
                 cameraFollow.SetBounds(root.cameraMinX, root.cameraMaxX);
                 cameraFollow.SnapToTarget();
-                background?.Configure(root.cameraMinX, root.cameraMaxX);
+                background?.Configure(root.cameraMinX, root.cameraMaxX, root.parallaxLayers);
             }
 
             Debug.Log($"[LevelLoader] Loaded '{data.levelId}': {_spawned.Count} spawned objects ({robots} robots).");
@@ -167,6 +175,7 @@ namespace FarmFuryStampede.LevelSystem
                 StopCoroutine(_respawnRoutine);
                 _respawnRoutine = null;
             }
+            CancelPassageTravel();
 
             foreach (var go in _spawned)
             {
@@ -226,9 +235,11 @@ namespace FarmFuryStampede.LevelSystem
 
         private System.Collections.IEnumerator RespawnAfterDefeatPose(Vector2 position)
         {
+            CancelPassageTravel();
             player.BeginDeath(defeatPoseSeconds);
             yield return new WaitForSeconds(defeatPoseSeconds);
             _respawnRoutine = null;
+            RestoreLevelCamera();   // respawn points are always up on the level, never in a passage room
             PlacePlayer(position);
             player.GrantInvulnerability(respawnInvulnerability);
         }
@@ -237,6 +248,112 @@ namespace FarmFuryStampede.LevelSystem
         public void FreezePlayerDefeated()
         {
             player.BeginDeath(60f);
+        }
+
+        // ------------------------------------------------------------ secret passages
+
+        private const float PassageFadeSeconds = 0.25f;
+        private float _levelMinX, _levelMaxX;
+        private Coroutine _passageRoutine;
+        private SpriteRenderer _fade;
+
+        /// <summary>True during a secret-passage transition (the fade to black and back).</summary>
+        public bool IsTravelling => _passageRoutine != null;
+
+        /// <summary>
+        /// A SecretPassageDoor was walked into: fade to black, move the player to the other end, set the camera's
+        /// limits for where they arrive (the room, or the level again), fade back in. Ignored mid-death, mid-transition
+        /// and outside play.
+        /// </summary>
+        public void TravelThroughPassage(SecretPassageDoor door)
+        {
+            if (door == null || _passageRoutine != null || _respawnRoutine != null || player.IsDying
+                || GameManager.Instance == null || GameManager.Instance.CurrentState != GameState.Playing)
+            {
+                return;
+            }
+
+            _passageRoutine = StartCoroutine(PassageTransition(door.destination, door.returnsToLevel, door.cameraMinX, door.cameraMaxX));
+        }
+
+        private System.Collections.IEnumerator PassageTransition(Vector2 destination, bool toLevel, float minX, float maxX)
+        {
+            var fade = FadeRenderer();
+            for (float t = 0f; t < PassageFadeSeconds; t += Time.deltaTime)
+            {
+                SetFade(fade, t / PassageFadeSeconds);
+                yield return null;
+            }
+            SetFade(fade, 1f);
+
+            if (toLevel)
+            {
+                RestoreLevelCamera();
+            }
+            else if (cameraFollow != null)
+            {
+                cameraFollow.SetBounds(minX, maxX);
+            }
+            PlacePlayer(destination);
+
+            for (float t = 0f; t < PassageFadeSeconds; t += Time.deltaTime)
+            {
+                SetFade(fade, 1f - t / PassageFadeSeconds);
+                yield return null;
+            }
+            SetFade(fade, 0f);
+            _passageRoutine = null;
+        }
+
+        private void CancelPassageTravel()
+        {
+            if (_passageRoutine != null)
+            {
+                StopCoroutine(_passageRoutine);
+                _passageRoutine = null;
+            }
+            if (_fade != null)
+            {
+                SetFade(_fade, 0f);
+            }
+        }
+
+        private void RestoreLevelCamera()
+        {
+            if (cameraFollow != null && _levelMaxX > _levelMinX)
+            {
+                cameraFollow.SetBounds(_levelMinX, _levelMaxX);
+            }
+        }
+
+        // A black square in front of everything the camera draws, parented to the camera (made on first use).
+        private SpriteRenderer FadeRenderer()
+        {
+            if (_fade != null || cameraFollow == null)
+            {
+                return _fade;
+            }
+
+            var go = new GameObject("PassageFade");
+            go.transform.SetParent(cameraFollow.transform, false);
+            go.transform.localPosition = new Vector3(0f, 0f, 1f);
+            go.transform.localScale = new Vector3(200f, 200f, 1f);
+            _fade = go.AddComponent<SpriteRenderer>();
+            var texture = Texture2D.whiteTexture;
+            _fade.sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), texture.width);
+            _fade.sortingOrder = short.MaxValue;
+            SetFade(_fade, 0f);
+            return _fade;
+        }
+
+        private static void SetFade(SpriteRenderer fade, float alpha)
+        {
+            if (fade == null)
+            {
+                return;
+            }
+            fade.color = new Color(0f, 0f, 0f, Mathf.Clamp01(alpha));
+            fade.enabled = alpha > 0f;
         }
 
         private void PlacePlayer(Vector2 position)
@@ -276,7 +393,9 @@ namespace FarmFuryStampede.LevelSystem
                 return false;
             }
 
-            instance.GetComponent<RobotController>().Initialize(marker.patrolDistance);
+            var robot = instance.GetComponent<RobotController>();
+            robot.SetWorldArt(marker.artRight, marker.artLeft, marker.artDefeat);   // this world's look (or the prefab's)
+            robot.Initialize(marker.patrolDistance);
             return true;
         }
     }

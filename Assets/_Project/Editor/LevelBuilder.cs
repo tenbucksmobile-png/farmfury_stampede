@@ -44,6 +44,21 @@ namespace FarmFuryStampede.EditorTools
         public Sprite coinSprite;
         /// <summary>The rare pellet (crystal apple) placed by RarePellet(); null places none.</summary>
         public Sprite rarePelletSprite;
+        /// <summary>SecretSign.png (feet-pivoted): marks both ends of a SecretPassage(); null leaves the doors invisible.</summary>
+        public Sprite secretSignSprite;
+
+        // ---- per world (Meadow Ruins leaves these empty) ----
+        /// <summary>Tile for IceFlat() ground (the slippery Ice tilemap); null draws ice with groundTile.</summary>
+        public Tile iceTile;
+        /// <summary>Warning sign stood at the start of every IceFlat() stretch (scenery); null places none.</summary>
+        public Sprite iceSignSprite;
+        /// <summary>This world's parallax art, far to near (LevelPrefabRoot.parallaxLayers); empty keeps Meadow Ruins' layers.</summary>
+        public Sprite[] parallaxLayers = Array.Empty<Sprite>();
+        /// <summary>This world's look per robot type (right, left, defeat), written onto every robot marker; missing types keep the prefab art.</summary>
+        public Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)> robotArt = new();
+
+        /// <summary>A copy to override per world (the dictionary and arrays are shared until replaced).</summary>
+        public LevelAssets Clone() => (LevelAssets)MemberwiseClone();
     }
 
     /// <summary>Background-only farm art (no colliders). Any missing piece is skipped where a level asks for it.</summary>
@@ -88,10 +103,11 @@ namespace FarmFuryStampede.EditorTools
             public bool stone;   // drawn with LevelAssets.ledgeSprite slabs over invisible collision tiles
             public bool blocks;  // StoneBlocks(): drawn with LevelAssets.stoneBlockSprite squares instead
             public bool bonus;   // optional platform validated against the double jump, not the base jump
+            public bool ice;     // IceFlat(): main-path ground on the slippery Ice tilemap
             public override string ToString() => $"{(secret ? "Secret" : "")}{kind}[{x0},{x1}) top={top}";
         }
 
-        private struct CropRec { public float x, y; public bool secret, coin, path; }
+        private struct CropRec { public float x, y; public bool secret, coin, path, passage; }
         private struct RobotRec { public RobotType type; public float x, y, patrol; public int wave; }
         private struct BreakableRec { public int x, length, top; }
         private struct ChamberRec { public int x0, floorTop, interiorWidth; public bool barrierSeal; }
@@ -171,6 +187,17 @@ namespace FarmFuryStampede.EditorTools
         public LevelBuilder SecretFlat(int length, int? top = null)
         {
             return AddFlat(length, top, true);
+        }
+
+        /// <summary>
+        /// Frozen ground (Frozen Tundra): like Flat, but on the Ice tilemap (IceSurface), so characters slide - slow to
+        /// get going, slower to stop or turn. A THIN ICE sign stands where each stretch begins.
+        /// </summary>
+        public LevelBuilder IceFlat(int length, int? top = null)
+        {
+            AddFlat(length, top, false);
+            _surfaces[_surfaces.Count - 1].ice = true;
+            return this;
         }
 
         private LevelBuilder AddFlat(int length, int? top, bool secret)
@@ -597,6 +624,7 @@ namespace FarmFuryStampede.EditorTools
         private void Validate()
         {
             ValidateRarePellet();
+            ValidatePassage();
             if (_playerStart == null) { Error("No player start."); }
             if (_goal == null && !_noGoal) { Error("No goal."); }
             if (_surfaces.Count == 0) { return; }
@@ -729,6 +757,7 @@ namespace FarmFuryStampede.EditorTools
             var rootComponent = root.AddComponent<LevelPrefabRoot>();
             rootComponent.cameraMinX = _startX;
             rootComponent.cameraMaxX = endX;
+            rootComponent.parallaxLayers = assets.parallaxLayers ?? Array.Empty<Sprite>();
 
             var grid = new GameObject("Grid");
             grid.transform.SetParent(root.transform, false);
@@ -736,6 +765,9 @@ namespace FarmFuryStampede.EditorTools
 
             Tilemap ground = CreateTilemap(grid.transform, "Ground", assets.groundLayer, 0);
             Tilemap platforms = CreateTilemap(grid.transform, "Platforms", assets.groundLayer, 1);
+            // Frozen ground (IceFlat) on its own tilemap, so its collider carries the IceSurface traction. Named "Ice":
+            // the camera treats it as floor like "Ground".
+            Tilemap ice = _surfaces.Any(s => s.ice) ? CreateTilemap(grid.transform, "Ice", assets.groundLayer, 0) : null;
 
             // Cells of ground carved out for breakable-floor hollows (and the breakable row itself).
             bool IsCarved(int x, int y) => _breakables.Any(b => x >= b.x && x < b.x + b.length && y >= b.top - 3 && y <= b.top - 1);
@@ -744,6 +776,9 @@ namespace FarmFuryStampede.EditorTools
             {
                 switch (s.kind)
                 {
+                    case Kind.Ground when s.ice:
+                        Fill(ice, assets.iceTile != null ? assets.iceTile : assets.groundTile, s.x0, s.x1 - 1, GroundDepth, s.top - 1, IsCarved);
+                        break;
                     case Kind.Ground:
                         Fill(ground, assets.groundTile, s.x0, s.x1 - 1, GroundDepth, s.top - 1, IsCarved);
                         break;
@@ -788,6 +823,10 @@ namespace FarmFuryStampede.EditorTools
             Fill(ground, assets.groundTile, endX, endX, GroundDepth, maxTop + 8);               // right wall
 
             PaintSurface(ground, assets);
+            if (_passage.HasValue)
+            {
+                BuildPassage(root.transform, grid.transform, ground, platforms, assets, endX);   // after PaintSurface: the cellar stays plain dirt
+            }
             Finish(ground);
             BuildBarrelPyramids(root.transform, assets);
             BuildHayStacks(root.transform, assets);
@@ -795,6 +834,12 @@ namespace FarmFuryStampede.EditorTools
             var scenery = _manualScenery || _standardFarm ? new List<(float x, float halfWidth)>() : PlaceScenery(root.transform, assets, haybales);
             PlaceFarmBackdrop(root.transform, assets.farmArt, scenery, endX);
             Finish(platforms);
+            if (ice != null)
+            {
+                Finish(ice);
+                ice.gameObject.AddComponent<IceSurface>();
+                PlaceIceSigns(root.transform, assets);
+            }
 
             if (_breakables.Count > 0)
             {
@@ -867,6 +912,7 @@ namespace FarmFuryStampede.EditorTools
                 {
                     crop.visualOverride = assets.coinSprite;
                     crop.coinValue = 1;
+                    crop.passageCoin = _crops[i].passage;
                 }
             }
 
@@ -876,6 +922,12 @@ namespace FarmFuryStampede.EditorTools
                 robot.robotType = _robots[i].type;
                 robot.patrolDistance = _robots[i].patrol;
                 robot.wave = _robots[i].wave;
+                if (assets.robotArt != null && assets.robotArt.TryGetValue(_robots[i].type, out var look))
+                {
+                    robot.artRight = look.right;
+                    robot.artLeft = look.left;
+                    robot.artDefeat = look.defeat;
+                }
             }
 
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
@@ -1000,6 +1052,212 @@ namespace FarmFuryStampede.EditorTools
             }
             _crops.Clear();
             _crops.AddRange(kept);
+        }
+
+        // ------------------------------------------------------------ ice
+
+        // A THIN ICE sign (scenery, no collider) where each IceFlat stretch begins: on the ground just before it when
+        // that is flat and one height, otherwise on the ice itself. A stretch that carries straight on from another
+        // (same height) gets none.
+        private void PlaceIceSigns(Transform root, LevelAssets assets)
+        {
+            if (assets.iceSignSprite == null) { return; }
+            foreach (var s in _surfaces.Where(s => s.ice))
+            {
+                if (_surfaces.Any(o => o.ice && o != s && o.x1 == s.x0 && o.top == s.top)) { continue; }
+                float x = s.x0 - 1.2f;
+                int top = GroundTopAt(x, out bool found);
+                if (!found || top != s.top) { x = s.x0 + 1f; top = s.top; }
+
+                var go = new GameObject($"IceSign_{s.x0}");
+                go.transform.SetParent(root, false);
+                go.transform.position = new Vector3(x, top + BackdropLift, 0f);
+                var renderer = go.AddComponent<SpriteRenderer>();
+                renderer.sprite = assets.iceSignSprite;
+                renderer.sortingOrder = -4;   // with the fences: behind the ground tiles' grass, in front of the scenery
+            }
+        }
+
+        // ------------------------------------------------------------ secret passages
+        //
+        // Mario-style secret passage (at most one per level): a SecretSign post standing on some optional surface every
+        // character can reach. Walking into it drops the player (SecretPassageDoor, automatic, a short fade) into an
+        // underground cellar built far below and beyond the level (clear of the pit trigger and the level's camera
+        // span): a dirt room with three stone-block steps, PassageCoins coins (1 coin each, not crops) and the level's
+        // rare pellet on the middle, tallest step. A second sign at the room's far end brings the player back up at
+        // exitX, further along the level. The room is generated, not authored, and is laid out so every coin and the
+        // pellet are reachable with the ordinary jump and double jump; the author only picks the entrance and exit.
+
+        private struct PassageRec { public float x; public int top; public float exitX; }
+        private PassageRec? _passage;
+
+        private const int RoomWidth = 34;        // interior cells
+        private const int RoomHeight = 7;        // interior cells, floor to ceiling
+        private const int RoomFloorTop = -40;    // far below the pit trigger at y=-10
+        private const int RoomOffsetX = 20;      // gap between the level's right wall and the room
+        private const float DoorWidth = 1.2f, DoorHeight = 2.4f;
+        private const float ExitRobotClearance = 2.5f;   // open ground between the exit landing and a patrol's end
+        private const int PassageSignSortingOrder = 3;   // over the farm backdrop, under crops (5) and actors
+        private static readonly Color BackwallTint = new(0.3f, 0.24f, 0.2f, 1f);
+        // Stone-block steps inside the room: (x from the room's left, width, top above the floor).
+        private static readonly (int dx, int width, int height)[] RoomSteps = { (8, 3, 2), (15, 3, 3), (22, 3, 2) };
+        // Coin positions: (x from the room's left, centre height above the floor).
+        private static readonly Vector2[] PassageCoins =
+        {
+            new(3f, 0.9f), new(4.5f, 0.9f), new(6f, 0.9f),              // floor run-in
+            new(8.6f, 2.9f), new(10.4f, 2.9f),                            // first step
+            new(12.5f, 0.9f), new(13.9f, 0.9f), new(12.5f, 5f), new(13.9f, 5f),   // gap below / high row above
+            new(19f, 4.6f), new(20.4f, 4.1f),                             // arc down off the tall step
+            new(22.6f, 2.9f), new(24.4f, 2.9f),                           // third step
+            new(26.5f, 0.9f), new(28f, 0.9f), new(29.5f, 0.9f),           // floor run-out
+        };
+        private static readonly Vector2 PassagePelletOffset = new(16.5f, 4.2f);   // over the tall middle step
+        private const float RoomEntryX = 2f, RoomExitX = 32f;
+
+        /// <summary>
+        /// The level's secret passage: its entrance sign stands at x on a surface whose top is 'top' (ground, mound,
+        /// platform, ledge or a Chamber roof), and its exit brings the player back up on the level ground at exitX. The
+        /// passage room holds the level's rare pellet, so don't also call RarePellet(). Put the sign somewhere
+        /// optional (entering is automatic) that every character can reach.
+        /// </summary>
+        public LevelBuilder SecretPassage(float x, int top, float exitX)
+        {
+            if (_passage.HasValue)
+            {
+                Error("Only one secret passage per level.");
+            }
+            _passage = new PassageRec { x = x, top = top, exitX = exitX };
+            return this;
+        }
+
+        private void ValidatePassage()
+        {
+            if (!_passage.HasValue)
+            {
+                return;
+            }
+
+            var p = _passage.Value;
+            if (_rarePellet.HasValue)
+            {
+                Error("A level with a secret passage keeps its rare pellet in the passage room: remove RarePellet().");
+            }
+
+            bool onSurface = _surfaces.Any(s => s.top == p.top && p.x >= s.x0 + 0.5f && p.x <= s.x1 - 0.5f);
+            bool onChamberRoof = _chambers.Any(c => c.floorTop + 4 == p.top && p.x >= c.x0 + 0.5f && p.x <= c.x0 + c.interiorWidth + 1.5f);
+            if (!onSurface && !onChamberRoof)
+            {
+                Error($"Secret passage sign at x={p.x} has no surface with top {p.top} under it.");
+            }
+
+            int exitTop = GroundTopAt(p.exitX, out bool found);
+            bool exitOnPath = found && _surfaces.Any(s => !s.secret && s.kind != Kind.Floating && p.exitX >= s.x0 && p.exitX < s.x1);
+            for (float dx = -1.5f; dx <= 1.5f && exitOnPath; dx += 0.5f)
+            {
+                exitOnPath = GroundTopAt(p.exitX + dx, out bool f) == exitTop && f;
+            }
+            if (!exitOnPath)
+            {
+                Error($"Secret passage exit at x={p.exitX} needs flat main-path ground 1.5 either side.");
+            }
+
+            foreach (var r in _robots.Where(r => r.type != RobotType.Drone && r.type != RobotType.Chaser && r.wave == 0))
+            {
+                if (Mathf.Abs(r.x - p.exitX) < r.patrol + ExitRobotClearance)
+                {
+                    Error($"Secret passage exit at x={p.exitX} lands on the {r.type} patrolling at x={r.x}.");
+                }
+            }
+            if (_pyramids.Any(q => Mathf.Abs(q.x - p.exitX) < BarrelRows * BarrelWidth * 0.5f + 2f)
+                || _haystacks.Any(q => Mathf.Abs(q.at.x - p.exitX) < q.rows * BaleWidth * 0.5f + 2f))
+            {
+                Error($"Secret passage exit at x={p.exitX} lands in a barrel pyramid or hay stack.");
+            }
+            if (_breakables.Any(b => p.exitX > b.x - 2f && p.exitX < b.x + b.length + 2f))
+            {
+                Error($"Secret passage exit at x={p.exitX} is on a breakable floor.");
+            }
+            if (_goal.HasValue && Mathf.Abs(_goal.Value.x - p.exitX) < 4f)
+            {
+                Error($"Secret passage exit at x={p.exitX} is on top of the goal.");
+            }
+        }
+
+        private void BuildPassage(Transform root, Transform grid, Tilemap ground, Tilemap platforms, LevelAssets assets, int endX)
+        {
+            var p = _passage.Value;
+            int r0 = endX + RoomOffsetX, r1 = r0 + RoomWidth, f = RoomFloorTop;
+
+            // Cellar shell on the Ground tilemap (so the camera frames its floor): floor, walls, ceiling.
+            Fill(ground, assets.groundTile, r0 - 1, r1, f - 4, f - 1);
+            Fill(ground, assets.groundTile, r0 - 1, r0 - 1, f, f + RoomHeight);
+            Fill(ground, assets.groundTile, r1, r1, f, f + RoomHeight);
+            Fill(ground, assets.groundTile, r0 - 1, r1, f + RoomHeight, f + RoomHeight + 1);
+
+            // Dark dirt back wall around the room, well past what the zoomed-out camera can see (no collider).
+            Tilemap backwall = CreateTilemap(grid, "PassageBackwall", 0, -2);
+            Fill(backwall, assets.groundTile, r0 - 30, r1 + 30, f - 16, f + RoomHeight + 18);
+            backwall.color = BackwallTint;
+
+            // Stone-block steps, solid down to the floor (nothing to crawl under).
+            foreach (var (dx, width, height) in RoomSteps)
+            {
+                for (int row = 1; row <= height; row++)
+                {
+                    var step = new Surface { x0 = r0 + dx, x1 = r0 + dx + width, top = f + row, baseTop = f + row - 1, kind = Kind.Floating, stone = true, blocks = true };
+                    bool stoneArt = assets.stoneBlockSprite != null && assets.invisibleTile != null;
+                    Fill(platforms, stoneArt ? assets.invisibleTile : assets.platformTile, step.x0, step.x1 - 1, step.top - 1, step.top - 1);
+                    if (stoneArt)
+                    {
+                        AddStoneSlabs(root, assets.stoneBlockSprite, step);
+                    }
+                }
+            }
+
+            foreach (var coin in PassageCoins)
+            {
+                _crops.Add(new CropRec { x = r0 + coin.x, y = f + coin.y, coin = true, passage = true });
+            }
+            _rarePellet = new Vector2(r0 + PassagePelletOffset.x, f + PassagePelletOffset.y);
+
+            // No crop left inside the entrance sign (the ledge's secret row, path corn).
+            _crops.RemoveAll(c => !c.passage && Mathf.Abs(c.x - p.x) < 1f && c.y > p.top && c.y < p.top + DoorHeight + 0.5f);
+
+            var entrance = AddDoor(root, "SecretPassage_Entrance", new Vector2(p.x, p.top), assets.secretSignSprite, false);
+            entrance.destination = new Vector2(r0 + RoomEntryX, f + 0.6f);
+            entrance.cameraMinX = r0 - 1;
+            entrance.cameraMaxX = r1 + 1;
+
+            var exit = AddDoor(root, "SecretPassage_Exit", new Vector2(r0 + RoomExitX, f), assets.secretSignSprite, true);
+            exit.destination = new Vector2(p.exitX, GroundTopAt(p.exitX, out _) + 0.6f);
+            exit.returnsToLevel = true;
+            PassageRoom = new RectInt(r0, f, RoomWidth, RoomHeight);
+        }
+
+        /// <summary>The passage room's interior cells (after Build), or null when the level has no passage.</summary>
+        public RectInt? PassageRoom { get; private set; }
+
+        // A sign standing at feet with a trigger over its post; the exit's sign faces back the other way.
+        private static SecretPassageDoor AddDoor(Transform root, string doorName, Vector2 feet, Sprite sign, bool flip)
+        {
+            var go = new GameObject(doorName);
+            go.transform.SetParent(root, false);
+            go.transform.position = new Vector3(feet.x, feet.y, 0f);
+            var trigger = go.AddComponent<BoxCollider2D>();
+            trigger.isTrigger = true;
+            trigger.size = new Vector2(DoorWidth, DoorHeight);
+            trigger.offset = new Vector2(0f, DoorHeight * 0.5f);
+
+            if (sign != null)
+            {
+                var art = new GameObject("Sign");
+                art.transform.SetParent(go.transform, false);
+                var renderer = art.AddComponent<SpriteRenderer>();
+                renderer.sprite = sign;
+                renderer.flipX = flip;
+                renderer.sortingOrder = PassageSignSortingOrder;
+            }
+            return go.AddComponent<SecretPassageDoor>();
         }
 
         // ------------------------------------------------------------ path corn
@@ -1669,6 +1927,8 @@ namespace FarmFuryStampede.EditorTools
             bool Near(Vector2? p, float range) => p.HasValue && Mathf.Abs(p.Value.x - x) < range;
             if (Near(_playerStart, 6f) || Near(_goal, 4f)) { return false; }
             if (Near(_rarePellet, ObstacleWidth * 0.5f + 2f)) { return false; }   // the pellet floats over open ground
+            if (_passage.HasValue && (Mathf.Abs(_passage.Value.x - x) < ObstacleWidth * 0.5f + 2f
+                || Mathf.Abs(_passage.Value.exitX - x) < ObstacleWidth * 0.5f + 3f)) { return false; }   // passage sign / exit landing
             if (_checkpoints.Any(c => Mathf.Abs(c.x - x) < 3f)) { return false; }
             if (_robots.Any(r => Mathf.Abs(r.x - x) < r.patrol + ObstacleWidth * 0.5f + 1.2f)) { return false; }
             if (_breakables.Any(b => x > b.x - 2f && x < b.x + b.length + 2f)) { return false; }

@@ -87,7 +87,7 @@ namespace FarmFuryStampede.UI
         public Sprite jumpButton;
 
         [Header("Character Story")]
-        [Tooltip("One per character, in CharacterType order. (<Name>_ability.png)")]
+        [Tooltip("One per character, in CharacterType order. (<Name>_ability.png) Currently unused: the Characters tab shows only the card and text.")]
         public Sprite[] abilityIcons = new Sprite[0];
         [Tooltip("Plain cosmetic art for the Cosmetics tab, in StoreProducts.CosmeticNames order.")]
         public Sprite[] cosmeticIcons = new Sprite[0];
