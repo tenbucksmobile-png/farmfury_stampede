@@ -99,7 +99,7 @@ namespace FarmFuryStampede.EditorTools
         // Identical for every character by design (GDD/Phase 4 Section 1).
         private const float SharedMoveSpeed = 8f;
         private const float SharedJumpHeight = 3.5f;
-        private const int AbilityUsesPerLevel = 3;
+        private const float AbilityCooldownSeconds = 5f;
 
         private struct CharacterSpec
         {
@@ -1071,7 +1071,7 @@ namespace FarmFuryStampede.EditorTools
             data.abilityDescription = spec.description;
             data.visualScale = VisualScales.TryGetValue(spec.type, out float scale) ? scale : 1f;
             data.lifeIcon = StampedeCosmetics.LifeIcon(spec.type);
-            data.abilityUsesPerLevel = AbilityUsesPerLevel;
+            data.abilityCooldown = AbilityCooldownSeconds;
             data.unlockLevelsRequired = spec.unlockLevels;
             data.moveSpeed = SharedMoveSpeed;
             data.jumpHeight = SharedJumpHeight;
@@ -1432,6 +1432,7 @@ namespace FarmFuryStampede.EditorTools
             flowSo.FindProperty("menuArt.levelFailedBackground").objectReferenceValue = StampedeUIArt.LevelFailedBackground();
             flowSo.FindProperty("menuArt.pauseBackground").objectReferenceValue = StampedeUIArt.PauseBackground();
             flowSo.FindProperty("menuArt.newCharacterBackground").objectReferenceValue = StampedeUIArt.NewCharacterBackground();
+            flowSo.FindProperty("menuArt.newCharacterTitle").objectReferenceValue = StampedeUIArt.NewCharacterTitle();
             flowSo.FindProperty("menuArt.levelCompleteStarEmpty").objectReferenceValue = StampedeUIArt.LevelCompleteStarEmpty();
             flowSo.FindProperty("menuArt.worldSelectBackground").objectReferenceValue = StampedeUIArt.WorldSelectBackground();
             flowSo.FindProperty("menuArt.exitButton").objectReferenceValue = StampedeUIArt.ExitButton();
@@ -1448,6 +1449,7 @@ namespace FarmFuryStampede.EditorTools
             flowSo.FindProperty("menuArt.worldUnlockedSign").objectReferenceValue = StampedeUIArt.WorldUnlockedSign();
             StampedeShopArt.Wire(flowSo, "shopArt");
             StampedeLeaderboardArt.Wire(flowSo, "leaderboardArt");
+            StampedeLeaderboardArt.WirePageBackground(flowSo, "shopArt.pageBackground");
             flowSo.ApplyModifiedPropertiesWithoutUndo();
             flowObject.AddComponent<DebugPanel>();
 

@@ -19,8 +19,8 @@ namespace FarmFuryStampede.EditorTools
     /// The layouts of 4-11 follow their World 1 counterparts' proven geometry (the same gates and the same robot
     /// clearances), re-surfaced with ice and made busier.
     /// Character-gated secrets: 1 = high snow ledge (double jump / Woolly), 2 and 9 = Breakable Floor (Bessie),
-    /// 4 and 10 = chasm island behind the start (Gerald / Woolly), 5 = Barrier Unit chamber (Billy), 11 = Breakable
-    /// Wall chamber (Billy); 3 and 6-8 keep open bonus platforms.
+    /// 4 and 10 = chasm island behind the start (Gerald / Woolly), 11 = Breakable Wall chamber (Billy); 3, 5 (its
+    /// Barrier chamber removed 2026-09-29) and 6-8 have no gated secret.
     /// Secret passages (rare pellet + coins, see LevelBuilder.SecretPassage) in 2, 5, 8, 9, 10 and 11.
     /// Every level also gets PathCorn and StandardFarm (here the Tundra props), applied in CreateAll.
     /// </summary>
@@ -184,7 +184,7 @@ namespace FarmFuryStampede.EditorTools
 
         // ---------------------------------------------------------------- 5
 
-        // Terraces with a frozen top step; the Barrier-sealed chamber on the high platform, the passage sign on its roof.
+        // Terraces with a frozen top step; the passage sign on a block top level above the high platform.
         private static LevelBuilder Level5()
         {
             var b = new LevelBuilder("FrozenTundra_05", "Frozen Keep");
@@ -199,10 +199,11 @@ namespace FarmFuryStampede.EditorTools
             b.Mound(52, 3, 2);                // stair on the frozen terrace up to a high platform
             b.Floating(56, 4, 7);
             b.Floating(61, 10, 9);
-            b.Chamber(65, 9, 4, sealWithBarrierUnit: true);   // sealed by a Barrier Unit: only Charge Break clears it
-            b.Gate(CharacterType.Billy, "Chamber on the high platform sealed by a Barrier Unit; only Charge Break clears it.");
-            b.SecretRow(66.5f, 69.5f, 1f, 9.5f);
-            b.SecretPassage(68f, 13, 74.5f);  // secret passage (rare pellet + coins): sign on the chamber's roof, back up on the top-1 terrace
+            // The Barrier-sealed chamber was removed (2026-09-29, as in Meadow Ruins 5): its roof is now a block top
+            // level, a double jump up from the platform, carrying the passage sign.
+            b.StoneBlocks(65, 6, 13);
+            b.CropAt(66.5f, 9.5f).CropAt(69f, 9.5f);
+            b.SecretPassage(68f, 13, 74.5f);  // secret passage (rare pellet + coins): sign on the top level, back up on the top-1 terrace
 
             b.Start(0).Goal(116).Checkpoint(24).Checkpoint(72);
             b.Scout(10, 3).Harvester(17, 2.5f);
@@ -373,7 +374,7 @@ namespace FarmFuryStampede.EditorTools
         // ---------------------------------------------------------------- 10
 
         // A long frozen run with a Chaser waking mid-way, an ice-barrel pyramid, rising terraces; the secret island
-        // behind the start as in level 4, and the passage perch beside it.
+        // behind the start as in level 4, and the passage perch just ahead of the start.
         private static LevelBuilder Level10()
         {
             var b = new LevelBuilder("FrozenTundra_10", "Whiteout Pass", -42);
@@ -390,10 +391,10 @@ namespace FarmFuryStampede.EditorTools
 
             b.BarrelPyramid(20);
             b.StoneBlocks(52, 3, 4);          // bonus perch over the Chaser's stretch
-            // Secret passage (rare pellet + coins): its sign on an ice-block perch behind the start, high enough that
-            // the run back to the crevasse edge passes underneath it; back up on the frozen run.
-            b.StoneBlocks(-12, 3, 3);
-            b.SecretPassage(-10.5f, 3, 36f);
+            // Secret passage (rare pellet + coins): its sign on an ice-block perch just ahead of the start, in view
+            // from spawn and a double jump up; back up on the frozen run.
+            b.StoneBlocks(3, 3, 4);
+            b.SecretPassage(4.5f, 4, 36f);
             b.Gate(CharacterType.Gerald, "Island across a 15-unit crevasse behind the start: too wide for the base jump; Puff Glide crosses it.", CharacterType.Woolly);
             b.SecretRow(-40.5f, -36.5f, 1f, 0.5f);
 

@@ -222,7 +222,7 @@ namespace FarmFuryStampede.UI
 
                 button.image.color = unlocked ? data.uiColor : new Color(0.3f, 0.3f, 0.32f, 1f);
                 button.GetComponentInChildren<Text>().text = unlocked
-                    ? $"{data.displayName}\n{data.abilityType}\n{data.abilityUsesPerLevel} uses per level"
+                    ? $"{data.displayName}\n{data.abilityType}\n{data.abilityCooldown:0}s cooldown"
                     : $"{data.displayName}\nLOCKED\nClear {data.unlockLevelsRequired} levels";
             }
         }

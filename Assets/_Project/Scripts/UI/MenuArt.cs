@@ -29,8 +29,10 @@ namespace FarmFuryStampede.UI
         public Sprite pauseButton;
 
         [Header("New Character")]
-        [Tooltip("New Character page backdrop: sign and logo painted in (Environment/NewCharacter_Canvas.png, widened by setup).")]
+        [Tooltip("New Character page backdrop: sunset hills with the logo painted in (Environment/NewCharacter_Plain.png, widened by setup).")]
         public Sprite newCharacterBackground;
+        [Tooltip("'New Character' lettering over the backdrop. (UI/NewCharacterTitle.png)")]
+        public Sprite newCharacterTitle;
 
         [Header("Pause")]
         [Tooltip("Pause backdrop: 'Pause' and the logo painted in (Environment/Pause_Canvas.png, widened by setup). Null = the plain panel menu.")]

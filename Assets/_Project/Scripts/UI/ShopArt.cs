@@ -13,6 +13,10 @@ namespace FarmFuryStampede.UI
     [Serializable]
     public class ShopArt
     {
+        [Tooltip("Backdrop of every Settings / Shop page: Cluck bursting through the wooden sign (Environment/Settings_Canvas.png, " +
+            "widened by setup to Settings_Canvas_Wide.png, the Leaderboard's backdrop). Null = the dimmed landing poster.")]
+        public Sprite pageBackground;
+
         [Header("Wood-sign headers")]
         [Tooltip("Menu hub + Settings header. (Shop/SettingsSign.png)")]
         public Sprite settingsSign;

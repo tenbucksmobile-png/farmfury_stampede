@@ -106,7 +106,7 @@ All eight animals return. Each has exactly one platforming-relevant ability, tra
 
 **As built (v1.1 — decisions made during Phases 4-5a):**
 - **Identical base movement for all eight characters** (move speed 8, jump height 3.5 units). Arcade shipped per-character speed variance and later unified it because it "read as arbitrary"; only abilities differ.
-- **Ability use limit: 3 uses per level attempt** (a playtest placeholder, tuned per character in `CharacterData.abilityUsesPerLevel`). Uses are not refunded on death and reset when a level starts.
+- **Ability cooldown: 5 seconds after every use** (`CharacterData.abilityCooldown`; since 2026-09-29, replacing the old 3-uses-per-level limit, to match Arcade). While it recharges, the HUD's ability card greys out with a countdown; a spinning coin badge on it skips the wait for 3 coins and a Watch Ad button above it skips it for a rewarded ad (`skip_cooldown_via_ad`, only while an ad is loaded; the level freezes while it plays). Every character's ability starts ready when a level starts.
 - **Once per airborne period:** Flutter Jump, Cloud Step, Roll Dash and Skip Dash re-arm on landing (each activation still spends a use). Ground Pound and Puff Glide only work in the air.
 - **Horace is contextual:** on the ground the button is a Rear Vault (5.5 units, against the shared 3.5); in the air it throws a horseshoe that defeats one robot. Throws fly level, so a low throw is needed to hit a ground-level target.
 - **Ducky** is passively immune to Water tiles (others are slowed to 40% and drown — a respawn — after about 1.2s) and her Skip Dash skims forward with reduced gravity.
@@ -125,7 +125,7 @@ All eight animals return. Each has exactly one platforming-relevant ability, tra
 | Gerald | Complete 30 levels |
 | Billy | Complete 40 levels |
 
-**As built (v1.3): rare pellets and the in-level swap.** A glowing crystal apple, the **rare pellet**, unlocks the **next locked character** on the spot (ladder order Percy, Woolly, Ducky, Horace, Gerald, Billy); the level ladder above stays as a fallback and nothing re-locks. Meadow Ruins has 7 pellets (levels 1, 2, 4, 5, 9, 10, 11) for 6 characters and Frozen Tundra 6 more; each sits in a secret passage (Section 5) every character can reach, never behind an ability gate. **There is no character pick before a level any more:** the player can swap to any unlocked character at any time mid-level (HUD swap button), keeping position and motion; ability uses are remembered per character for the attempt, and the next level starts as whoever the player finished with.
+**As built (v1.3): rare pellets and the in-level swap.** A glowing crystal apple, the **rare pellet**, unlocks the **next locked character** on the spot (ladder order Percy, Woolly, Ducky, Horace, Gerald, Billy); the level ladder above stays as a fallback and nothing re-locks. Meadow Ruins has 7 pellets (levels 1, 2, 4, 5, 9, 10, 11) for 6 characters and Frozen Tundra 6 more; each sits in a secret passage (Section 5) every character can reach, never behind an ability gate. **There is no character pick before a level any more:** the player can swap to any unlocked character at any time mid-level (HUD swap button), keeping position and motion; each character's cooldown is remembered for the attempt (swapping never skips one), and the next level starts as whoever the player finished with.
 
 **Enemy roster — Harvest Robots.** Reuses the same faction identity as Arcade and Rush rather than inventing new enemies:
 
@@ -142,7 +142,7 @@ All eight animals return. Each has exactly one platforming-relevant ability, tra
 
 ## 5. Gameplay Mechanics
 
-**Movement.** Run (auto-accelerate on hold), jump (with coyote time and a jump-buffer window — hold to jump higher, tap for a short hop), and each character's unique ability on a short per-level-use limit rather than a real-time cooldown (fits a level-based game better than Arcade/Rush's timer-based cooldowns — see Section 12 for why this needs a genuinely different controller from Rush's).
+**Movement.** Run (auto-accelerate on hold), jump (with coyote time and a jump-buffer window — hold to jump higher, tap for a short hop), and each character's unique ability on a 5-second cooldown after every use, skippable for coins or a rewarded ad as in Arcade (v1.1-1.3 used a per-level use limit instead; see Section 12 for why this needs a genuinely different controller from Rush's).
 
 **Lives.** Each level attempt starts with 3 lives (Arcade's "3 free respawns" convention). Every death — pit fall, robot contact, drowning — costs one and respawns the character at the last checkpoint touched (or the level start) with brief invulnerability. Losing the third ends the attempt (level failed) and returns to Level Select; a fresh attempt always starts with 3. Checkpoints, defeated robots and collected crops persist through a death within the attempt.
 
@@ -210,7 +210,7 @@ Their menu art is in and they appear on World Select and in the shop; their leve
 - **World Select (as built, v1.3)** — nine cards in a 3x3 grid fitted inside the device safe area: the six story worlds, then the three paid worlds, which stay bright with a $3.99 price sign until bought and open the world shop when tapped. Earlier: a wooden banner header over six world cards (matching the world table above): each card is the world's art with its name baked in and a round play button in the bottom-left corner; a locked world's card and button are greyed out. (As built, the cards no longer show stars earned or which boss unlocks a world — the art mockup dropped the text.) **Rule:** a world unlocks once the previous world's boss level has been completed; only Meadow Ruins is open on a fresh save.
 - **Level Select (within world)** — the world's backdrop (name baked in) with two rows of six wooden plaques, sized to the device safe area: a padlock plaque when locked, a question-mark plaque for the next level to play, a board showing the 1-3 stars earned once completed, and the boss shield as the 12th slot. (As built, the art look drops level numbers and the undiscovered-secret icon; the plain fallback grid, used for a world without art, still shows both.) **Rules:** the first level of a world is open; each later level opens when the previous one is completed; the boss level opens once every regular level is cleared. The icon shows on a completed level with a gated secret that has not been found yet (found = a crop of the secret cluster was collected)
 - **Character Select (before a level)** — *removed from the flow in v1.3 (the in-level swap replaced it, Section 4).* Was: a "New Character" banner over the eight framed character cards (names baked in), locked ones greyed out; as built there's no ability text under the cards; picking one is a level *attempt*, not a permanent choice — replay the same level with a different character freely
-- **Gameplay HUD (as built, v1.3)** — coin balance top-left, the played character's thumbs-up per life top-right; one row of same-size buttons along the bottom: hold-to-run left/right and pause bottom-left, character swap and the Locker centred, the played character's ability card (greyed when its uses are spent) and jump bottom-right. (Originally planned: crops/score top-left, portrait + ability uses bottom-left, pause top-centre.)
+- **Gameplay HUD (as built, v1.3)** — coin balance top-left, the played character's thumbs-up per life top-right; one row of same-size buttons along the bottom: hold-to-run left/right and pause bottom-left, character swap and the Locker centred, the played character's ability card (greyed with a countdown while recharging, with a coin badge and Watch Ad button to skip it) and jump bottom-right. (Originally planned: crops/score top-left, portrait + ability uses bottom-left, pause top-centre.)
 - **Settings -> Leaderboards** — the world names over the wooden sign (per the mockups); each opens that world's records page (Section 5)
 - **Level Complete** — stars earned, crops collected, deaths, any character or world unlocked by this clear. **Level Failed** (out of lives) shows briefly, then returns to Level Select
 - **Pause** — Play, Settings (a stub until settings exist), Restart Level (reloads the level, same character, full lives), Quit (back to Level Select)
@@ -244,7 +244,7 @@ Same ethical F2P stance as the rest of the franchise: no energy walls, no pay-to
 
 | Stream | Model | Reused from |
 |---|---|---|
-| Rewarded ads | Continue after death, double coins on level complete, refill ability-uses | Arcade's proven placements |
+| Rewarded ads | Continue after death, double coins on level complete, skip the ability cooldown | Arcade's proven placements |
 | Interstitial | Every N levels, skipped if Remove Ads owned | Arcade |
 | Remove Ads | $4.99, includes bonus coins | Arcade's exact price point |
 | Coin packs | $0.99 / $3.99 / $9.99 / $19.99 | Arcade's exact, already-store-registered tiers |
@@ -303,7 +303,7 @@ Mirrors the phase structure that's already worked for Rush (see its `CLAUDE.md`)
 |---|---|
 | Irrigation Pipe | A physical pipe/tunnel entrance connecting two points in a level or leading to a bonus area — Stampede's equivalent of a Mario warp pipe. Not the same mechanic as Arcade's "Warp Tunnel." |
 | Character-gated secret | A bonus area or shortcut reachable only by one specific character's ability |
-| Ability-uses-remaining | Stampede's per-level ability limiter, replacing Arcade/Rush's real-time cooldown model |
+| Ability cooldown | 5 s after every use, skippable for coins or a rewarded ad (Arcade's model; replaced the per-level use limit) |
 | Breakable Floor | A tile layer only Bessie's Ground Pound can break, revealing a hollow beneath |
 | Breakable Wall | A robot-barrier-styled wall (1x3) only Billy's Charge Break can break |
 | Barrier Unit | A stationary robot that blocks a passage and can only be cleared by Charge Break |

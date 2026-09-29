@@ -7,10 +7,11 @@ using UnityEngine.UI;
 namespace FarmFuryStampede.UI
 {
     /// <summary>
-    /// Settings -> Leaderboards, per the Leaderboard mockup (Leaderboard_Mock.png): the Farm Fury Stampede logo
-    /// top-left, the LeaderBoard sign top-right and the six world names as lettering in two rows of three over the
-    /// wooden sign, in the mockup's order (Meadow Ruins, Watermill Village, Frozen Tundra / Sky Island, Sunken City,
-    /// Mothership), on an even grid. Locked worlds are greyed. Tapping an unlocked world opens its
+    /// Settings -> Leaderboards, per the Leaderboard mockup (Leaderboard_Mock.png): the Farm Fury Stampede logo in
+    /// the top-left corner, the LeaderBoard sign top-right and the nine world names as lettering in three rows of
+    /// three over the wooden sign: the story worlds in the mockup's order (Meadow Ruins, Watermill Village, Frozen
+    /// Tundra / Sky Island, Sunken City, Mothership), then the paid worlds (Dustbowl Canyon, Harvest Fairground, Crop
+    /// Factory), on an even grid. Locked worlds - including a paid world not yet bought - are greyed. Tapping an unlocked world opens its
     /// <see cref="WorldDetailScreen"/>; a locked purchase-gated world opens the world shop; any other locked world
     /// says how to unlock it. The records are this device's own (no online board until the shared backend exists).
     /// </summary>
@@ -21,13 +22,15 @@ namespace FarmFuryStampede.UI
         {
             WorldType.MeadowRuins, WorldType.WatermillVillage, WorldType.FrozenTundra,
             WorldType.SkyIslands, WorldType.SunkenCity, WorldType.RobotMothership,
+            WorldType.DustbowlCanyon, WorldType.HarvestFairground, WorldType.CropFactory,
         };
-        // Name slots: equal column pitch (246) and row pitch (170), sized so neighbouring names never touch.
-        private static readonly float[] ColumnX = { 185f, 431f, 677f };
-        private static readonly float[] RowY = { 365f, 535f };
-        private const float NameWidth = 210f, NameHeight = 110f;
-        private static readonly Rect LogoBox = new(105f, 68f, 135f, 95f);
-        private static readonly Rect HintBox = new(100f, 612f, 700f, 40f);
+        // Name slots: equal column pitch (275) and row pitch (150), sized so neighbouring names never touch, the
+        // right column clear of the LeaderBoard sign (x 862) and the bottom row clear of the hint line.
+        private static readonly float[] ColumnX = { 170f, 445f, 720f };
+        private static readonly float[] RowY = { 265f, 415f, 565f };
+        private const float NameWidth = 255f, NameHeight = 138f;
+        private static readonly Rect LogoBox = new(36f, 22f, 190f, 134f);
+        private static readonly Rect HintBox = new(100f, 652f, 700f, 40f);
         private static readonly Color LockedTint = new(0.55f, 0.55f, 0.55f, 0.8f);
 
         private readonly Button[] _names = new Button[GridOrder.Length];

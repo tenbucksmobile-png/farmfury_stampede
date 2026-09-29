@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using FarmFuryStampede.Core;
 using FarmFuryStampede.Data;
 using FarmFuryStampede.Movement;
-using FarmFuryStampede.Robots;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,12 +10,15 @@ namespace FarmFuryStampede.UI
 {
     /// <summary>
     /// Gameplay HUD, kept to the minimum so the level reads clearly: one Cluck icon per life top-right (one disappears
-    /// with each death), the round pause button bottom-left, and the Commander's hit count top-centre in a boss
-    /// level. Everything sits inside the device safe area. Refreshed every frame by GameFlow.
+    /// with each death) and the round pause button bottom-left (no boss hit counter since 2026-09-29). Everything sits inside the device safe area. Refreshed every frame by GameFlow.
     /// Phase 6 (Arcade's HUD): the coin balance (coin glyph + count) top-left.
     /// On-screen controls, one row along the bottom, all the same size: hold-to-run left and right, then pause,
-    /// bottom-left; the character swap and the Locker centred; the played character's ability card (dimmed once its
-    /// uses are spent) and jump bottom-right, jump in the corner. The life icons are the played character giving a
+    /// bottom-left; the character swap and the Locker centred; the played character's ability card and jump
+    /// bottom-right, jump in the corner.
+    /// Ability cooldown (Arcade's setup): after each use the card greys out with a seconds countdown for
+    /// CharacterData.abilityCooldown (5s). Meanwhile a spinning coin badge on its top-left corner skips the wait for
+    /// SkipCooldownCoinsCost coins (tappable only when affordable), and a Watch Ad button above the card skips it for
+    /// a rewarded ad (shown only while an ad is loaded; the level is frozen while it plays). The life icons are the played character giving a
     /// thumbs up.
     /// Without art the lives fall back to red squares and pause to a plain "II" button.
     /// </summary>
@@ -29,7 +31,6 @@ namespace FarmFuryStampede.UI
         private readonly Text _coins;
 
         private readonly List<Image> _lifeIcons = new();
-        private readonly Text _boss;
 
         private const float EdgeMargin = 40f;
         private const float LifeIconHeight = 96f;
@@ -42,9 +43,22 @@ namespace FarmFuryStampede.UI
         private readonly Image _ability;
         private readonly Text _abilityLabel;
         private static readonly Color AbilitySpent = new(0.45f, 0.45f, 0.45f, 0.7f);
+        private readonly Text _cooldownText;
+        private readonly Button _skipCoinButton;
+        private readonly Button _skipAdButton;
+        private CharacterController2D _player;
+        private readonly RectTransform _controlRow;   // the tallest bottom-row control (the Watch Ad button sits above it)
+        private static readonly Vector3[] Corners = new Vector3[4];
+
+        /// <summary>Coins to skip the ability cooldown (Arcade's SkipCooldownCoinsCost).</summary>
+        public const int SkipCooldownCoinsCost = 3;
+        private const float SkipBadgeSize = 64f;
+        public bool SkipCoinShown => _skipCoinButton.gameObject.activeSelf;
+        public bool SkipAdShown => _skipAdButton.gameObject.activeSelf;
+        public Button SkipCoinButton => _skipCoinButton;
+        public Button SkipAdButton => _skipAdButton;
         private static readonly Color PlainButton = new(0.2f, 0.25f, 0.38f, 0.8f);
 
-        public string BossText => _boss.gameObject.activeSelf ? _boss.text : "";
         public int LifeIconsShown
         {
             get
@@ -106,6 +120,7 @@ namespace FarmFuryStampede.UI
             var jump = HoldControl(safe, "JumpButton", shop.jumpButton, "^", Vector2.right, new Vector2(-EdgeMargin, EdgeMargin));
             jump.Pressed += PlayerInputReader.PressTouchJump;
             jump.Released += () => PlayerInputReader.TouchJumpHeld = false;
+            _controlRow = (RectTransform)jump.transform;
 
             // Ability: the played character's ability card, left of jump; dimmed once its uses are spent.
             _abilityIcons = shop.abilityIcons;
@@ -114,6 +129,44 @@ namespace FarmFuryStampede.UI
             _ability = ability.GetComponent<Image>();
             _abilityLabel = ability.GetComponentInChildren<Text>();
             if (_abilityLabel != null) { _abilityLabel.fontSize = 30; }
+
+            // Cooldown countdown: whole seconds left, big over the greyed card.
+            _cooldownText = UIKit.Label(ability.transform, "CooldownText", "", 72, TextAnchor.MiddleCenter, Color.white);
+            _cooldownText.fontStyle = FontStyle.Bold;
+            _cooldownText.gameObject.AddComponent<Outline>().effectDistance = new Vector2(3f, -3f);
+            UIKit.Stretch(_cooldownText.rectTransform);
+
+            // Skip for coins: a coin with the price on the card's top-left corner, drawn over the card so a tap on
+            // it never reaches the card's own press. The coin turns like the revive prompt's.
+            _skipCoinButton = UIKit.MakeButton(ability.transform, "SkipCooldownCoinBadge", "", Color.clear, SkipWithCoins);
+            UIKit.Place(_skipCoinButton.image.rectTransform, new Vector2(0f, 1f), new Vector2(0.5f, 0.5f), new Vector2(8f, -8f),
+                Vector2.one * SkipBadgeSize);
+            var badgeCoin = shop.coinIcon != null
+                ? UIKit.Picture(_skipCoinButton.transform, "Coin", shop.coinIcon)
+                : UIKit.Panel(_skipCoinButton.transform, "Coin", UIKit.Accent);
+            badgeCoin.raycastTarget = false;
+            UIKit.Stretch(badgeCoin.rectTransform);
+            badgeCoin.gameObject.AddComponent<SpinAroundY>();
+            _skipCoinButton.targetGraphic = badgeCoin;   // the disabled tint greys the coin when it can't be afforded
+            var price = UIKit.Label(_skipCoinButton.transform, "Price", SkipCooldownCoinsCost.ToString(), 40, TextAnchor.MiddleCenter, Color.white);
+            price.fontStyle = FontStyle.Bold;
+            price.gameObject.AddComponent<Outline>().effectDistance = new Vector2(2f, -2f);
+            UIKit.Stretch(price.rectTransform);
+            _skipCoinButton.transform.Find("Label").gameObject.SetActive(false);
+            _skipCoinButton.gameObject.SetActive(false);
+
+            // Skip for a rewarded ad: the Watch Ad art (512x214) just above the ability card.
+            float adHeight = ControlSize * 214f / 512f;
+            _skipAdButton = UIKit.MakeButton(safe, "WatchAdSkipCooldownButton", shop.watchAd != null ? "" : "WATCH AD",
+                shop.watchAd != null ? Color.white : new Color(0.2f, 0.25f, 0.38f, 0.95f), SkipWithAd, 24);
+            if (shop.watchAd != null)
+            {
+                _skipAdButton.image.sprite = shop.watchAd;
+                _skipAdButton.image.preserveAspect = true;
+            }
+            UIKit.Place(_skipAdButton.image.rectTransform, Vector2.right, Vector2.right,
+                new Vector2(-EdgeMargin - pitch, EdgeMargin + ControlSize + 10f), new Vector2(ControlSize, adHeight));
+            _skipAdButton.gameObject.SetActive(false);
 
             LockerButton = UIKit.MakeButton(safe, "LockerButton", shop.lockerIcon != null ? "" : "LOCKER",
                 shop.lockerIcon != null ? Color.white : new Color(0.2f, 0.25f, 0.38f, 0.95f), () => onLocker?.Invoke(), 26);
@@ -148,10 +201,40 @@ namespace FarmFuryStampede.UI
             UIKit.Place(_coins.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(EdgeMargin + coinSize + 14f, -EdgeMargin * 0.5f - 12f),
                 new Vector2(400f, coinSize));
 
-            _boss = UIKit.Label(safe, "BossHits", "", 40, TextAnchor.MiddleCenter, new Color(1f, 0.55f, 0.5f));
-            UIKit.Place(_boss.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -30f), new Vector2(700f, 56f));
-
             Root.SetActive(false);
+        }
+
+        private void SkipWithCoins()
+        {
+            if (_player == null || _player.AbilityReady)
+            {
+                return;
+            }
+            if (SaveManager.Instance != null && SaveManager.Instance.SpendCoins(SkipCooldownCoinsCost))
+            {
+                _player.SkipCooldown();
+            }
+        }
+
+        private void SkipWithAd()
+        {
+            var player = _player;
+            if (player == null || player.AbilityReady || AdManager.Instance == null)
+            {
+                return;
+            }
+
+            // Freeze the level while the ad plays; the callback always comes (AdManager's timeout fallback).
+            float timeScale = Time.timeScale;
+            Time.timeScale = 0f;
+            AdManager.Instance.ShowRewardedAd("skip_cooldown_via_ad", rewarded =>
+            {
+                Time.timeScale = timeScale;
+                if (rewarded && player != null)
+                {
+                    player.SkipCooldown();
+                }
+            });
         }
 
         // A hold-to-press control (no click action): its art, or a plain labelled square.
@@ -193,20 +276,23 @@ namespace FarmFuryStampede.UI
                 if (_abilityLabel != null) { _abilityLabel.gameObject.SetActive(_ability.sprite == null); }
             }
 
-            bool abilityLeft = player == null || player.UsesRemaining > 0;
-            _ability.color = _ability.sprite != null ? (abilityLeft ? Color.white : AbilitySpent) : (abilityLeft ? PlainButton : AbilitySpent);
+            _player = player;
+            // Keep the level's ground above the control row (screen-space overlay canvas: corners are screen pixels).
+            _controlRow.GetWorldCorners(Corners);
+            CameraFollow2D.BottomScreenReserve = Screen.height > 0 ? Mathf.Max(0f, Corners[1].y) / Screen.height : 0f;
+            float cooldown = player != null ? player.CooldownRemaining : 0f;
+            bool ready = cooldown <= 0f;
+            _ability.color = _ability.sprite != null ? (ready ? Color.white : AbilitySpent) : (ready ? PlainButton : AbilitySpent);
+            _cooldownText.text = ready ? "" : Mathf.CeilToInt(cooldown).ToString();
+            // Checked every frame so a coin pickup mid-cooldown makes the badge tappable at once (as in Arcade).
+            _skipCoinButton.gameObject.SetActive(!ready);
+            _skipCoinButton.interactable = SaveManager.Instance != null && SaveManager.Instance.CoinBalance >= SkipCooldownCoinsCost;
+            // Never a dead button: only while cooling down and an ad is actually loaded.
+            _skipAdButton.gameObject.SetActive(!ready && AdManager.Instance != null && AdManager.Instance.IsRewardedAdReady);
             for (int i = 0; i < _lifeIcons.Count; i++)
             {
                 // Icons are laid out left to right; lives are lost from the right-hand end.
                 _lifeIcons[i].gameObject.SetActive(i < run.livesRemaining);
-            }
-
-            var boss = CommanderBoss.Active;
-            bool showBoss = boss != null && boss.isActiveAndEnabled;
-            _boss.gameObject.SetActive(showBoss);
-            if (showBoss)
-            {
-                _boss.text = $"Commander hits: {boss.Hits}/{boss.HitsToDefeat}{(boss.IsStaggered ? "  (stunned!)" : "")}";
             }
         }
     }

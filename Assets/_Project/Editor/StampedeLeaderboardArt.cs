@@ -78,6 +78,12 @@ namespace FarmFuryStampede.EditorTools
             }
         }
 
+        /// <summary>The same backdrop for every Settings / Shop page (ShopArt.pageBackground).</summary>
+        public static void WirePageBackground(SerializedObject so, string propertyPath)
+        {
+            so.FindProperty(propertyPath).objectReferenceValue = AssetDatabase.LoadAssetAtPath<Sprite>(BackgroundPath);
+        }
+
         private static TextureImporter BeginImport(string path)
         {
             if (!File.Exists(path))

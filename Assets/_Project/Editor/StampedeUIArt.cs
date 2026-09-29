@@ -98,8 +98,11 @@ namespace FarmFuryStampede.EditorTools
         private const string PauseSourcePath = EnvironmentDir + "/Pause_Canvas.png";
         private const string PauseBackgroundPath = EnvironmentDir + "/Pause_Canvas_Wide.png";
         // New Character page (per its mockup): the same kind of backdrop, widened the same way.
-        private const string NewCharacterSourcePath = EnvironmentDir + "/NewCharacter_Canvas.png";
-        private const string NewCharacterBackgroundPath = EnvironmentDir + "/NewCharacter_Canvas_Wide.png";
+        // The New Character page (2026-09-29 mockup): NewCharacter_Canvas.png with its painted wooden sign replaced by
+        // the matching sky from Pause_Canvas.png (same painting), so the NewCharacterTitle lettering sits on clean sky.
+        private const string NewCharacterSourcePath = EnvironmentDir + "/NewCharacter_Plain.png";
+        private const string NewCharacterBackgroundPath = EnvironmentDir + "/NewCharacter_Plain_Wide.png";
+        private const string NewCharacterTitleFile = "NewCharacterTitle.png";
         // The painted Farm Fury logo's rows (from the top of the 720px art): the left margin extends the sky here
         // instead of mirroring, so no piece of the logo is copied into it.
         private const int LogoRowTop = 20, LogoRowBottom = 160;
@@ -209,6 +212,7 @@ namespace FarmFuryStampede.EditorTools
             yield return $"{UIDir}/{LandingPosterFile}";
             foreach (string file in StarBoardFiles) { yield return $"{UIDir}/{file}"; }
             yield return $"{UIDir}/{NewCharacterSignFile}";
+            yield return $"{UIDir}/{NewCharacterTitleFile}";
             yield return $"{UIDir}/{WorldUnlockedSignFile}";
             foreach (var (world, name) in WorldArtNames)
             {
@@ -304,6 +308,7 @@ namespace FarmFuryStampede.EditorTools
         /// <summary>Results board for 1, 2 or 3 stars.</summary>
         public static Sprite StarBoard(int stars) => Load(StarBoardFiles[Mathf.Clamp(stars, 1, 3) - 1]);
         public static Sprite NewCharacterSign() => Load(NewCharacterSignFile);
+        public static Sprite NewCharacterTitle() => Load(NewCharacterTitleFile);
         public static Sprite WorldUnlockedSign() => Load(WorldUnlockedSignFile);
 
         /// <summary>The world's World Select card art (name centred), or null.</summary>

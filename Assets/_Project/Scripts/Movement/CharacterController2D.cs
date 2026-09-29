@@ -90,8 +90,11 @@ namespace FarmFuryStampede.Movement
 
         public CharacterType Character { get; private set; }
         public CharacterData Data { get; private set; }
-        public int UsesRemaining { get; private set; }
-        public int UsesPerLevel { get; private set; }
+        /// <summary>Seconds the ability waits after each use (CharacterData.abilityCooldown).</summary>
+        public float AbilityCooldown { get; private set; }
+        /// <summary>Seconds until the ability can be used again (0 = ready). Scaled time, so it waits while paused.</summary>
+        public float CooldownRemaining => Mathf.Max(0f, _abilityReadyAt - Time.time);
+        public bool AbilityReady => CooldownRemaining <= 0f;
 
         public bool IsGrounded => _grounded;
         public LayerMask GroundMask => groundMask;
@@ -205,15 +208,24 @@ namespace FarmFuryStampede.Movement
         /// </summary>
         public void SetCharacter(CharacterType type)
         {
-            _usesLeft.Clear();   // a new attempt: every character starts with its full uses
+            _readyAt.Clear();   // a new attempt: every character's ability starts ready
             ApplyCharacter(type);
-            UsesRemaining = UsesPerLevel;
+            _abilityReadyAt = 0f;
+        }
+
+        /// <summary>
+        /// Monetisation (Arcade's skip-cooldown): makes the ability usable again at once. The HUD calls this only after
+        /// the coins are spent or the rewarded ad paid out; no-op when already ready.
+        /// </summary>
+        public void SkipCooldown()
+        {
+            _abilityReadyAt = 0f;
         }
 
         /// <summary>
         /// Swaps to another character mid-level (the in-level swap): position and motion carry on, any active ability
-        /// of the old character is cancelled, and ability uses are remembered per character for the attempt, so
-        /// swapping back and forth never refills them.
+        /// of the old character is cancelled, and each character's cooldown is remembered for the attempt, so
+        /// swapping back and forth never skips one.
         /// </summary>
         public void SwitchCharacter(CharacterType type)
         {
@@ -222,14 +234,15 @@ namespace FarmFuryStampede.Movement
                 return;
             }
 
-            _usesLeft[Character] = UsesRemaining;
+            _readyAt[Character] = _abilityReadyAt;
             _ability?.Reset(this);
             ApplyCharacter(type);
-            UsesRemaining = _usesLeft.TryGetValue(type, out int left) ? left : UsesPerLevel;
+            _abilityReadyAt = _readyAt.TryGetValue(type, out float readyAt) ? readyAt : 0f;
         }
 
-        // Ability uses left per character this attempt (SwitchCharacter).
-        private readonly Dictionary<CharacterType, int> _usesLeft = new();
+        // When each character's ability is next ready this attempt (Time.time; SwitchCharacter).
+        private readonly Dictionary<CharacterType, float> _readyAt = new();
+        private float _abilityReadyAt;
 
         private void ApplyCharacter(CharacterType type)
         {
@@ -241,7 +254,7 @@ namespace FarmFuryStampede.Movement
             {
                 moveSpeed = Data.moveSpeed;
                 jumpHeight = Data.jumpHeight;
-                UsesPerLevel = Data.abilityUsesPerLevel;
+                AbilityCooldown = Data.abilityCooldown;
                 _ability = AbilityFactory.Create(Data.abilityType);
                 if (visual != null && Data.placeholderSprite != null)
                 {
@@ -256,7 +269,7 @@ namespace FarmFuryStampede.Movement
             {
                 Debug.LogWarning($"[CharacterController2D] No CharacterData for {type}; the character has no ability.");
                 _ability = null;
-                UsesPerLevel = 0;
+                AbilityCooldown = 0f;
             }
 
             RecalculateJump();
@@ -493,14 +506,14 @@ namespace FarmFuryStampede.Movement
 
         private void TryActivateAbility()
         {
-            if (_ability == null || UsesRemaining <= 0 || !_ability.CanActivate(this))
+            if (_ability == null || !AbilityReady || !_ability.CanActivate(this))
             {
                 return;
             }
 
-            UsesRemaining--;
+            _abilityReadyAt = Time.time + AbilityCooldown;
             _ability.Activate(this);
-            Debug.Log($"[CharacterController2D] {Character} used {_ability.Type} ({UsesRemaining}/{UsesPerLevel} left).");
+            Debug.Log($"[CharacterController2D] {Character} used {_ability.Type} (ready again in {AbilityCooldown:0.#}s).");
         }
 
         // ------------------------------------------------------------ collision

@@ -38,7 +38,8 @@ namespace FarmFuryStampede.UI
         {
             ("Run & Jump", "Run left and right and jump over pits and robots. Jump again in mid-air for a double " +
                 "jump - it clears wide gaps and reaches high ledges."),
-            ("Abilities", "Every animal has one special ability, with a few uses per level. Use it to beat robots " +
+            ("Abilities", "Every animal has one special ability. It recharges for a few seconds after each use - " +
+                "tap the coin or watch an ad to recharge it at once. Use it to beat robots " +
                 "or reach places nobody else can."),
             ("Stomp the Robots", "Land on a robot from above to stomp it flat. Bump into one any other way and you " +
                 "lose a life."),

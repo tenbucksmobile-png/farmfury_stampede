@@ -11,8 +11,10 @@ namespace FarmFuryStampede.UI
     /// that opened it) and its back button just closes it, revealing that screen again - no navigation state.
     /// GameFlow keeps the list: it closes every open overlay on a game-state change, and Esc closes the top one.
     ///
-    /// Shared layout, in the 1920x1080 reference canvas with Arcade's numbers: the landing poster dimmed over an
-    /// opaque black backing (so the dim is real whatever is underneath), a 550x310 wood-sign header 55 below the top
+    /// Shared layout, in the 1920x1080 reference canvas with Arcade's numbers: the Settings backdrop
+    /// (ShopArt.pageBackground, Cluck bursting through the wooden sign - the Leaderboard's backdrop; its whole 1280x720
+    /// middle always on screen, fitted like the results art) over opaque black, or without it the landing poster
+    /// dimmed; a 550x310 wood-sign header 55 below the top
     /// centre, and the round back button bottom-right of the safe area (where the landing screen's cog sits).
     /// </summary>
     public abstract class OverlayScreen
@@ -46,7 +48,11 @@ namespace FarmFuryStampede.UI
             UIKit.Stretch(Rect);
             Root = Rect.gameObject;
             Root.AddComponent<Image>().color = posterBackdrop ? Color.black : new Color(0f, 0f, 0f, 0.8f);
-            if (posterBackdrop)
+            if (posterBackdrop && Shop.pageBackground != null)
+            {
+                PageBackdrop(Rect, Shop.pageBackground);
+            }
+            else if (posterBackdrop)
             {
                 UIKit.SetBackdrop(UIKit.Backdrop(Rect), Art.landingPoster, BackdropBrightness);
             }
@@ -83,6 +89,20 @@ namespace FarmFuryStampede.UI
         protected virtual void OnShow() { }
 
         // ------------------------------------------------------------ shared building blocks
+
+        /// <summary>
+        /// The Settings backdrop: the widened 1280x720 art (ResultsScreen.ArtPad mirrored columns each side), fitted so
+        /// the middle 1280x720 is always whole and wider screens see the padding instead of bars.
+        /// </summary>
+        private static void PageBackdrop(RectTransform parent, Sprite sprite)
+        {
+            var backdrop = UIKit.Picture(parent, "Backdrop", sprite);
+            backdrop.preserveAspect = false;
+            var fit = backdrop.gameObject.AddComponent<FitContent>();
+            fit.contentSize = new Vector2(1280f, 720f);
+            fit.spriteSize = new Vector2(1280f + 2f * ResultsScreen.ArtPad, 720f);
+            backdrop.transform.SetAsFirstSibling();
+        }
 
         /// <summary>The standard top-centre wood sign; without art, the fallback text in its place.</summary>
         protected void HeaderSign(Sprite sprite, string fallback)

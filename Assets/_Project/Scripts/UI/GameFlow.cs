@@ -84,6 +84,10 @@ namespace FarmFuryStampede.UI
         private void BuildOverlays()
         {
             var c = _canvasTransform;
+            shopArt ??= new ShopArt();
+            // Every Settings / Shop page shares the Leaderboard's backdrop (setup wires both; this covers a scene
+            // wired before pageBackground existed).
+            if (shopArt.pageBackground == null && leaderboardArt != null) { shopArt.pageBackground = leaderboardArt.background; }
             Gate = Add(new ParentalGate(c, menuArt, shopArt));
             var useCoins = Add(new UseCoinsPrompt(c, menuArt, shopArt));
             Revive = Add(new RevivePromptScreen(c, menuArt, shopArt));

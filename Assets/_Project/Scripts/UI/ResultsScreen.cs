@@ -77,6 +77,8 @@ namespace FarmFuryStampede.UI
         private readonly GameObject _payout;
         private readonly Text _payoutText;
         private readonly RectTransform _payoutCoin;
+        private readonly Text _earnedText;
+        private static readonly Color EarnedGreen = new(0.55f, 1f, 0.45f, 1f);
         private const float PayoutHeight = 80f, PayoutCoinSize = 72f, PayoutGap = 12f;
         private readonly GameObject _doubleCoins;
         private const float DoubleCoinsSize = 160f;
@@ -181,7 +183,8 @@ namespace FarmFuryStampede.UI
 
             _payout = UIKit.NewRect("CoinPayout", top).gameObject;
             var payoutRect = (RectTransform)_payout.transform;
-            // Top-right of the safe area (the logo is painted top-left): "+25" right-aligned, the coin just left of it.
+            // Top-right of the safe area (the logo is painted top-left): the coin balance right-aligned, as on the HUD
+            // (so the two always agree), the coin just left of it, and this level's payout ("+20") in green before that.
             UIKit.Place(payoutRect, Vector2.one, Vector2.one, new Vector2(-EdgeMargin, -40f), new Vector2(600f, PayoutHeight));
             var coin = shop.coinIcon != null ? UIKit.Picture(payoutRect, "CoinIcon", shop.coinIcon) : UIKit.Panel(payoutRect, "CoinIcon", UIKit.Accent);
             UIKit.Place(coin.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), Vector2.zero, new Vector2(PayoutCoinSize, PayoutCoinSize));
@@ -193,6 +196,13 @@ namespace FarmFuryStampede.UI
             payoutOutline.effectColor = ScoreOutline;
             payoutOutline.effectDistance = new Vector2(3f, -3f);
             UIKit.Place(_payoutText.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), Vector2.zero, new Vector2(500f, 72f));
+            _earnedText = UIKit.Label(payoutRect, "Earned", "", 40, TextAnchor.MiddleRight, EarnedGreen);
+            _earnedText.fontStyle = FontStyle.Bold;
+            _earnedText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            var earnedOutline = _earnedText.gameObject.AddComponent<Outline>();
+            earnedOutline.effectColor = ScoreOutline;
+            earnedOutline.effectDistance = new Vector2(3f, -3f);
+            UIKit.Place(_earnedText.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), Vector2.zero, new Vector2(400f, 72f));
 
             float watchAdHeight = DoubleCoinsSize * 214f / 512f;
             _doubleCoins = UIKit.NewRect("DoubleCoinsAdGroup", top).gameObject;
@@ -244,10 +254,15 @@ namespace FarmFuryStampede.UI
 
         private void ShowPayout(LevelRunState run)
         {
+            // The payout is already in the balance (GameManager.EndLevel / ClaimDoubleCoinsViaAd add it).
             int paid = run.coinsEarned * (run.doubleCoinsClaimed ? 2 : 1);
-            _payoutText.text = run.doubleCoinsClaimed ? $"{paid}  (doubled!)" : $"{paid}";
-            _payoutCoin.anchoredPosition = new Vector2(-(_payoutText.preferredWidth + PayoutGap), 0f);
-            _payout.SetActive(paid > 0);
+            int balance = SaveManager.Instance != null ? SaveManager.Instance.CoinBalance : paid;
+            _payoutText.text = balance.ToString();
+            _earnedText.text = paid > 0 ? (run.doubleCoinsClaimed ? $"+{paid} (x2)" : $"+{paid}") : "";
+            float coinX = -(_payoutText.preferredWidth + PayoutGap);
+            _payoutCoin.anchoredPosition = new Vector2(coinX, 0f);
+            _earnedText.rectTransform.anchoredPosition = new Vector2(coinX - PayoutCoinSize - PayoutGap * 1.5f, 0f);
+            _payout.SetActive(true);
         }
 
         public void ShowComplete(GameManager gm)

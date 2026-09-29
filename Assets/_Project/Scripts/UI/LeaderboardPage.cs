@@ -5,8 +5,7 @@ namespace FarmFuryStampede.UI
 {
     /// <summary>
     /// Shared look of the two Leaderboard screens, copied from the Leaderboard mockups (1280x720): the Settings
-    /// backdrop (Cluck bursting through the wooden sign; the widened copy, fitted like the results art so the whole
-    /// 1280x720 middle is on screen), the LeaderBoard sign top-right and the round back button bottom-right.
+    /// backdrop every Settings / Shop page shares (OverlayScreen, ShopArt.pageBackground), the LeaderBoard sign top-right and the round back button bottom-right.
     /// Everything on top is placed in the mockup's pixel coordinates on a 16:9 board fitted inside the device safe
     /// area, so it scales as one piece and never leaves the safe area on any aspect.
     /// </summary>
@@ -23,19 +22,9 @@ namespace FarmFuryStampede.UI
         protected readonly RectTransform Board;
 
         protected LeaderboardPage(Transform canvas, string name, MenuArt art, ShopArt shop, LeaderboardArt boards)
-            : base(canvas, name, art, shop, posterBackdrop: boards?.background == null)
+            : base(canvas, name, art, shop)
         {
             Boards = boards ?? new LeaderboardArt();
-            if (Boards.background != null)
-            {
-                Root.GetComponent<Image>().color = Color.black;
-                var backdrop = UIKit.Picture(Rect, "Backdrop", Boards.background);
-                backdrop.preserveAspect = false;
-                var fit = backdrop.gameObject.AddComponent<FitContent>();
-                fit.contentSize = ArtSize;
-                fit.spriteSize = new Vector2(ArtSize.x + 2f * ResultsScreen.ArtPad, ArtSize.y);
-                backdrop.transform.SetAsFirstSibling();
-            }
 
             Board = UIKit.NewRect("Board", Safe);
             var boardFit = Board.gameObject.AddComponent<FitContent>();

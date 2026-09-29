@@ -64,6 +64,16 @@ namespace FarmFuryStampede.Movement
         private float _lastDirection = 1f;
         private float _sizeVelocity;
 
+        /// <summary>
+        /// Fraction of the screen height (from the bottom) covered by the HUD's on-screen control row, set by the HUD
+        /// every frame. The level floor is kept above it (plus reserveGap), so the buttons sit over the
+        /// dirt below the ground instead of over the path, robots and pickups. 0 = nothing reserved.
+        /// </summary>
+        public static float BottomScreenReserve { get; set; }
+        private const float MaxReserve = 0.4f;
+        [Tooltip("World units kept between the top of the HUD's control row and the ground surface.")]
+        [SerializeField] private float reserveGap = 0.3f;
+
         /// <summary>The furthest this camera zooms out (background layers are sized for it).</summary>
         public float MaxOrthographicSize => maxOrthographicSize;
         private float? _floorY;
@@ -166,17 +176,21 @@ namespace FarmFuryStampede.Movement
                 return (desiredY, baseOrthographicSize);   // no ground known, or falling below it: just follow
             }
 
-            float bottom = floor - floorMargin;             // lowest point that must be on screen
             float top = targetPos.y + topMargin;            // highest point that must be on screen
-            float needed = (top - bottom) * 0.5f;
-            if (needed <= baseOrthographicSize)
+            float reserve = Mathf.Clamp(BottomScreenReserve, 0f, MaxReserve);
+            // The floor must clear both floorMargin and the HUD's control row, which covers reserve * 2 * size units.
+            float Margin(float size) => Mathf.Max(floorMargin, reserve * 2f * size + reserveGap);
+            float bottom = floor - Margin(baseOrthographicSize);   // lowest point that must be on screen
+            if ((top - bottom) * 0.5f <= baseOrthographicSize)
             {
                 float size = baseOrthographicSize;
                 return (Mathf.Clamp(desiredY, top - size, bottom + size), size);
             }
 
+            // Zoomed out: the size s with top - (floor - Margin(s)) = 2s, for whichever margin is the larger.
+            float needed = Mathf.Max((top - floor + floorMargin) * 0.5f, (top - floor + reserveGap) / (2f * (1f - reserve)));
             float zoomed = Mathf.Min(needed, maxOrthographicSize);
-            return (zoomed < needed ? top - zoomed : (top + bottom) * 0.5f, zoomed);
+            return (top - zoomed, zoomed);
         }
 
         // Height of the nearest ground (Ground / BreakableFloor tilemap) below the target, looking through platforms,

@@ -14,8 +14,8 @@ namespace FarmFuryStampede.Data
         [TextArea]
         public string abilityDescription;
 
-        [Tooltip("PLAYTEST-TUNING PLACEHOLDER, not a balance decision: how many times the ability can be used per level attempt.")]
-        public int abilityUsesPerLevel = 3;
+        [Tooltip("Seconds after each use before the ability can be used again (Arcade's cooldown model). The HUD lets the player skip it for coins or a rewarded ad.")]
+        public float abilityCooldown = 5f;
 
         [Header("Unlock")]
         [Tooltip("Number of distinct levels the player must have completed before this character unlocks (GDD ladder: 0, 0, 5, 10, 15, 20, 30, 40).")]

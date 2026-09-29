@@ -14,7 +14,7 @@ namespace FarmFuryStampede.LevelSystem
     /// twinkles so it reads as "take me, something will happen". Any character can eat it: that saves it
     /// (SaveManager.CollectRarePellet, once per level), unlocks the next locked character, and raises
     /// <see cref="Collected"/>, which the UI turns into the celebration (RarePelletCelebration). A pellet already
-    /// found shows as a faint ghost that does nothing, so the player can see this level's pellet is done.
+    /// found is not shown at all (it used to be a faint ghost, which read as a broken pickup).
     /// </summary>
     [RequireComponent(typeof(Collider2D))]
     public class RarePelletPickup : MonoBehaviour
@@ -28,14 +28,13 @@ namespace FarmFuryStampede.LevelSystem
         private const float PulseAmount = 0.06f, PulseSpeed = 3.1f;
         private const float GlowSize = 2.4f;   // world units across the halo
         private const int SparkleCount = 4;
-        private const float GhostAlpha = 0.3f;
 
         private static Sprite _glowSprite, _sparkleSprite;
 
         private Vector3 _home, _baseScale;
         private SpriteRenderer _glow;
         private readonly List<SpriteRenderer> _sparkles = new();
-        private bool _collected, _ghost;
+        private bool _collected;
         private float _phase;
 
         private void Start()
@@ -47,10 +46,9 @@ namespace FarmFuryStampede.LevelSystem
 
             string levelId = GameManager.Instance != null && GameManager.Instance.CurrentLevel != null
                 ? GameManager.Instance.CurrentLevel.levelId : null;
-            _ghost = levelId != null && SaveManager.Instance != null && SaveManager.Instance.IsRarePelletFound(levelId);
-            if (_ghost)
+            if (levelId != null && SaveManager.Instance != null && SaveManager.Instance.IsRarePelletFound(levelId))
             {
-                visual.color = new Color(1f, 1f, 1f, GhostAlpha);
+                gameObject.SetActive(false);
                 return;
             }
 
@@ -67,8 +65,6 @@ namespace FarmFuryStampede.LevelSystem
 
             float t = Time.time + _phase;
             visual.transform.localPosition = _home + Vector3.up * (Mathf.Sin(t * BobSpeed) * BobHeight);
-            if (_ghost) { return; }
-
             float pulse = 1f + Mathf.Sin(t * PulseSpeed) * PulseAmount;
             visual.transform.localScale = _baseScale * pulse;
             _glow.transform.localPosition = visual.transform.localPosition;
@@ -89,7 +85,7 @@ namespace FarmFuryStampede.LevelSystem
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            if (_collected || _ghost || other.GetComponentInParent<CharacterController2D>() == null)
+            if (_collected || other.GetComponentInParent<CharacterController2D>() == null)
             {
                 return;
             }
