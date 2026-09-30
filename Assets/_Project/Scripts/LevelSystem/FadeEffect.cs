@@ -16,10 +16,20 @@ namespace FarmFuryStampede.LevelSystem
         [SerializeField] private float endScale = 1.1f;
 
         private float _time;
+        private float _size = 1f;
 
         private void OnEnable()
         {
             _time = 0f;
+            _size = 1f;
+            Apply(0f);
+        }
+
+        /// <summary>Restarts the effect drawn 'size' times its normal size (call right after taking it from the pool).</summary>
+        public void Play(float size)
+        {
+            _time = 0f;
+            _size = size;
             Apply(0f);
         }
 
@@ -36,7 +46,7 @@ namespace FarmFuryStampede.LevelSystem
 
         private void Apply(float t)
         {
-            transform.localScale = Vector3.one * Mathf.Lerp(startScale, endScale, t);
+            transform.localScale = Vector3.one * (Mathf.Lerp(startScale, endScale, t) * _size);
             if (visual != null)
             {
                 var c = visual.color;

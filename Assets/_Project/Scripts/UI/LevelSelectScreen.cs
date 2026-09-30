@@ -19,7 +19,11 @@ namespace FarmFuryStampede.UI
     /// (scaled by how much of its frame the art fills) in an evenly spaced grid sized for 12 slots (11 levels + boss,
     /// two rows of six) inside the device safe area and below the backdrop's title, so tiles never overlap each
     /// other, the title or a notch; a short last row is centred. The backdrop covers the screen with any overflow
-    /// cropped off the bottom, never the top, so the baked-in title stays whole and inside the safe area.
+    /// cropped off the bottom, never the top, so the baked-in title stays whole and inside the safe area. On screens
+    /// wider than the art it is drawn <see cref="TitleShrink"/> smaller than a plain cover fit (so the title is
+    /// smaller), its side edges mirrored outwards to fill the width. The boss shield is drawn bigger than a level
+    /// tile; once beaten, its star board is the same size as every other board. The round back button sits in the
+    /// bottom-left corner of the safe area, and the grid keeps clear of it.
     /// A world without a backdrop keeps the plain code-built card grid (numbers, names, stars, the secret "?" icon).
     /// </summary>
     public class LevelSelectScreen
@@ -37,6 +41,7 @@ namespace FarmFuryStampede.UI
             public float artScale;          // art rect size / tile size (art look)
             public Vector2 artOffset;       // art centre offset, in art-rect sizes (art look)
             public RectTransform art;       // art look
+            public bool big;                // art look: the boss shield, drawn BossScale bigger
         }
 
         public GameObject Root { get; private set; }
@@ -49,7 +54,8 @@ namespace FarmFuryStampede.UI
         private readonly Text _empty;
         private readonly Action<LevelData> _onPick;
         private readonly MenuArt _art;
-        private readonly Image _backdrop;
+        private readonly RawImage _backdrop;
+        private float _imageHeight;
         private readonly Button _plainBack;
         private readonly Button _artBack;
         private bool _artLook;
@@ -64,12 +70,15 @@ namespace FarmFuryStampede.UI
         private const float TitleBand = 0.37f;
         private const float EdgeMargin = 16f;          // inside the safe area
         private const float TileFill = 0.8f;           // tile size as a fraction of its cell: the rest is the gap
-        // Columns are at most this many tile widths apart (the grid centred), so on wide screens the tiles don't
-        // spread across the whole width with big gaps between them.
-        private const float MaxColumnPitch = 1.4f;
-        // The boss slot is drawn this much bigger than a level tile. It still clears its neighbours: at the column
-        // pitch (0.65 + 0.5 < 1.4 tiles) and the row pitch (0.65 + 0.5 < 1 / TileFill = 1.25 tiles).
+        // Columns and rows are at most this many tile widths apart (the grid centred), so the tiles sit close
+        // together instead of spreading across the whole screen with big gaps between them.
+        private const float MaxPitch = 1.2f;
+        // The boss shield is drawn this much bigger than a level tile (its star board, once beaten, is not). It
+        // still clears its neighbours at the column and row pitch (0.65 + 0.5 < 1.2 tiles).
         private const float BossScale = 1.3f;
+        // The backdrop (and so its baked-in title) is drawn this much smaller than a cover fit, where the screen
+        // is wide enough that it still covers the height; the uncovered width is filled by mirroring its edges.
+        private const float TitleShrink = 0.88f;
         // Art rect relative to the tile, so every tile's visible art is the same height. Measured off the 500px art:
         // the padlock / question plaques and the boss shield fill ~99% of their frame; the Cluck boards have a
         // transparent margin (the board is 70% of the frame tall) and sit off-centre in it, so their rect is bigger
@@ -89,8 +98,11 @@ namespace FarmFuryStampede.UI
             UIKit.Stretch(root);
             Root = root.gameObject;
             Root.AddComponent<Image>().color = UIKit.Dark;
-            _backdrop = UIKit.Backdrop(root);
-            _backdrop.rectTransform.pivot = new Vector2(0.5f, 1f);   // crop overflow off the bottom, keep the title whole
+            // Top-anchored (overflow cropped off the bottom, the title kept whole); sized by LayoutBackdrop.
+            _backdrop = UIKit.NewRect("Backdrop", root).gameObject.AddComponent<RawImage>();
+            _backdrop.raycastTarget = false;
+            _backdrop.transform.SetAsFirstSibling();
+            _backdrop.gameObject.SetActive(false);
 
             _title = UIKit.Label(root, "Title", "", 60, TextAnchor.MiddleCenter, UIKit.Accent);
             UIKit.Place(_title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(1300f, 90f));
@@ -106,10 +118,10 @@ namespace FarmFuryStampede.UI
             _plainBack = UIKit.MakeButton(safe, "BackButton", "< Worlds", new Color(0.25f, 0.3f, 0.45f, 1f), () => onBack?.Invoke(), 34);
             UIKit.Place(_plainBack.image.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(40f, -40f), new Vector2(240f, 70f));
 
-            // Mockup back button: round wooden button in the top-left corner of the safe area.
+            // Round wooden back button in the bottom-left corner of the safe area.
             _artBack = UIKit.MakeButton(safe, "BackButtonRound", _art.backButton != null ? "" : "<",
                 new Color(0.62f, 0.38f, 0.17f, 1f), () => onBack?.Invoke(), 72);
-            UIKit.Place(_artBack.image.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(EdgeMargin, -EdgeMargin),
+            UIKit.Place(_artBack.image.rectTransform, Vector2.zero, Vector2.zero, new Vector2(EdgeMargin, EdgeMargin),
                 new Vector2(BackButtonSize, BackButtonSize));
             if (_art.backButton != null)
             {
@@ -132,7 +144,13 @@ namespace FarmFuryStampede.UI
             _title.text = data != null ? data.displayName : world.ToString();
             var background = data != null ? data.levelSelectBackground : null;
             _artLook = background != null && _art.levelTileLocked != null;
-            UIKit.SetBackdrop(_backdrop, background);
+            _backdrop.gameObject.SetActive(background != null);
+            if (background != null)
+            {
+                // The sprite fills its texture. Mirror wrapping lets LayoutBackdrop widen it past its own edges.
+                background.texture.wrapMode = TextureWrapMode.Mirror;
+                _backdrop.texture = background.texture;
+            }
             _title.gameObject.SetActive(background == null);   // the backdrop has the world name baked in
             _plainBack.gameObject.SetActive(!_artLook);
             _artBack.gameObject.SetActive(_artLook);
@@ -194,6 +212,7 @@ namespace FarmFuryStampede.UI
             {
                 sprite = _art.bossShield;   // the boss keeps its badge, locked or not
                 tile.artScale = ShieldScale;
+                tile.big = true;
             }
             else if (!tile.unlocked)
             {
@@ -236,6 +255,7 @@ namespace FarmFuryStampede.UI
         /// </summary>
         private void Layout()
         {
+            LayoutBackdrop();
             if (!_artLook || _tiles.Count == 0)
             {
                 return;
@@ -244,23 +264,25 @@ namespace FarmFuryStampede.UI
             var size = ((RectTransform)Root.transform).rect.size;
             float w = size.x, h = size.y;
             var (safeMin, safeMax) = SafeAreaFitter.Normalized();
-            float left = -w * 0.5f + safeMin.x * w + EdgeMargin;
-            float right = -w * 0.5f + safeMax.x * w - EdgeMargin;
+            // Both sides keep clear of the back button's column, so the bottom row never runs under it.
+            float side = EdgeMargin + BackButtonSize + EdgeMargin;
+            float left = -w * 0.5f + safeMin.x * w + side;
+            float right = -w * 0.5f + safeMax.x * w - side;
             float bottom = -h * 0.5f + safeMin.y * h + EdgeMargin;
             float safeTop = -h * 0.5f + safeMax.y * h;
 
-            // The backdrop covers the screen with its top edge on the screen's top, so its title band hangs from there.
-            var sprite = _backdrop.sprite;
-            float aspect = sprite != null ? sprite.rect.width / sprite.rect.height : 16f / 9f;
-            float imageHeight = Mathf.Max(h, w / aspect);
-            float titleBottom = h * 0.5f - imageHeight * TitleBand;
+            // The backdrop's top edge is on the screen's top, so its title band hangs from there.
+            float titleBottom = h * 0.5f - _imageHeight * TitleBand;
             float top = Mathf.Min(titleBottom, safeTop - EdgeMargin);
 
             int rows = Mathf.Max(ArtMinRows, Mathf.CeilToInt(_tiles.Count / (float)ArtColumns));
             float cellW = (right - left) / ArtColumns;
             float cellH = (top - bottom) / rows;
             float tileSize = Mathf.Min(cellW, cellH) * TileFill;
-            cellW = Mathf.Min(cellW, tileSize * MaxColumnPitch);
+            cellW = Mathf.Min(cellW, tileSize * MaxPitch);
+            float bandH = top - bottom;
+            cellH = Mathf.Min(cellH, tileSize * MaxPitch);
+            top -= (bandH - cellH * rows) * 0.5f;   // the rows centred between the title and the bottom edge
             float centreX = (left + right) * 0.5f;
 
             for (int i = 0; i < _tiles.Count; i++)
@@ -270,13 +292,33 @@ namespace FarmFuryStampede.UI
                 var centre = new Vector2(centreX + (col - (inRow - 1) * 0.5f) * cellW, top - cellH * (row + 0.5f));
 
                 var tile = _tiles[i];
-                float slot = tile.level.isBossLevel ? tileSize * BossScale : tileSize;
+                float slot = tile.big ? tileSize * BossScale : tileSize;
                 UIKit.Place((RectTransform)tile.root.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), centre,
                     new Vector2(slot, slot));
                 float artSize = slot * tile.artScale;
                 UIKit.Place(tile.art, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), tile.artOffset * artSize,
                     Vector2.one * artSize);
             }
+        }
+
+        /// <summary>
+        /// Sizes the backdrop: hung from the top of the screen, TitleShrink smaller than a cover fit but never
+        /// shorter than the screen; where that leaves it narrower than the screen, the UVs run past its edges
+        /// (mirror wrap) to fill the width.
+        /// </summary>
+        private void LayoutBackdrop()
+        {
+            var size = ((RectTransform)Root.transform).rect.size;
+            var texture = _backdrop.texture;
+            float aspect = texture != null ? texture.width / (float)texture.height : 16f / 9f;
+            _imageHeight = Mathf.Max(size.y, Mathf.Max(size.y, size.x / aspect) * TitleShrink);
+            float imageWidth = _imageHeight * aspect;
+            float width = Mathf.Max(size.x, imageWidth);
+
+            UIKit.Place(_backdrop.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), Vector2.zero,
+                new Vector2(width, _imageHeight));
+            float u = width / imageWidth;
+            _backdrop.uvRect = new Rect((1f - u) * 0.5f, 0f, u, 1f);
         }
 
         // ------------------------------------------------------------ plain look

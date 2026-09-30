@@ -7,34 +7,40 @@ using UnityEngine;
 namespace FarmFuryStampede.Characters
 {
     /// <summary>
-    /// Horace: contextual. On the ground the button is a Rear Vault, a jump noticeably taller than the shared
-    /// base jump (this is the one place a character jumps higher, and it is an ability effect, not a base
-    /// stat). In the air it throws a horseshoe forward that defeats one robot at range. Each use, of either
-    /// kind, spends one of the level's ability uses.
+    /// Horace: throws a horseshoe forward in a short arc, on the ground or in the air, that defeats the first
+    /// robot it hits - the same launch as Cluck's egg. (Was contextual: a taller Rear Vault on the ground and a
+    /// straight throw only in the air; the class and enum keep the old name so saved CharacterData still match.)
     /// </summary>
     public class RearVaultThrowAbility : CharacterAbility
     {
-        public const float VaultHeight = 5.5f;
+        private const float LaunchVisualSeconds = 0.2f;
+
+        private float _visualTimer;
 
         public override AbilityType Type => AbilityType.RearVaultThrow;
+        public override bool IsActive => _visualTimer > 0f;
 
-        public override bool CanActivate(CharacterController2D owner)
-        {
-            bool canVault = owner.IsGrounded || owner.CoyoteAvailable;
-            return canVault || owner.Prefabs.horseshoe != null;
-        }
+        public override bool CanActivate(CharacterController2D owner) => owner.Prefabs.horseshoe != null;
 
         public override void Activate(CharacterController2D owner)
         {
-            if (owner.IsGrounded || owner.CoyoteAvailable)
-            {
-                owner.LaunchToHeight(VaultHeight);
-                return;
-            }
-
-            Vector3 origin = owner.Position + new Vector2(owner.Facing * 0.6f, 0.1f);
+            _visualTimer = LaunchVisualSeconds;
+            Vector3 origin = owner.Position + new Vector2(owner.Facing * 0.6f, 0.4f);
             var go = ObjectPool.Instance.Get(owner.Prefabs.horseshoe, origin);
             go.GetComponent<Horseshoe>().Launch(owner.Facing);
         }
+
+        public override void Tick(CharacterController2D owner, float dt)
+        {
+            _visualTimer = Mathf.Max(0f, _visualTimer - dt);
+        }
+
+        public override void Reset(CharacterController2D owner)
+        {
+            _visualTimer = 0f;
+        }
+
+        // Placeholder-art feedback: a quick squash as the horseshoe leaves.
+        public override Vector2 VisualScale => _visualTimer > 0f ? new Vector2(1.08f, 0.92f) : Vector2.one;
     }
 }

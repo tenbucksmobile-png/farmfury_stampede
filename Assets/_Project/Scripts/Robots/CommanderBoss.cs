@@ -13,7 +13,8 @@ namespace FarmFuryStampede.Robots
     /// the next world (LevelData.isBossLevel) and calls EndLevel(completed: true).
     ///
     /// The fight:
-    ///  * The Commander patrols the arena like a big ground robot (GroundPatrolRobot: turns at walls/ledges).
+    ///  * The Commander patrols the arena like a big ground robot (GroundPatrolRobot: turns at walls/ledges),
+    ///    drawn hovering slightly above the ground (Robot_right / Robot_left art, swapped as it turns).
     ///  * It needs <see cref="hitsToDefeat"/> hits (stomps, or Percy/Gerald/Bessie ability contact, or a horseshoe).
     ///  * Each hit that lands staggers it for <see cref="staggerSeconds"/>: it stops, flashes, cannot be hit again
     ///    and cannot hurt the player, so it can't be chain-stomped and the player can safely reposition.
@@ -38,7 +39,32 @@ namespace FarmFuryStampede.Robots
         public int HitsToDefeat => hitsToDefeat;
         public bool IsStaggered => _staggerLeft > 0f;
 
+        [Header("Hover (visual only: the body and its contact zones stay on the ground line)")]
+        [SerializeField] private float hoverHeight = 0.35f;
+        [SerializeField] private float bobAmplitude = 0.12f;
+        [SerializeField] private float bobsPerSecond = 0.6f;
+
         private float _staggerLeft;
+        private Vector3 _visualRest;
+
+        protected override void Awake()
+        {
+            base.Awake();
+            if (visual != null)
+            {
+                _visualRest = visual.transform.localPosition;
+            }
+        }
+
+        // Floats just above the ground, bobbing gently, as it patrols left and right.
+        private void Update()
+        {
+            if (visual != null)
+            {
+                float bob = Mathf.Sin(Time.time * bobsPerSecond * 2f * Mathf.PI) * bobAmplitude;
+                visual.transform.localPosition = _visualRest + Vector3.up * (hoverHeight + bob);
+            }
+        }
 
         protected override void OnEnable()
         {

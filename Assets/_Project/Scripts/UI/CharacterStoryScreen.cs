@@ -64,8 +64,8 @@ namespace FarmFuryStampede.UI
                 "through the gate. She doesn't wait for trouble to find her: lob an egg at a robot, on the ground or " +
                 "in mid-air, and its day ends early.") },
             { CharacterType.Bessie, ("Ground Pound", "What Bessie lacks in speed she makes up for in sheer presence. " +
-                "She drops like a boulder and slams the ground - cracked floors shatter, and any robot underneath is " +
-                "finished on the spot.") },
+                "She slams the ground - cracked floors shatter, and an earthquake runs ahead of her to flatten " +
+                "the first robot in its path.") },
             { CharacterType.Percy, ("Roll Dash", "Percy may look built for napping, but tuck him into a ball and " +
                 "he's the fastest thing in the field. His roll flattens any robot in his path and carries him " +
                 "straight over small gaps.") },
@@ -73,8 +73,8 @@ namespace FarmFuryStampede.UI
                 "up a puff of wool and bounces off it, climbing to ledges no one else can reach.") },
             { CharacterType.Ducky, ("Skip Dash", "No pond, stream or flooded ruin has ever slowed Ducky down. She " +
                 "skims across the surface in a flash - the only one of the Squad right at home in the water.") },
-            { CharacterType.Horace, ("Rear Vault & Horseshoe Throw", "Horace doesn't run from a fight - he throws it. " +
-                "On the ground he rears up into a towering leap; in the air a spinning horseshoe knocks a robot, " +
+            { CharacterType.Horace, ("Horseshoe Throw", "Horace doesn't run from a fight - he throws it. " +
+                "On the ground or in mid-air, he lobs a spinning horseshoe that knocks a robot, " +
                 "even a flying Drone, clean out of the sky.") },
             { CharacterType.Gerald, ("Puff Glide", "Gerald's temper is legendary, and when he puffs up the whole " +
                 "farm knows it. Swollen to twice his size he floats gently across chasms, bowling over any robot he " +

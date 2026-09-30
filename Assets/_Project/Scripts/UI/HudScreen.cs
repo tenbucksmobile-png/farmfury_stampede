@@ -244,7 +244,9 @@ namespace FarmFuryStampede.UI
             if (sprite != null)
             {
                 image.sprite = sprite;
-                image.preserveAspect = true;
+                // Fills the whole ControlSize box: left.png is 287x256, so keeping its aspect drew it ~11% smaller
+                // than the (square) art of every other button in the row.
+                image.preserveAspect = false;
             }
             else
             {

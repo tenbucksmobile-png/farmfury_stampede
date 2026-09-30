@@ -8,10 +8,10 @@ namespace FarmFuryStampede.UI
 {
     /// <summary>
     /// Settings -> Leaderboards, per the Leaderboard mockup (Leaderboard_Mock.png): the Farm Fury Stampede logo in
-    /// the top-left corner, the LeaderBoard sign top-right and the nine world names as lettering in three rows of
-    /// three over the wooden sign: the story worlds in the mockup's order (Meadow Ruins, Watermill Village, Frozen
-    /// Tundra / Sky Island, Sunken City, Mothership), then the paid worlds (Dustbowl Canyon, Harvest Fairground, Crop
-    /// Factory), on an even grid. Locked worlds - including a paid world not yet bought - are greyed. Tapping an unlocked world opens its
+    /// the top-left corner, the LeaderBoard sign top-right and the nine world names as lettering scattered
+    /// over the whole board (since 2026-09-30; was an even 3x3 grid that left the right side empty): the story
+    /// worlds in the mockup's order (Meadow Ruins, Watermill Village, Frozen Tundra, Sky Island, Sunken City,
+    /// Mothership), then the paid worlds (Dustbowl Canyon, Harvest Fairground, Crop Factory). Locked worlds - including a paid world not yet bought - are greyed. Tapping an unlocked world opens its
     /// <see cref="WorldDetailScreen"/>; a locked purchase-gated world opens the world shop; any other locked world
     /// says how to unlock it. The records are this device's own (no online board until the shared backend exists).
     /// </summary>
@@ -24,11 +24,17 @@ namespace FarmFuryStampede.UI
             WorldType.SkyIslands, WorldType.SunkenCity, WorldType.RobotMothership,
             WorldType.DustbowlCanyon, WorldType.HarvestFairground, WorldType.CropFactory,
         };
-        // Name slots: equal column pitch (275) and row pitch (150), sized so neighbouring names never touch, the
-        // right column clear of the LeaderBoard sign (x 862) and the bottom row clear of the hint line.
-        private static readonly float[] ColumnX = { 170f, 445f, 720f };
-        private static readonly float[] RowY = { 265f, 415f, 565f };
-        private const float NameWidth = 255f, NameHeight = 138f;
+        // Name slots (centres, mockup pixels), scattered over the whole board rather than on a grid: one between the
+        // logo and the LeaderBoard sign, then two staggered bands of four. No two slots overlap, and all stay inside
+        // the board (so inside the safe area), clear of the logo, the sign (x 862-1188, down to y 226), the back
+        // button (from x 1120, y 576) and the hint line (y 652). Re-check those when moving one.
+        private static readonly Vector2[] NameCentres =
+        {
+            new(545f, 100f),
+            new(175f, 265f), new(470f, 300f), new(775f, 310f), new(1090f, 330f),
+            new(200f, 470f), new(500f, 530f), new(795f, 500f), new(1085f, 495f),
+        };
+        private const float NameWidth = 280f, NameHeight = 145f;
         private static readonly Rect LogoBox = new(36f, 22f, 190f, 134f);
         private static readonly Rect HintBox = new(100f, 652f, 700f, 40f);
         private static readonly Color LockedTint = new(0.55f, 0.55f, 0.55f, 0.8f);
@@ -68,7 +74,7 @@ namespace FarmFuryStampede.UI
                     var text = OutlinedText(button.transform, "Name", WorldName(world), ValueGold);
                     UIKit.Stretch(text.rectTransform);
                 }
-                PlaceInArt(button.image.rectTransform, Centred(ColumnX[i % 3], RowY[i / 3], NameWidth, NameHeight));
+                PlaceInArt(button.image.rectTransform, Centred(NameCentres[i].x, NameCentres[i].y, NameWidth, NameHeight));
                 _names[i] = button;
             }
 

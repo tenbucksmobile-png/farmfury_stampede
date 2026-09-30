@@ -5,19 +5,23 @@ using UnityEngine;
 namespace FarmFuryStampede.LevelSystem
 {
     /// <summary>
-    /// Horace's thrown horseshoe: flies straight, defeats the first robot it touches (then vanishes), and is
-    /// stopped by ground or by running out its short lifetime. Moved with MovePosition on a kinematic body.
+    /// Horace's thrown horseshoe: lobbed forward in the same arc as Cluck's egg, it defeats the first robot it
+    /// touches (then vanishes), and is stopped by ground or by running out its lifetime. Moved with MovePosition
+    /// on a kinematic body.
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D), typeof(PooledObject))]
     public class Horseshoe : MonoBehaviour
     {
-        [SerializeField] private float speed = 16f;
-        [SerializeField] private float lifetime = 1.2f;
+        [SerializeField] private float forwardSpeed = 13f;
+        [SerializeField] private float upwardSpeed = 5f;
+        [SerializeField] private float gravity = 22f;
+        [SerializeField] private float lifetime = 1.6f;
         [SerializeField] private float spinDegreesPerSecond = 720f;
         [SerializeField] private LayerMask groundMask;
 
         private Rigidbody2D _body;
         private Vector2 _position;
+        private Vector2 _velocity;
         private int _direction = 1;
         private float _timeLeft;
         private bool _spent;
@@ -32,10 +36,11 @@ namespace FarmFuryStampede.LevelSystem
             }
         }
 
-        /// <summary>Starts the flight from the current position, heading left (-1) or right (+1).</summary>
+        /// <summary>Starts the arc from the current position, heading left (-1) or right (+1).</summary>
         public void Launch(int direction)
         {
             _direction = direction;
+            _velocity = new Vector2(direction * forwardSpeed, upwardSpeed);
             _timeLeft = lifetime;
             _spent = false;
             _position = transform.position;
@@ -49,8 +54,10 @@ namespace FarmFuryStampede.LevelSystem
                 return;
             }
 
-            _timeLeft -= Time.fixedDeltaTime;
-            _position.x += _direction * speed * Time.fixedDeltaTime;
+            float dt = Time.fixedDeltaTime;
+            _timeLeft -= dt;
+            _velocity.y -= gravity * dt;
+            _position += _velocity * dt;
             _body.MovePosition(_position);
 
             if (_timeLeft <= 0f || Physics2D.OverlapPoint(_position, groundMask) != null)

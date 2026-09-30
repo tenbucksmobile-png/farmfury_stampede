@@ -89,11 +89,15 @@ namespace FarmFuryStampede.EditorTools
         private const float RobotFeetY = -0.5f;        // ground robots spawn 0.5 above the ground (LevelBuilder)
         private const float BossFeetY = -1.0f;         // the Commander spawns 1.0 above the ground
         private const string DroneArtFile = "Drone.png"; // flies, so stays centre-pivoted
+        // The Commander boss. Its two frames differ in height (472 / 500 px) but are drawn at the same scale, so
+        // both import at the standard 500px-frame scale instead of each being stretched to the same height.
+        private const string BossArtRight = "Robot_right.png", BossArtLeft = "Robot_left.png";
 
         // Draw sizes relative to the standard 1.5-unit animal (visual only; colliders are shared).
         private static readonly Dictionary<CharacterType, float> VisualScales = new()
         {
             { CharacterType.Bessie, 1.3f },   // the cow reads bigger than the chicken
+            { CharacterType.Horace, 1.4f },   // the horse is the biggest of the Squad
         };
 
         // Identical for every character by design (GDD/Phase 4 Section 1).
@@ -116,7 +120,7 @@ namespace FarmFuryStampede.EditorTools
             new CharacterSpec { type = CharacterType.Cluck, displayName = "Cluck the Chicken", ability = AbilityType.EggLaunch, unlockLevels = 0, ui = new Color(1f, 0.9f, 0.4f),
                 description = "Egg Launch: lobs an egg forward, on the ground or in the air, that defeats the first robot it hits." },
             new CharacterSpec { type = CharacterType.Bessie, displayName = "Bessie the Cow", ability = AbilityType.GroundPound, unlockLevels = 0, ui = new Color(0.95f, 0.95f, 0.95f),
-                description = "Ground Pound: a forced fast-fall; on landing breaks Breakable Floor tiles nearby and defeats robots beneath her." },
+                description = "Ground Pound: slams the ground (a fast-fall first when in the air), breaking Breakable Floor tiles nearby and sending a quake ahead that flattens the first robot it reaches." },
             new CharacterSpec { type = CharacterType.Percy, displayName = "Percy the Pig", ability = AbilityType.RollDash, unlockLevels = 5, ui = new Color(1f, 0.65f, 0.75f),
                 description = "Roll Dash: curls up and dashes forward, defeating robots on contact and crossing small gaps." },
             new CharacterSpec { type = CharacterType.Woolly, displayName = "Woolly the Sheep", ability = AbilityType.CloudStep, unlockLevels = 10, ui = new Color(0.98f, 0.95f, 0.85f),
@@ -124,7 +128,7 @@ namespace FarmFuryStampede.EditorTools
             new CharacterSpec { type = CharacterType.Ducky, displayName = "Ducky the Duck", ability = AbilityType.SkipDash, unlockLevels = 15, ui = new Color(0.4f, 0.8f, 0.75f),
                 description = "Skip Dash: skims forward across the surface; the only character unaffected by Water tiles." },
             new CharacterSpec { type = CharacterType.Horace, displayName = "Horace the Horse", ability = AbilityType.RearVaultThrow, unlockLevels = 20, ui = new Color(0.65f, 0.45f, 0.25f),
-                description = "Rear Vault & Horseshoe Throw: on the ground a much taller jump; in the air throws a horseshoe that defeats one robot at range." },
+                description = "Horseshoe Throw: lobs a horseshoe forward, on the ground or in the air, that defeats one robot at range." },
             new CharacterSpec { type = CharacterType.Gerald, displayName = "Gerald the Turkey", ability = AbilityType.PuffGlide, unlockLevels = 30, ui = new Color(0.55f, 0.35f, 0.25f),
                 description = "Puff Glide: inflates and slow-falls for a few seconds, crossing chasms; defeats robots on contact while inflated." },
             new CharacterSpec { type = CharacterType.Billy, displayName = "Billy the Goat", ability = AbilityType.ChargeBreak, unlockLevels = 40, ui = new Color(0.78f, 0.78f, 0.82f),
@@ -237,7 +241,7 @@ namespace FarmFuryStampede.EditorTools
             BuildRobotPrefab<ChaserRobot>("Chaser", RobotType.Chaser, chaserSprite, ChaserPrefabPath,
                 art: RobotArt("DriftRobot_right.png", "DriftRobot_left.png", "Robot_defeated.png"));
             BuildRobotPrefab<CommanderBoss>("Commander", RobotType.Commander, commanderSprite, CommanderPrefabPath, bossSize: true,
-                art: RobotArt("Commander_Alert.png", null, "Commander_Defeated.png"));
+                art: RobotArt(BossArtRight, BossArtLeft, "Commander_Defeated.png"));
             BuildBarrierUnitPrefab(barrierUnitSprite, groundLayer);
             BuildCheckpointPrefab(square);
             BuildGoalPrefab(square);
@@ -1203,8 +1207,10 @@ namespace FarmFuryStampede.EditorTools
                 // Every ground robot's frame is drawn ActorVisualHeight tall whatever its pixel size (the 500px Meadow
                 // Ruins frames come out as before; Frozen Tundra's 256/426px frames match them).
                 importer.GetSourceTextureWidthAndHeight(out _, out int frameHeight);
-                bool drone = Path.GetFileName(assetPath) == DroneArtFile;
-                importer.spritePixelsPerUnit = drone ? ArtPixelsPerUnit : Mathf.Max(1, frameHeight) / ActorVisualHeight;
+                string fileName = Path.GetFileName(assetPath);
+                bool drone = fileName == DroneArtFile;
+                bool fixedScale = drone || fileName == BossArtRight || fileName == BossArtLeft;
+                importer.spritePixelsPerUnit = fixedScale ? ArtPixelsPerUnit : Mathf.Max(1, frameHeight) / ActorVisualHeight;
                 StampedeUIArt.SetPivot(importer, drone ? CentrePivot : FeetPivot);
                 importer.filterMode = FilterMode.Bilinear;
                 importer.mipmapEnabled = false;
