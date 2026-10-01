@@ -21,6 +21,12 @@ namespace FarmFuryStampede.Data
         public Sprite selectCardArt;
         [Tooltip("Full-screen Level Select backdrop (world name baked in along the top). Null = plain dark screen with the name as text.")]
         public Sprite levelSelectBackground;
+        [Tooltip("This world's Level Complete backdrop (title, logo and three gold stars painted in where Meadow Ruins' are). Null = the shared MenuArt one.")]
+        public Sprite levelCompleteBackground;
+        [Tooltip("This world's Level Failed backdrop (title and logo painted in). Null = the shared MenuArt one.")]
+        public Sprite levelFailedBackground;
+        [Tooltip("This world's New Character page backdrop (logo painted in, no lettering). Null = the shared MenuArt one.")]
+        public Sprite newCharacterBackground;
 
         [Header("Unlock")]
         [Tooltip("Star threshold required to unlock this world. Purchase-gated worlds use purchaseRequired instead.")]

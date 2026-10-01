@@ -91,7 +91,7 @@ namespace FarmFuryStampede.EditorTools
         private const string DroneArtFile = "Drone.png"; // flies, so stays centre-pivoted
         // The Commander boss. Its two frames differ in height (472 / 500 px) but are drawn at the same scale, so
         // both import at the standard 500px-frame scale instead of each being stretched to the same height.
-        private const string BossArtRight = "Robot_right.png", BossArtLeft = "Robot_left.png";
+        private const string BossArtRight = "Robot_right.png", BossArtLeft = "Robot_left.png", BossArtDefeated = "Commander_Defeated.png";
 
         // Draw sizes relative to the standard 1.5-unit animal (visual only; colliders are shared).
         private static readonly Dictionary<CharacterType, float> VisualScales = new()
@@ -233,15 +233,15 @@ namespace FarmFuryStampede.EditorTools
             BuildPlayerPrefab(groundLayer, playerLayer);
             BuildCropPrefab(cropSprite);
             BuildRobotPrefab<HarvesterRobot>("Harvester", RobotType.Harvester, harvesterSprite, HarvesterPrefabPath,
-                art: RobotArt("Robot_Harvest_right.png", "Robot_Harvest_left.png", "Robot_defeated.png"));
+                art: RobotArt("Robot_Harvest_right.png", "Robot_Harvest_left.png", null));
             BuildRobotPrefab<DroneRobot>("Drone", RobotType.Drone, droneSprite, DronePrefabPath,
                 art: RobotArt("Drone.png", null, null));
             BuildRobotPrefab<ScoutRobot>("Scout", RobotType.Scout, scoutSprite, ScoutPrefabPath,
-                art: RobotArt("ScoutRobot_right.png", "ScoutRobot_left.png", "Robot_defeated.png"));
+                art: RobotArt("ScoutRobot_right.png", "ScoutRobot_left.png", null));
             BuildRobotPrefab<ChaserRobot>("Chaser", RobotType.Chaser, chaserSprite, ChaserPrefabPath,
-                art: RobotArt("DriftRobot_right.png", "DriftRobot_left.png", "Robot_defeated.png"));
+                art: RobotArt("DriftRobot_right.png", "DriftRobot_left.png", null), visualScale: ChaserVisualScale);
             BuildRobotPrefab<CommanderBoss>("Commander", RobotType.Commander, commanderSprite, CommanderPrefabPath, bossSize: true,
-                art: RobotArt(BossArtRight, BossArtLeft, "Commander_Defeated.png"));
+                art: RobotArt(BossArtRight, BossArtLeft, BossArtDefeated));
             BuildBarrierUnitPrefab(barrierUnitSprite, groundLayer);
             BuildCheckpointPrefab(square);
             BuildGoalPrefab(square);
@@ -593,6 +593,14 @@ namespace FarmFuryStampede.EditorTools
             (RobotType.Scout, "GlacierHarvestor_Right.png", "GlacierHarvestor_left.png"),
         };
 
+        // The Tundra robots are drawn this much bigger than the 1.5-unit Meadow ones (2.1 units tall), from the feet
+        // up; their colliders stay the prefab's. (2026-10-01: at 1.5 they read as very small next to the Tundra props.)
+        private const float TundraRobotScale = 1.4f;
+
+        // The Chaser (DriftRobot art) is drawn this much bigger than the other 1.5-unit robots in every world
+        // (2026-10-01: enlarged at the user's request); its colliders stay the standard size.
+        private const float ChaserVisualScale = 1.4f;
+
         /// <summary>
         /// Frozen Tundra's level kit: Meadow Ruins' assets with the Tundra art swapped in - frosted-grass surface,
         /// ice and wooden breakable tiles, snow-slab platforms, ice-block steps, ice boulders, ice-barrel pyramids,
@@ -625,9 +633,10 @@ namespace FarmFuryStampede.EditorTools
             tundra.robotArt = new Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)>();
             foreach (var (type, right, left) in TundraRobotArt)
             {
-                var art = RobotArt(right, left, "Robot_defeated.png");
+                var art = RobotArt(right, left, null);
                 if (art.right != null) { tundra.robotArt[type] = art; }
             }
+            tundra.robotArtScale = TundraRobotScale;
             return tundra;
         }
 
@@ -866,7 +875,7 @@ namespace FarmFuryStampede.EditorTools
         }
 
         private static void BuildRobotPrefab<T>(string prefabName, RobotType type, Sprite sprite, string path, bool bossSize = false,
-            (Sprite right, Sprite left, Sprite defeat) art = default)
+            (Sprite right, Sprite left, Sprite defeat) art = default, float visualScale = 1f)
             where T : RobotController
         {
             var root = new GameObject(prefabName);
@@ -887,6 +896,11 @@ namespace FarmFuryStampede.EditorTools
             if (bossSize)
             {
                 visualObject.transform.localScale = new Vector3(2f, 2f, 1f);
+            }
+            else if (!Mathf.Approximately(visualScale, 1f))
+            {
+                // Drawn bigger from the feet up (the art is feet-pivoted); the colliders below stay the standard size.
+                visualObject.transform.localScale = new Vector3(visualScale, visualScale, 1f);
             }
 
             // Top slab: only ever stomps. Body: hurts unless the contact qualifies as a stomp.
@@ -1209,7 +1223,7 @@ namespace FarmFuryStampede.EditorTools
                 importer.GetSourceTextureWidthAndHeight(out _, out int frameHeight);
                 string fileName = Path.GetFileName(assetPath);
                 bool drone = fileName == DroneArtFile;
-                bool fixedScale = drone || fileName == BossArtRight || fileName == BossArtLeft;
+                bool fixedScale = drone || fileName == BossArtRight || fileName == BossArtLeft || fileName == BossArtDefeated;
                 importer.spritePixelsPerUnit = fixedScale ? ArtPixelsPerUnit : Mathf.Max(1, frameHeight) / ActorVisualHeight;
                 StampedeUIArt.SetPivot(importer, drone ? CentrePivot : FeetPivot);
                 importer.filterMode = FilterMode.Bilinear;
@@ -1329,6 +1343,9 @@ namespace FarmFuryStampede.EditorTools
                 data.blurb = spec.blurb;
                 data.selectCardArt = StampedeUIArt.WorldSelectCard(spec.type);
                 data.levelSelectBackground = StampedeUIArt.LevelSelectBackground(spec.type);
+                data.levelCompleteBackground = StampedeUIArt.WorldResultsBackground(spec.type, true);
+                data.levelFailedBackground = StampedeUIArt.WorldResultsBackground(spec.type, false);
+                data.newCharacterBackground = StampedeUIArt.WorldNewCharacterBackground(spec.type);
                 data.purchaseRequired = spec.paid;
                 EditorUtility.SetDirty(data);
                 list.Add(data);

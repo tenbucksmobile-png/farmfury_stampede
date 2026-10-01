@@ -38,14 +38,17 @@ namespace FarmFuryStampede.Robots
         [SerializeField] private Sprite defeatSprite;
 
         private Vector3 _visualScale = Vector3.one;
+        private Vector3 _prefabVisualScale = Vector3.one;
         private Sprite _prefabRight, _prefabLeft, _prefabDefeat;
 
         /// <summary>
         /// Gives this (pooled) robot a world's own art for this spawn, or its prefab art back when all are null
         /// (LevelLoader calls it on every spawn, so a reused robot never keeps another world's look).
         /// </summary>
-        public void SetWorldArt(Sprite right, Sprite left, Sprite defeat)
+        /// <param name="scale">The art drawn this many times its prefab size, grown up from its feet (colliders unchanged).</param>
+        public void SetWorldArt(Sprite right, Sprite left, Sprite defeat, float scale = 1f)
         {
+            _visualScale = _prefabVisualScale * (scale > 0f ? scale : 1f);
             bool custom = right != null;
             spriteRight = custom ? right : _prefabRight;
             spriteLeft = custom ? left : _prefabLeft;
@@ -53,6 +56,7 @@ namespace FarmFuryStampede.Robots
             if (visual != null)
             {
                 visual.flipX = false;
+                visual.transform.localScale = _visualScale;
                 if (spriteRight != null) { visual.sprite = spriteRight; }
             }
         }
@@ -92,6 +96,7 @@ namespace FarmFuryStampede.Robots
             if (visual != null)
             {
                 _visualScale = visual.transform.localScale;
+                _prefabVisualScale = _visualScale;
             }
             _prefabRight = spriteRight;
             _prefabLeft = spriteLeft;
@@ -225,6 +230,18 @@ namespace FarmFuryStampede.Robots
             return TakeHit();
         }
 
+        /// <summary>Defeats it outright, whatever it is (the boss's fall takes every robot with it). False if already down.</summary>
+        public bool ForceDefeat()
+        {
+            if (IsDefeated || !gameObject.activeInHierarchy)
+            {
+                return false;
+            }
+
+            Defeat();
+            return true;
+        }
+
         protected void Defeat()
         {
             IsDefeated = true;
@@ -244,8 +261,17 @@ namespace FarmFuryStampede.Robots
                 visual.sprite = defeatSprite;
             }
 
-            StartCoroutine(DefeatEffect());
+            if (!HoldDefeatPose)
+            {
+                StartCoroutine(DefeatEffect());
+            }
         }
+
+        /// <summary>
+        /// True: the defeat sprite stays where it fell until the level unloads (the boss's wreck) instead of the
+        /// usual squash-and-fade back into the pool.
+        /// </summary>
+        protected virtual bool HoldDefeatPose => false;
 
         // Placeholder defeat effect: squash and fade, then return to the pool.
         private IEnumerator DefeatEffect()

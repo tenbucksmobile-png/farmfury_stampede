@@ -11,7 +11,8 @@ namespace FarmFuryStampede.EditorTools
     ///   1-3   Scouts only: 4, 6, 7 - guarding take-offs, landings and the ground under stairs
     ///   4-7   Harvesters join (2, 3, 3, 4) beside 6-7 Scouts
     ///   8-11  the Chaser (DriftRobot art) and Drones join: 1/2 Chasers, 2-4 Drones, 3-4 Harvesters, 6-8 Scouts
-    ///   12    the boss: Commander with a Chaser on the run-in and Drones in the reinforcement waves
+    ///   12    the boss: a long approach (every ordinary type, a Chaser on the fortress wall), then the Commander with
+    ///         Drones in the reinforcement waves
     /// Props to climb recur: hay pyramids (2, 3, 4), stone-block stairs with the coin on top (1, 2, 3), Level 10's
     /// barrel pyramid and hay stack. (Level 5's Barrier-sealed chamber was removed 2026-09-29; no level uses a Barrier Unit.)
     /// Character-gated secrets (Phase 4): 1 = height ledge (the double jump every character has, or Woolly's Cloud Step),
@@ -577,34 +578,57 @@ namespace FarmFuryStampede.EditorTools
 
         // ---------------------------------------------------------------- boss
 
-        // The Robot Commander's fortress: a run-in guarded by a Harvester and a Scout, a checkpoint at the gate, then
-        // an arena with two cover mounds. The Commander needs three hits; reinforcement waves arrive after hits 1
+        // The Robot Commander's fortress. A long approach first (lengthened 2026-10-01, the level was over too
+        // quickly): terraces up to the fortress wall and back down, four gaps, a hay stack, a Chaser on the top
+        // terrace and every ordinary robot type, with a checkpoint after each stretch. Then the arena behind the gate
+        // (a checkpoint, two cover mounds). The Commander needs three hits; reinforcement waves arrive after hits 1
         // and 2. No goal marker: defeating the Commander completes the level. (See CommanderBoss for the pattern.)
         private static LevelBuilder LevelBoss()
         {
             var b = new LevelBuilder("MeadowRuins_Boss", "Robot Commander's Fortress");
-            b.Flat(34);                       // [-4,30) run-in
-            b.Gap(3);                         // [30,33)
-            b.Flat(60);                       // [33,93) arena
-            b.Mound(44, 3, 2);                // cover / stomp platforms
-            b.Mound(80, 3, 2);
+            b.Flat(26);                       // [-4,22) top 0
+            b.Gap(3);                         // [22,25)
+            b.Flat(22, 2);                    // [25,47) top 2
+            b.Gap(4);                         // [47,51)
+            b.Flat(20, 2);                    // [51,71) top 2
+            b.Flat(14, 4);                    // [71,85) top 4: the fortress wall
+            b.Gap(4);                         // [85,89)
+            b.Flat(18, 2);                    // [89,107) top 2
+            b.Gap(3);                         // [107,110)
+            b.Flat(60, 0);                    // [110,170) arena
+            b.HayStack(39);
+            b.Mound(121, 3, 2);               // cover / stomp platforms
+            b.Mound(157, 3, 2);
 
             b.Boss();
-            b.Start(0).Checkpoint(38);
-            b.Scout(10, 3).Harvester(18, 2);                        // run-in guards
-            b.Chaser(26, 8);                                        // wakes at x=18, right before the gap to the gate
-            b.Commander(62, 8);                                     // patrols [54,70]
-            b.Harvester(50, 3).Scout(74, 3);                        // arena guards (wave 0)
-            b.Scout(86, 3, wave: 1).Harvester(56, 2, wave: 1).Drone(76, 2.8f, 3, wave: 1);   // after hit 1
-            b.Drone(60, 2.8f, 4, wave: 2).Drone(48, 2.8f, 3, wave: 2).Scout(72, 3, wave: 2); // after hit 2
+            b.Start(0).Checkpoint(27).Checkpoint(53).Checkpoint(91).Checkpoint(115);
+            // The approach: 1 Chaser, 2 Drones, 3 Harvesters, 4 Scouts.
+            b.Scout(10, 3).Harvester(17, 2);
+            b.Scout(33, 2.5f).Harvester(43.5f, 1.5f);
+            b.Scout(64, 2.5f);
+            b.Chaser(80, 10);                 // wakes as the player climbs onto the fortress wall
+            b.Scout(98, 3).Harvester(103, 2);
+            b.Drone(58, 3.2f, 3).Drone(96, 2.8f, 3);
+            // The arena.
+            b.Commander(139, 8);                                       // patrols [131,147]
+            b.Harvester(127, 3).Scout(151, 3);                         // arena guards (wave 0)
+            b.Scout(163, 3, wave: 1).Harvester(133, 2, wave: 1).Drone(153, 2.8f, 3, wave: 1);   // after hit 1
+            b.Drone(137, 2.8f, 4, wave: 2).Drone(125, 2.8f, 3, wave: 2).Scout(149, 3, wave: 2); // after hit 2
 
-            b.CropRow(4, 26, 3);
-            GapArc(b, 30, 3, 0);
-            b.CropRow(35, 42, 3);
-            b.Crop(45.5f);
-            b.CropRow(50, 76, 6);
-            b.Crop(81.5f);
-            b.CropRow(86, 91, 3);
+            b.CropRow(4, 20, 3);
+            GapArc(b, 22, 3, 0);
+            b.CropRow(28, 45, 3);
+            GapArc(b, 47, 4, 2);
+            b.CropRow(54, 69, 3);
+            b.CropRow(73, 83, 3);
+            GapArc(b, 85, 4, 4);
+            b.CropRow(92, 105, 3);
+            GapArc(b, 107, 3, 2);
+            b.CropRow(112, 119, 3);
+            b.Crop(122.5f);
+            b.CropRow(127, 153, 6);
+            b.Crop(158.5f);
+            b.CropRow(163, 168, 3);
             return b;
         }
     }

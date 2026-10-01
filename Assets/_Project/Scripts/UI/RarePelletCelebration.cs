@@ -71,6 +71,7 @@ namespace FarmFuryStampede.UI
         private void OnCollected(Vector3 worldPosition, List<CharacterType> unlocked)
         {
             if (_routine != null) { StopCoroutine(_routine); }
+            _page.UseWorldBackdrop();
             _root.SetActive(true);
             _root.transform.SetAsLastSibling();
             PlayerInputReader.ReleaseTouch();   // the HUD buttons are covered; nothing stays held through the freeze

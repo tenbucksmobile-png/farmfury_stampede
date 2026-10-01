@@ -20,7 +20,7 @@ namespace FarmFuryStampede.EditorTools
         // Anchored (pivot bottom-centre) so the art sits on the ground the way the old pole+flag prefabs did.
         private const string CheckpointIdleFile = "CheckpointFlag.png";
         private const string CheckpointActiveFile = "CheckpointFlag_pass.png";
-        private const string GoalFile = "LevelComplete.png"; // checkered finish flag, despite the filename
+        private const string GoalFile = "GoalFlag.png"; // checkered finish flag (was LevelComplete.png, which is now the "Level Complete!" lettering)
         private const float CheckpointPixelsPerUnit = 143f;  // 500px tall -> ~3.5 units, matching the old checkpoint pole+flag height
         private const float GoalPixelsPerUnit = 100f;         // 500px tall -> 5 units, matching the old goal pole height (taller, more decorative)
 
@@ -94,6 +94,16 @@ namespace FarmFuryStampede.EditorTools
         private const string LevelFailedSourcePath = EnvironmentDir + "/LevelFailed_Canvas.png";
         private const string LevelCompleteBackgroundPath = EnvironmentDir + "/LevelComplete_Canvas_Wide.png";
         private const string LevelFailedBackgroundPath = EnvironmentDir + "/LevelFailed_Canvas_Wide.png";
+        // Frozen Tundra's results backdrops (2026-10-01): FT_Paralax_Far.png (aurora, KlingAI watermark painted out)
+        // with the logo, the UI/LevelComplete.png / LevelFailed.png lettering and Meadow's three gold stars composed
+        // onto it at Meadow Ruins' positions, so the greyed stars, score and buttons line up. Widened the same way.
+        private const string TundraCompleteSourcePath = EnvironmentDir + "/FT_LevelComplete_Canvas.png";
+        private const string TundraFailedSourcePath = EnvironmentDir + "/FT_LevelFailed_Canvas.png";
+        private const string TundraCompleteBackgroundPath = EnvironmentDir + "/FT_LevelComplete_Canvas_Wide.png";
+        private const string TundraFailedBackgroundPath = EnvironmentDir + "/FT_LevelFailed_Canvas_Wide.png";
+        // ... and its New Character page backdrop: the same aurora with only the logo (the page adds the lettering).
+        private const string TundraNewCharacterSourcePath = EnvironmentDir + "/FT_NewCharacter_Canvas.png";
+        private const string TundraNewCharacterBackgroundPath = EnvironmentDir + "/FT_NewCharacter_Canvas_Wide.png";
         // Pause (per its mockup): the same kind of backdrop, "Pause" and the logo painted in, widened the same way.
         private const string PauseSourcePath = EnvironmentDir + "/Pause_Canvas.png";
         private const string PauseBackgroundPath = EnvironmentDir + "/Pause_Canvas_Wide.png";
@@ -164,6 +174,9 @@ namespace FarmFuryStampede.EditorTools
         {
             BuildWideResultsArt(LevelCompleteSourcePath, LevelCompleteBackgroundPath);
             BuildWideResultsArt(LevelFailedSourcePath, LevelFailedBackgroundPath);
+            BuildWideResultsArt(TundraCompleteSourcePath, TundraCompleteBackgroundPath);
+            BuildWideResultsArt(TundraFailedSourcePath, TundraFailedBackgroundPath);
+            BuildWideResultsArt(TundraNewCharacterSourcePath, TundraNewCharacterBackgroundPath);
             BuildWideResultsArt(PauseSourcePath, PauseBackgroundPath);
             BuildWideResultsArt(NewCharacterSourcePath, NewCharacterBackgroundPath);
             ImportAnchored(CheckpointIdleFile, CheckpointPixelsPerUnit);
@@ -203,6 +216,9 @@ namespace FarmFuryStampede.EditorTools
             yield return WorldSelectBackgroundPath;
             yield return LevelCompleteBackgroundPath;
             yield return LevelFailedBackgroundPath;
+            yield return TundraCompleteBackgroundPath;
+            yield return TundraFailedBackgroundPath;
+            yield return TundraNewCharacterBackgroundPath;
             yield return PauseBackgroundPath;
             yield return NewCharacterBackgroundPath;
             yield return $"{UIDir}/{StarEmptyFile}";
@@ -261,6 +277,14 @@ namespace FarmFuryStampede.EditorTools
         public static Sprite PauseBackground() => AssetDatabase.LoadAssetAtPath<Sprite>(PauseBackgroundPath);
         public static Sprite NewCharacterBackground() => AssetDatabase.LoadAssetAtPath<Sprite>(NewCharacterBackgroundPath);
         public static Sprite LevelFailedBackground() => AssetDatabase.LoadAssetAtPath<Sprite>(LevelFailedBackgroundPath);
+        /// <summary>A world's own New Character page backdrop, or null for the shared sunset one.</summary>
+        public static Sprite WorldNewCharacterBackground(WorldType world) => world == WorldType.FrozenTundra
+            ? AssetDatabase.LoadAssetAtPath<Sprite>(TundraNewCharacterBackgroundPath)
+            : null;
+        /// <summary>A world's own Level Complete / Level Failed backdrop, or null for the shared Meadow Ruins one.</summary>
+        public static Sprite WorldResultsBackground(WorldType world, bool complete) => world == WorldType.FrozenTundra
+            ? AssetDatabase.LoadAssetAtPath<Sprite>(complete ? TundraCompleteBackgroundPath : TundraFailedBackgroundPath)
+            : null;
         /// <summary>World Select's backdrop: the sunset farm (Environment/Canvas.png).</summary>
         public static Sprite WorldSelectBackground() => AssetDatabase.LoadAssetAtPath<Sprite>(WorldSelectBackgroundPath);
         public static Sprite ExitButton() => Load(ExitButtonFile);

@@ -274,7 +274,7 @@ namespace FarmFuryStampede.UI
 
             if (_artLook)
             {
-                SetArt(_art.levelCompleteBackground);
+                SetArt(WorldArt(true) ?? _art.levelCompleteBackground);
                 for (int i = 0; i < _emptyStars.Length; i++)
                 {
                     _emptyStars[i].gameObject.SetActive(_art.levelCompleteStarEmpty != null && i >= run.starsEarned);
@@ -319,7 +319,7 @@ namespace FarmFuryStampede.UI
             _doubleCoins.SetActive(false);
             if (_artLook)
             {
-                SetArt(_art.levelFailedBackground);
+                SetArt(WorldArt(false) ?? _art.levelFailedBackground);
                 foreach (var star in _emptyStars) { star.gameObject.SetActive(false); }
                 _score.SetActive(false);
                 _newCharacterSign.gameObject.SetActive(false);
@@ -343,6 +343,16 @@ namespace FarmFuryStampede.UI
         public void Hide()
         {
             Root.SetActive(false);
+        }
+
+        // The level's world's own results backdrop (Frozen Tundra's aurora), or null to use the shared one. A world's
+        // art keeps Meadow Ruins' layout (stars, score and buttons at the same art coordinates).
+        private static Sprite WorldArt(bool complete)
+        {
+            var level = GameManager.Instance != null ? GameManager.Instance.CurrentLevel : null;
+            var world = level != null && DataManager.Instance != null ? DataManager.Instance.GetWorldData(level.worldType) : null;
+            if (world == null) { return null; }
+            return complete ? world.levelCompleteBackground : world.levelFailedBackground;
         }
 
         private void SetArt(Sprite sprite)

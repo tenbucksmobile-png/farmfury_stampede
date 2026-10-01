@@ -29,6 +29,8 @@ namespace FarmFuryStampede.UI
         public readonly Text Message;
         public readonly ConfettiBurst Confetti;
         public readonly bool HasBackdrop;
+        private readonly Image _backdrop;
+        private readonly Sprite _defaultBackdrop;
 
         public NewCharacterPage(RectTransform parent, MenuArt art)
         {
@@ -38,6 +40,8 @@ namespace FarmFuryStampede.UI
             Image frameImage = HasBackdrop ? UIKit.Picture(parent, "Backdrop", art.newCharacterBackground) : null;
             Frame = frameImage != null ? frameImage.rectTransform : UIKit.NewRect("Frame", parent);
             if (frameImage != null) { frameImage.preserveAspect = false; }
+            _backdrop = frameImage;
+            _defaultBackdrop = art.newCharacterBackground;
             var fit = Frame.gameObject.AddComponent<FitContent>();
             fit.contentSize = new Vector2(1280f, 720f);
             fit.spriteSize = new Vector2(1280f + 2f * ResultsScreen.ArtPad, 720f);
@@ -82,6 +86,20 @@ namespace FarmFuryStampede.UI
             Confetti.particlesRoot = particles;
         }
 
+        /// <summary>
+        /// Shows the current level's world's own backdrop (Frozen Tundra's aurora) when it has one, otherwise the
+        /// shared sunset. Call each time the page opens.
+        /// </summary>
+        public void UseWorldBackdrop()
+        {
+            if (_backdrop == null) { return; }
+            var gm = FarmFuryStampede.Core.GameManager.Instance;
+            var data = FarmFuryStampede.Core.DataManager.Instance;
+            var level = gm != null ? gm.CurrentLevel : null;
+            var world = level != null && data != null ? data.GetWorldData(level.worldType) : null;
+            _backdrop.sprite = world != null && world.newCharacterBackground != null ? world.newCharacterBackground : _defaultBackdrop;
+        }
+
         /// <summary>Puts the character's framed card in place (or its portrait and name when it has no card).</summary>
         public void SetCharacter(FarmFuryStampede.Data.CharacterData data, string fallbackName)
         {
@@ -112,7 +130,7 @@ namespace FarmFuryStampede.UI
         // Soft golden rays, made once.
         private static Sprite _sunburst;
 
-        private static Sprite SunburstSprite()
+        public static Sprite SunburstSprite()
         {
             if (_sunburst != null) { return _sunburst; }
             const int size = 256, rays = 14;

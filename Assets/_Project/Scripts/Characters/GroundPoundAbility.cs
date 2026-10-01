@@ -17,11 +17,11 @@ namespace FarmFuryStampede.Characters
     /// </summary>
     public class GroundPoundAbility : CharacterAbility
     {
-        private const float PoundSpeed = 30f;
+        private const float PoundSpeed = 24f;            // slowed 2026-10-01 (was 30)
         private const float BreakRadius = 2f;
 
         // The quake.
-        private const float QuakeSpeed = 16f;         // units per second along the ground
+        private const float QuakeSpeed = 11f;         // units per second along the ground (was 16 until 2026-10-01)
         private const float QuakeRange = 10f;
         private const float QuakePuffSpacing = 0.8f;  // one small burst this often along the way
         private const float QuakePuffSize = 0.45f;    // relative to the full-size impact

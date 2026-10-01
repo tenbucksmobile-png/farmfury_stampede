@@ -59,6 +59,8 @@ namespace FarmFuryStampede.EditorTools
         public Sprite[] parallaxLayers = Array.Empty<Sprite>();
         /// <summary>This world's look per robot type (right, left, defeat), written onto every robot marker; missing types keep the prefab art.</summary>
         public Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)> robotArt = new();
+        /// <summary>How much bigger than the prefab the robotArt robots are drawn (feet on the ground, colliders unchanged).</summary>
+        public float robotArtScale = 1f;
 
         /// <summary>A copy to override per world (the dictionary and arrays are shared until replaced).</summary>
         public LevelAssets Clone() => (LevelAssets)MemberwiseClone();
@@ -930,6 +932,7 @@ namespace FarmFuryStampede.EditorTools
                     robot.artRight = look.right;
                     robot.artLeft = look.left;
                     robot.artDefeat = look.defeat;
+                    robot.artScale = assets.robotArtScale;
                 }
             }
 

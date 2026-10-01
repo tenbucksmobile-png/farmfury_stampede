@@ -224,6 +224,19 @@ namespace FarmFuryStampede.LevelSystem
             Debug.Log($"[LevelLoader] Wave {wave}: spawned {spawned} robots.");
         }
 
+        /// <summary>Defeats every robot in the level and cancels the waves still to come (the boss has fallen).</summary>
+        public void DefeatAllRobots()
+        {
+            _pendingWaveMarkers.Clear();
+            foreach (var go in _spawned.ToArray())
+            {
+                if (go != null && go.activeInHierarchy && go.TryGetComponent(out RobotController robot))
+                {
+                    robot.ForceDefeat();
+                }
+            }
+        }
+
         /// <summary>Moves the player to the given respawn point and grants brief invulnerability.</summary>
         public void RespawnPlayer(Vector2 position)
         {
@@ -394,7 +407,7 @@ namespace FarmFuryStampede.LevelSystem
             }
 
             var robot = instance.GetComponent<RobotController>();
-            robot.SetWorldArt(marker.artRight, marker.artLeft, marker.artDefeat);   // this world's look (or the prefab's)
+            robot.SetWorldArt(marker.artRight, marker.artLeft, marker.artDefeat, marker.artScale);   // this world's look (or the prefab's)
             robot.Initialize(marker.patrolDistance);
             return true;
         }

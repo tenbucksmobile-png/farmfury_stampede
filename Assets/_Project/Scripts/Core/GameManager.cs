@@ -36,6 +36,19 @@ namespace FarmFuryStampede.Core
         public event Action ReviveOffered;
         public bool ReviveDecisionPending { get; private set; }
 
+        /// <summary>
+        /// The boss just fell: the short victory moment before Level Complete (see <see cref="BossDefeated"/>). The
+        /// player can't die, pause or swap meanwhile.
+        /// </summary>
+        public bool BossVictoryPending { get; private set; }
+
+        // The boss victory moment: explosions over the Commander in slow motion, then a beat at normal speed.
+        private const int BossBursts = 7;
+        private const float BossBurstSeconds = 1.4f;
+        private const float BossSlowMotion = 0.4f;
+        private const float BossAfterglowSeconds = 1.2f;
+        private Coroutine _bossVictory;
+
         private float _levelStartTime;
         private float Elapsed => Time.time - _levelStartTime;
         private void ChangeState(GameState state)
@@ -63,6 +76,7 @@ namespace FarmFuryStampede.Core
             }
 
             ReviveDecisionPending = false;
+            StopBossVictory();
             _levelStartTime = Time.time;
             ChangeState(GameState.Playing);
             Debug.Log($"[GameManager] StartLevel: level={level?.levelId}, character={character}, lives={RunState.livesRemaining}.");
@@ -105,9 +119,10 @@ namespace FarmFuryStampede.Core
         /// </summary>
         public void RespawnPlayer()
         {
-            if (CurrentState != GameState.Playing || LevelLoader.Instance == null || LevelLoader.Instance.IsRespawning)
+            if (CurrentState != GameState.Playing || LevelLoader.Instance == null || LevelLoader.Instance.IsRespawning
+                || BossVictoryPending)
             {
-                return;   // not playing, or already in the defeat pose (repeat contacts must not cost extra lives)
+                return;   // not playing, already in the defeat pose (repeat contacts must not cost extra lives), or the boss is beaten
             }
 
             RunState.deathsThisRun++;
@@ -210,6 +225,62 @@ namespace FarmFuryStampede.Core
             return true;
         }
 
+        /// <summary>
+        /// The boss took its last hit. Instead of cutting straight to Level Complete, the level plays a victory moment:
+        /// every other robot falls, the Commander goes up in a chain of explosions in slow motion, the player (who
+        /// can no longer be hurt) gets a beat to take it in, and only then does the level complete (whose Level
+        /// Complete opens with the World Cleared celebration, see GameFlow).
+        /// </summary>
+        public void BossDefeated(Vector3 bossPosition)
+        {
+            if (CurrentState != GameState.Playing || BossVictoryPending)
+            {
+                return;
+            }
+
+            BossVictoryPending = true;
+            LevelLoader.Instance?.DefeatAllRobots();
+            _bossVictory = StartCoroutine(BossVictory(bossPosition));
+        }
+
+        private System.Collections.IEnumerator BossVictory(Vector3 at)
+        {
+            var player = LevelLoader.Instance != null ? LevelLoader.Instance.Player : null;
+            var burst = player != null ? player.Prefabs.poundEffect : null;
+
+            Time.timeScale = BossSlowMotion;
+            for (int i = 0; i < BossBursts; i++)
+            {
+                if (burst != null && ObjectPool.Instance != null)
+                {
+                    var offset = new Vector3(UnityEngine.Random.Range(-1.2f, 1.2f), UnityEngine.Random.Range(-0.2f, 1.6f), 0f);
+                    var go = ObjectPool.Instance.Get(burst, at + offset);
+                    if (go.TryGetComponent(out FadeEffect effect))
+                    {
+                        effect.Play(i == BossBursts - 1 ? 3.5f : UnityEngine.Random.Range(1.4f, 2.4f));
+                    }
+                }
+                yield return new WaitForSecondsRealtime(BossBurstSeconds / BossBursts);
+            }
+
+            Time.timeScale = 1f;
+            yield return new WaitForSecondsRealtime(BossAfterglowSeconds);
+
+            _bossVictory = null;
+            BossVictoryPending = false;
+            CompleteLevel();
+        }
+
+        private void StopBossVictory()
+        {
+            if (_bossVictory != null)
+            {
+                StopCoroutine(_bossVictory);
+                _bossVictory = null;
+            }
+            BossVictoryPending = false;
+        }
+
         public void CompleteLevel()
         {
             if (CurrentState != GameState.Playing)
@@ -268,7 +339,7 @@ namespace FarmFuryStampede.Core
         public bool SwapCharacter(CharacterType character)
         {
             var loader = LevelLoader.Instance;
-            if (CurrentState != GameState.Playing || ReviveDecisionPending || loader == null || loader.IsRespawning
+            if (CurrentState != GameState.Playing || ReviveDecisionPending || BossVictoryPending || loader == null || loader.IsRespawning
                 || (SaveManager.Instance != null && !SaveManager.Instance.IsCharacterUnlocked(character)))
             {
                 return false;
@@ -287,7 +358,7 @@ namespace FarmFuryStampede.Core
         /// <summary>Pauses gameplay without ending the level attempt.</summary>
         public void PauseGame()
         {
-            if (CurrentState != GameState.Playing || ReviveDecisionPending)
+            if (CurrentState != GameState.Playing || ReviveDecisionPending || BossVictoryPending)
             {
                 return;
             }
@@ -311,6 +382,7 @@ namespace FarmFuryStampede.Core
         /// <summary>Moves to the given menu/selection state. Used by UI flows outside gameplay.</summary>
         public void SetState(GameState state)
         {
+            StopBossVictory();
             Time.timeScale = 1f;
             ChangeState(state);
         }

@@ -40,6 +40,7 @@ namespace FarmFuryStampede.UI
             foreach (var c in characters) { _queue.Enqueue(c); }
             if (_queue.Count > 0)
             {
+                _page.UseWorldBackdrop();
                 Show();
                 ShowNext();
             }

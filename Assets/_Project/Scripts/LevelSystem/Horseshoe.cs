@@ -12,11 +12,11 @@ namespace FarmFuryStampede.LevelSystem
     [RequireComponent(typeof(Rigidbody2D), typeof(PooledObject))]
     public class Horseshoe : MonoBehaviour
     {
-        [SerializeField] private float forwardSpeed = 13f;
-        [SerializeField] private float upwardSpeed = 5f;
-        [SerializeField] private float gravity = 22f;
-        [SerializeField] private float lifetime = 1.6f;
-        [SerializeField] private float spinDegreesPerSecond = 720f;
+        [SerializeField] private float forwardSpeed = 10f;   // slowed 2026-10-01 (was 13, up 5, gravity 22): a similar reach, easier to follow
+        [SerializeField] private float upwardSpeed = 4.5f;
+        [SerializeField] private float gravity = 17f;
+        [SerializeField] private float lifetime = 2f;
+        [SerializeField] private float spinDegreesPerSecond = 540f;
         [SerializeField] private LayerMask groundMask;
 
         private Rigidbody2D _body;

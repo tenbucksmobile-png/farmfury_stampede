@@ -19,6 +19,8 @@ namespace FarmFuryStampede.LevelSystem
         public Sprite artRight;
         public Sprite artLeft;
         public Sprite artDefeat;
+        [Tooltip("The world art drawn this many times the prefab's size (feet stay on the ground; colliders unchanged).")]
+        public float artScale = 1f;
 
         private void OnDrawGizmos()
         {

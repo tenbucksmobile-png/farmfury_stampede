@@ -9,12 +9,15 @@ namespace FarmFuryStampede.Robots
     ///
     /// A boss level is a normal level prefab (built with LevelBuilder: a run-in, an arena, cover, a checkpoint) that
     /// has NO goal marker. Its "goal" is this component: the Commander spawns from a RobotSpawnPoint of type
-    /// Commander, and defeating it calls GameManager.CompleteLevel(), which scores stars, saves progress, unlocks
-    /// the next world (LevelData.isBossLevel) and calls EndLevel(completed: true).
+    /// Commander, and defeating it calls GameManager.BossDefeated(): every other robot falls, the Commander explodes in
+    /// slow motion, and after a short beat GameManager.CompleteLevel() scores stars, saves progress, unlocks the next
+    /// world (LevelData.isBossLevel) and calls EndLevel(completed: true); Level Complete then opens with the World
+    /// Cleared celebration (WorldClearedScreen).
     ///
     /// The fight:
     ///  * The Commander patrols the arena like a big ground robot (GroundPatrolRobot: turns at walls/ledges),
-    ///    drawn hovering slightly above the ground (Robot_right / Robot_left art, swapped as it turns).
+    ///    drawn hovering slightly above the ground (Robot_right / Robot_left art, swapped as it turns). Defeated, it
+    ///    drops to the ground as Commander_Defeated.png and the wreck stays there (HoldDefeatPose) until Level Complete.
     ///  * It needs <see cref="hitsToDefeat"/> hits (stomps, or Percy/Gerald/Bessie ability contact, or a horseshoe).
     ///  * Each hit that lands staggers it for <see cref="staggerSeconds"/>: it stops, flashes, cannot be hit again
     ///    and cannot hurt the player, so it can't be chain-stomped and the player can safely reposition.
@@ -56,10 +59,18 @@ namespace FarmFuryStampede.Robots
             }
         }
 
-        // Floats just above the ground, bobbing gently, as it patrols left and right.
+        // Its wreck (Commander_Defeated.png) stays on the field among the victory explosions.
+        protected override bool HoldDefeatPose => true;
+
+        // Floats just above the ground, bobbing gently, as it patrols left and right; the wreck lies on the ground.
         private void Update()
         {
-            if (visual != null)
+            if (visual != null && IsDefeated)
+            {
+                visual.transform.localPosition = _visualRest;
+                visual.color = Color.white;
+            }
+            else if (visual != null)
             {
                 float bob = Mathf.Sin(Time.time * bobsPerSecond * 2f * Mathf.PI) * bobAmplitude;
                 visual.transform.localPosition = _visualRest + Vector3.up * (hoverHeight + bob);
@@ -110,7 +121,7 @@ namespace FarmFuryStampede.Robots
             if (Hits >= hitsToDefeat)
             {
                 Defeat();
-                GameManager.Instance.CompleteLevel();
+                GameManager.Instance.BossDefeated(transform.position);   // the victory moment, then Level Complete
                 return true;
             }
 

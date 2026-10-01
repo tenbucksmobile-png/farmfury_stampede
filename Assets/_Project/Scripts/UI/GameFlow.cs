@@ -36,6 +36,7 @@ namespace FarmFuryStampede.UI
         public RevivePromptScreen Revive { get; private set; }
         public LockerScreen Locker { get; private set; }
         public NewCharacterScreen NewCharacter { get; private set; }
+        public WorldClearedScreen WorldCleared { get; private set; }
         public HudScreen Hud { get; private set; }
         public WorldSelectScreen Worlds { get; private set; }
         public LevelSelectScreen Levels { get; private set; }
@@ -71,7 +72,7 @@ namespace FarmFuryStampede.UI
         /// <summary>The HUD's swap button (and Tab): the character picker, over a frozen level.</summary>
         public void OpenSwap()
         {
-            if (_gm.CurrentState == GameState.Playing && !_gm.ReviveDecisionPending && !PelletCelebration.IsOpen)
+            if (_gm.CurrentState == GameState.Playing && !_gm.ReviveDecisionPending && !_gm.BossVictoryPending && !PelletCelebration.IsOpen)
             {
                 Swap.Open();
             }
@@ -92,6 +93,7 @@ namespace FarmFuryStampede.UI
             var useCoins = Add(new UseCoinsPrompt(c, menuArt, shopArt));
             Revive = Add(new RevivePromptScreen(c, menuArt, shopArt));
             NewCharacter = Add(new NewCharacterScreen(c, menuArt, shopArt));
+            WorldCleared = Add(new WorldClearedScreen(c, menuArt, shopArt));
             var legal = Add(new LegalScreen(c, menuArt, shopArt));
             var story = Add(new CharacterStoryScreen(c, menuArt, shopArt));
             var worldDetail = Add(new WorldDetailScreen(c, menuArt, shopArt, leaderboardArt));
@@ -258,6 +260,7 @@ namespace FarmFuryStampede.UI
         /// <summary>The HUD's Locker button: equip owned cosmetics mid-level (pauses while open).</summary>
         public void OpenLocker()
         {
+            if (_gm.BossVictoryPending) { return; }   // the boss's victory moment runs to Level Complete untouched
             Locker?.Open();
         }
 
@@ -413,6 +416,11 @@ namespace FarmFuryStampede.UI
                 if (_gm.RunState.newlyUnlockedCharacters.Count > 0)
                 {
                     NewCharacter.ShowUnlocks(_gm.RunState.newlyUnlockedCharacters);
+                }
+                // A boss clear opens with the World Cleared celebration, drawn over everything else (shown last).
+                if (_gm.RunState.bossCleared && _gm.CurrentLevel != null)
+                {
+                    WorldCleared?.ShowFor(_gm.CurrentLevel.worldType, _gm.RunState.worldUnlocked);
                 }
             }
             else if (state == GameState.LevelFailed)
