@@ -35,8 +35,8 @@ namespace FarmFuryStampede.UI
         private const float EdgeMargin = 40f;
         private const float LifeIconHeight = 96f;
         private const float LifeIconGap = 10f;
-        private const float ControlSize = 150f;      // every HUD button: bigger than the round menu buttons
-        private const float ControlGap = 24f;
+        private const float ControlSize = 120f;      // every HUD button (was 150 until 2026-10-03: too big, it crowded the play area)
+        private const float ControlGap = 20f;
         private readonly Sprite _defaultLife;
         private CharacterType? _lifeCharacter;
         private readonly Sprite[] _abilityIcons;
@@ -51,7 +51,7 @@ namespace FarmFuryStampede.UI
 
         /// <summary>Coins to skip the ability cooldown (Arcade's SkipCooldownCoinsCost).</summary>
         public const int SkipCooldownCoinsCost = 3;
-        private const float SkipBadgeSize = 84f;
+        private const float SkipBadgeSize = 68f;     // scaled with the buttons (84 at ControlSize 150)
         public bool SkipCoinShown => _skipCoinButton.gameObject.activeSelf;
         public bool SkipAdShown => _skipAdButton.gameObject.activeSelf;
         public Button SkipCoinButton => _skipCoinButton;

@@ -95,7 +95,9 @@ namespace FarmFuryStampede.EditorTools
         // originals are in Sprites/UI/WatermillVillage; a script (2026-10-03) cut the white background out of the middle
         // and near paintings and repeated each three times side by side into WV_Parallax_Mid/Near.png (4096 wide): the
         // parallax scales a layer to the level's width, so a single copy drew the village and reeds ~3x too big.
-        private static readonly string[] WatermillLayers = { "WV_Parallax_Far.png", "WV_Parallax_Mid.png", "WV_Parallax_Near.png" };
+        // The near reed-bank layer (WV_Parallax_Near.png) is left out (2026-10-03): stretched to the level's width the
+        // reeds still drew several units tall, far out of proportion with the characters.
+        private static readonly string[] WatermillLayers = { "WV_Parallax_Far.png", "WV_Parallax_Mid.png" };
         // The riverside grass floor strip: three blocks inside transparent margins (opaque x 35-583, top-down rows
         // 89-285 of the 666x375 image). The grass is thick (the top ~60% of a block), so the "dirt" body counted for
         // the cell is the bottom 150 rows: the block is stretched ~1.2x and the grass overhangs the cell ~0.3 units.

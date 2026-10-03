@@ -681,9 +681,17 @@ namespace FarmFuryStampede.EditorTools
             return tundra;
         }
 
-        // Stretches a floor variant so its dirt body fills the cell exactly; the grass overhangs the cell above.
-        private static Matrix4x4 FloorTileTransform(Sprite variant) =>
-            Matrix4x4.Scale(new Vector3(1f, StampedeEnvironmentArt.FloorTileScaleY(variant), 1f));
+        // Stretches a floor variant so its dirt body fills the cell; the grass overhangs the cell above. The tile's
+        // Grid collider is transformed too, so the stretch alone moved the walkable top to 0.5 * scale (Meadow and
+        // Watermill ~0.1 above the cell top, Frozen Tundra ~0.03 below), leaving a lip where the grass meets a bridge or
+        // ledge at the same height (2026-10-03: the player had to jump off a bridge). Shifting it down by
+        // (scale - 1) / 2 keeps the collider's top exactly on the cell top; the art moves with it, and the extra dirt
+        // reaches into the (dirt) cell below.
+        private static Matrix4x4 FloorTileTransform(Sprite variant)
+        {
+            float scale = StampedeEnvironmentArt.FloorTileScaleY(variant);
+            return Matrix4x4.TRS(new Vector3(0f, -0.5f * (scale - 1f), 0f), Quaternion.identity, new Vector3(1f, scale, 1f));
+        }
 
         // One tile per grass-topped floor variant (GroundSurfaceTile_0..n-1); stale extras from earlier art are removed.
         private static int CreateGroundSurfaceTiles(Sprite[] floorArt)

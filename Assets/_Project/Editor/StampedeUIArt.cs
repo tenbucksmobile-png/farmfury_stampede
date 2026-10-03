@@ -506,12 +506,12 @@ namespace FarmFuryStampede.EditorTools
 
         public static Sprite Watermill(string file) => Load(WatermillDir + file);
 
-        /// <summary>Watermill Village's props in the farm-prop roles; Meadow's corn, fences, flowers and biplane stay.</summary>
+        /// <summary>
+        /// Watermill Village's props in the farm-prop roles. Meadow's corn fields and fences are Meadow-only (removed
+        /// 2026-10-03; the wildflowers only grow at fence ends, so they go too); the biplane stays.
+        /// </summary>
         internal static FarmBackdropArt WatermillBackdrop(FarmBackdropArt meadow) => new()
         {
-            cornStalks = meadow.cornStalks,
-            fence = meadow.fence,
-            wildflowers = meadow.wildflowers,
             plane = meadow.plane,
             barn = Watermill("Cottage.png") ?? meadow.barn,
             windmill = Watermill("WaterWheel.png") ?? meadow.windmill,

@@ -33,7 +33,8 @@ namespace FarmFuryStampede.EditorTools
 
         // ---------------------------------------------------------------- 1
 
-        // The mill lane: a ledge sliding to and fro over the millpond chasm, a rope bridge, a perch with the passage sign.
+        // The mill lane: a ledge sliding to and fro over the millpond chasm, a rope bridge, then a perch with the
+        // passage sign.
         private static LevelBuilder Level1()
         {
             var b = new LevelBuilder("WatermillVillage_01", "Millpond Lane");
@@ -47,8 +48,8 @@ namespace FarmFuryStampede.EditorTools
             b.MovingLedge(50, 3, 0, 7, 0, 4f);          // [50,53) <-> [57,60)
             b.Bridge(83, 8, 0);
 
-            b.StoneBlocks(18, 3, 4);          // perch for the passage sign (a double jump up)
-            b.SecretPassage(19.5f, 4, PassageLayout.Steps);
+            b.StoneBlocks(95, 3, 4);          // perch for the passage sign past the bridge (a double jump up); was at
+            b.SecretPassage(96.5f, 4, PassageLayout.Steps);   // 18, in view at the start (moved 2026-10-03)
 
             b.Start(0).Goal(117).Checkpoint(31).Checkpoint(63).Checkpoint(93);
             b.Scout(10, 3);
@@ -276,8 +277,8 @@ namespace FarmFuryStampede.EditorTools
 
         // ---------------------------------------------------------------- 9
 
-        // Old well square: an island behind the start across a wide channel (Gerald / Woolly), the passage sign on the
-        // perch ahead of the start, two ledges meeting over a chasm, climbing terraces.
+        // Old well square: an island behind the start across a wide channel (Gerald / Woolly), two ledges meeting over
+        // a chasm, the passage sign on a perch past it, climbing terraces.
         private static LevelBuilder Level9()
         {
             // The channel's near edge is 19 behind the start, just off-screen at spawn (as Meadow Ruins 10).
@@ -297,8 +298,8 @@ namespace FarmFuryStampede.EditorTools
 
             b.Gate(CharacterType.Gerald, "Island across a 15-unit channel behind the start: too wide for the base jump; Puff Glide crosses it.", CharacterType.Woolly);
             b.SecretRow(-40.5f, -36.5f, 1f, 0.5f);
-            b.StoneBlocks(3, 3, 4);           // perch just ahead of the start
-            b.SecretPassage(4.5f, 4, PassageLayout.Pillars);
+            b.StoneBlocks(43, 3, 4);          // perch past the chasm (was just ahead of the start, in view at spawn;
+            b.SecretPassage(44.5f, 4, PassageLayout.Pillars);   // moved 2026-10-03)
 
             b.Start(0).Goal(129).Checkpoint(40).Checkpoint(64).Checkpoint(80).Checkpoint(101).Checkpoint(115);
             b.Scout(12, 3).Harvester(20, 2);
