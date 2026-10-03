@@ -11,5 +11,6 @@ namespace FarmFuryStampede.Characters
         public GameObject horseshoe;
         public GameObject egg;
         public GameObject poundEffect;   // Bessie's landing impact (FadeEffect)
+        public GameObject victoryEffect; // the boss victory bursts: ImpactStars.png (FadeEffect)
     }
 }

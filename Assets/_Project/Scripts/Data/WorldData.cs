@@ -27,6 +27,8 @@ namespace FarmFuryStampede.Data
         public Sprite levelFailedBackground;
         [Tooltip("This world's New Character page backdrop (logo painted in, no lettering). Null = the shared MenuArt one.")]
         public Sprite newCharacterBackground;
+        [Tooltip("This world's in-level character swap backdrop ('Character' lettering painted in). Null = the shared MenuArt one.")]
+        public Sprite characterSwapBackground;
 
         [Header("Unlock")]
         [Tooltip("Star threshold required to unlock this world. Purchase-gated worlds use purchaseRequired instead.")]

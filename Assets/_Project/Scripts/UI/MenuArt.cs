@@ -34,6 +34,10 @@ namespace FarmFuryStampede.UI
         [Tooltip("'New Character' lettering over the backdrop. (UI/NewCharacterTitle.png)")]
         public Sprite newCharacterTitle;
 
+        [Header("Character swap")]
+        [Tooltip("In-level character swap backdrop: sunset hills with 'Character' painted in (Environment/CharacterCanvas.png, widened by setup). A world's WorldData.characterSwapBackground replaces it. Null = a dark veil and a text title.")]
+        public Sprite characterSwapBackground;
+
         [Header("Pause")]
         [Tooltip("Pause backdrop: 'Pause' and the logo painted in (Environment/Pause_Canvas.png, widened by setup). Null = the plain panel menu.")]
         public Sprite pauseBackground;

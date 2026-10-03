@@ -208,6 +208,10 @@ namespace FarmFuryStampede.UI
             {
                 if (Swap.IsOpen) { Swap.Close(); } else { OpenSwap(); }
             }
+            else if (Swap.IsOpen)
+            {
+                Swap.HandleKeys(Keyboard.current);
+            }
         }
 
         private void HandleEscape()
@@ -417,7 +421,7 @@ namespace FarmFuryStampede.UI
                 {
                     NewCharacter.ShowUnlocks(_gm.RunState.newlyUnlockedCharacters);
                 }
-                // A boss clear opens with the World Cleared celebration, drawn over everything else (shown last).
+                // A boss clear that opened the next world shows the World Unlocked page, drawn over everything else (shown last).
                 if (_gm.RunState.bossCleared && _gm.CurrentLevel != null)
                 {
                     WorldCleared?.ShowFor(_gm.CurrentLevel.worldType, _gm.RunState.worldUnlocked);

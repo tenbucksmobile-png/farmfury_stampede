@@ -90,6 +90,31 @@ namespace FarmFuryStampede.EditorTools
         private static readonly RectInt TundraFloorArea = new(40, 49, 600, 249);   // bottom-up pixel rows
         private const int TundraFloorVariants = 4, TundraFloorDirtPixels = 160;
 
+        // ---- Watermill Village (World 3) ------------------------------------------------------------------------
+        // Parallax, far to near: the sky and river valley (opaque), the mill village and the reed bank. The user's
+        // originals are in Sprites/UI/WatermillVillage; a script (2026-10-03) cut the white background out of the middle
+        // and near paintings and repeated each three times side by side into WV_Parallax_Mid/Near.png (4096 wide): the
+        // parallax scales a layer to the level's width, so a single copy drew the village and reeds ~3x too big.
+        private static readonly string[] WatermillLayers = { "WV_Parallax_Far.png", "WV_Parallax_Mid.png", "WV_Parallax_Near.png" };
+        // The riverside grass floor strip: three blocks inside transparent margins (opaque x 35-583, top-down rows
+        // 89-285 of the 666x375 image). The grass is thick (the top ~60% of a block), so the "dirt" body counted for
+        // the cell is the bottom 150 rows: the block is stretched ~1.2x and the grass overhangs the cell ~0.3 units.
+        private const string WatermillFloorPath = "Assets/_Project/Sprites/UI/WatermillVillage/GroundStrip.png";
+        private static readonly RectInt WatermillFloorArea = new(35, 90, 548, 196);   // bottom-up pixel rows
+        private const int WatermillFloorVariants = 3, WatermillFloorDirtPixels = 150;
+
+        /// <summary>Watermill Village's parallax layers, far to near (missing ones left out).</summary>
+        public static Sprite[] WatermillParallax() => WatermillLayers
+            .Select(f => AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/{f}"))
+            .Where(s => s != null)
+            .ToArray();
+
+        /// <summary>Watermill Village's sliced grass floor variants, left to right; empty if the art is missing.</summary>
+        public static Sprite[] WatermillFloorArt() => AssetDatabase.LoadAllAssetsAtPath(WatermillFloorPath)
+            .OfType<Sprite>()
+            .OrderBy(s => s.name)
+            .ToArray();
+
         /// <summary>Frozen Tundra's parallax layers, far to near (missing ones left out).</summary>
         public static Sprite[] TundraParallax() => TundraLayers
             .Select(f => AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/{f}"))
@@ -105,7 +130,7 @@ namespace FarmFuryStampede.EditorTools
         /// <summary>Imports every configured layer file as a smooth, opaque sprite. Idempotent; missing files warn and are skipped.</summary>
         public static void ImportBackgroundArt()
         {
-            foreach (string file in Layers.Select(l => l.file).Concat(TundraLayers))
+            foreach (string file in Layers.Select(l => l.file).Concat(TundraLayers).Concat(WatermillLayers))
             {
                 string path = $"{EnvironmentDir}/{file}";
                 if (!File.Exists(path))
@@ -122,7 +147,9 @@ namespace FarmFuryStampede.EditorTools
                 importer.spritePivot = new Vector2(0.5f, 0.5f);
                 importer.filterMode = FilterMode.Bilinear;
                 importer.mipmapEnabled = false;
-                importer.alphaIsTransparency = false; // opaque backdrop paintings, no transparency needed
+                // Most are opaque paintings; Watermill's middle and near layers have a transparent sky.
+                importer.alphaIsTransparency = WatermillLayers.Contains(file);
+                importer.maxTextureSize = 4096;   // the repeated Watermill layers are 4096 wide
                 importer.SaveAndReimport();
             }
 
@@ -138,6 +165,7 @@ namespace FarmFuryStampede.EditorTools
                 Debug.LogWarning($"[EnvironmentArt] Missing art file {floorPath}; the ground surface falls back to the procedural GroundTile.");
             }
             SliceFloorStrip(TundraFloorPath, "FT_Ground", TundraFloorArea, TundraFloorVariants, TundraFloorDirtPixels);
+            SliceFloorStrip(WatermillFloorPath, "WV_Ground", WatermillFloorArea, WatermillFloorVariants, WatermillFloorDirtPixels);
         }
 
         // Slices a strip of grass-topped dirt blocks (inside 'area', bottom-up pixels) into equal-width sprites named

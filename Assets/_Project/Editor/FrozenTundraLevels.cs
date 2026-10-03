@@ -19,8 +19,8 @@ namespace FarmFuryStampede.EditorTools
     /// The layouts of 4-11 follow their World 1 counterparts' proven geometry (the same gates and the same robot
     /// clearances), re-surfaced with ice and made busier.
     /// Character-gated secrets: 1 = high snow ledge (double jump / Woolly), 2 and 9 = Breakable Floor (Bessie),
-    /// 4 and 10 = chasm island behind the start (Gerald / Woolly), 11 = Breakable Wall chamber (Billy); 3, 5 (its
-    /// Barrier chamber removed 2026-09-29) and 6-8 have no gated secret.
+    /// 4 and 10 = chasm island behind the start (Gerald / Woolly); 3, 5 (its Barrier chamber removed 2026-09-29),
+    /// 6-8 and 11 (its Breakable Wall chamber removed 2026-10-03) have no gated secret.
     /// Secret passages (rare pellet + coins, see LevelBuilder.SecretPassage) in 2, 5, 8, 9, 10 and 11.
     /// Every level also gets PathCorn and StandardFarm (here the Tundra props), applied in CreateAll.
     /// </summary>
@@ -45,15 +45,17 @@ namespace FarmFuryStampede.EditorTools
 
         // ---------------------------------------------------------------- 1
 
-        // First ice: two open frozen flats with a robot on each, a snow ledge secret, an ice-block stair with the coin.
+        // First ice: two open frozen flats with a robot on each, a snow ledge secret, a rope bridge over a chasm with a
+        // frozen waterfall below, an ice-block stair with the coin.
         private static LevelBuilder Level1()
         {
             var b = new LevelBuilder("FrozenTundra_01", "Frost Fields");
             b.Flat(30);                       // [-4,26)
             b.IceFlat(14);                    // [26,40) first ice
             b.Flat(8);                        // [40,48)
-            b.Gap(3);                         // [48,51)
-            b.Flat(24);                       // [51,75)
+            b.Gap(7);                         // [48,55) chasm, too wide to jump: the rope bridge carries the path
+            b.Flat(20);                       // [55,75)
+            b.Bridge(48, 7, 0);
             b.IceFlat(16);                    // [75,91)
             b.Flat(29);                       // [91,120)
 
@@ -61,7 +63,7 @@ namespace FarmFuryStampede.EditorTools
             b.Gate(CharacterType.Cluck, "Snow ledge 4 units up: needs extra height (the double jump every character has, or Woolly's Cloud Step).", CharacterType.Woolly);
             b.SecretRow(16.5f, 20.5f, 1f, 4.5f);
 
-            b.Start(0).Goal(114).Checkpoint(54);
+            b.Start(0).Goal(114).Checkpoint(57);
             b.Scout(10, 2);
             b.Scout(34, 2);                   // on the first ice
             b.Harvester(64, 3);
@@ -73,21 +75,22 @@ namespace FarmFuryStampede.EditorTools
             b.CropAt(103.4f, 3.9f).CropAt(104.65f, 3.9f);
             b.Scout(100, 3);
             b.CropRow(4, 8, 2);
-            GapArc(b, 48, 3, 0);
             return b;
         }
 
         // ---------------------------------------------------------------- 2
 
-        // Ice after every pit: land and slide. A stair of snow slabs up to the passage sign, Bessie's cracked floor.
+        // Ice after every pit: land and slide (the first ice runs straight onto a rope bridge over a chasm). A stair of
+        // snow slabs up to the passage sign, Bessie's cracked floor.
         private static LevelBuilder Level2()
         {
             var b = new LevelBuilder("FrozenTundra_02", "Glacier Steps");
             b.Flat(24);                       // [-4,20)
             b.Gap(3);                         // [20,23)
             b.IceFlat(20);                    // [23,43)
-            b.Gap(4);                         // [43,47)
-            b.Flat(26);                       // [47,73)
+            b.Gap(7);                         // [43,50) chasm under a rope bridge, a frozen waterfall below
+            b.Flat(23);                       // [50,73)
+            b.Bridge(43, 7, 0);
             b.IceFlat(12);                    // [73,85)
             b.Gap(3);                         // [85,88)
             b.Flat(32);                       // [88,120)
@@ -98,16 +101,15 @@ namespace FarmFuryStampede.EditorTools
             b.BreakableFloor(66, 4);          // hollow beneath: Bessie's Ground Pound
             b.Gate(CharacterType.Bessie, "Cracked wooden floor at x=66..70 hides a hollow below; only Ground Pound breaks it.");
             b.SecretRow(66.5f, 69.5f, 1f, -2.5f);
-            b.SecretPassage(64f, 5, 92f, PassageLayout.Zigzag);     // secret passage (rare pellet + coins): sign on the top snow slab, back up past the last pit
+            b.SecretPassage(64f, 5, PassageLayout.Zigzag);     // secret passage (rare pellet + coins): sign on the top snow slab (back up on the same spot)
 
-            b.Start(0).Goal(114).Checkpoint(49);
+            b.Start(0).Goal(114).Checkpoint(51);
             b.Scout(12, 3);
             b.Scout(33, 3);                   // waits on the ice after the first pit
             b.Harvester(79, 2);               // on the second ice
             b.Scout(101, 3).Scout(109, 2);
             b.CropRow(4, 16, 3);
             GapArc(b, 20, 3, 0);
-            GapArc(b, 43, 4, 0);
             b.CropAt(57, 4.9f).CropAt(58.5f, 4.9f);
             GapArc(b, 85, 3, 0);
             return b;
@@ -115,7 +117,8 @@ namespace FarmFuryStampede.EditorTools
 
         // ---------------------------------------------------------------- 3
 
-        // A long frozen middle under a Drone, an ice-barrel pyramid, an open stair to a bonus platform over the finish.
+        // A long frozen middle under a Drone, an ice-barrel pyramid, and a bonus route over the finish (the 2026-10-03
+        // mockup): double jump up to a snow ledge, a rope bridge to a second ledge, then brick steps back down.
         private static LevelBuilder Level3()
         {
             var b = new LevelBuilder("FrozenTundra_03", "Snowbound Ruins");
@@ -129,9 +132,10 @@ namespace FarmFuryStampede.EditorTools
             b.Flat(25);                       // [95,120)
 
             b.BarrelPyramid(40);
-            b.Mound(100, 3, 2);               // open stair up to a bonus platform over the finish
-            b.Floating(104, 4, 4);
-            b.Floating(109, 8, 6);
+            b.BonusLedge(97, 3, 5);           // 5 up: the double jump
+            b.Bridge(100, 6, 5, bonus: true);
+            b.BonusLedge(106, 3, 5);
+            b.BrickBlocks(109, 2, 4).BrickBlocks(112, 1, 3);   // stepping back down
 
             b.Start(0).Goal(116).Checkpoint(46);
             b.Scout(10, 3).Scout(20, 3);
@@ -143,9 +147,10 @@ namespace FarmFuryStampede.EditorTools
             b.CropRow(4, 14, 5);
             GapArc(b, 26, 3, 0);
             GapArc(b, 67, 4, 0);
-            b.Crop(101.5f);
-            b.CropAt(105, 4.9f).CropAt(106.5f, 4.9f);
-            b.CropAt(110.5f, 6.9f).CropAt(113f, 6.9f).CropAt(115.5f, 6.9f);
+            b.CropAt(98.5f, 5.9f);
+            b.CropAt(101f, 5.9f).BonusCoin(103f, 5).CropAt(105f, 5.9f);
+            b.CropAt(107.5f, 5.9f);
+            b.CropAt(110f, 4.9f).CropAt(112.5f, 3.9f);
             return b;
         }
 
@@ -203,7 +208,7 @@ namespace FarmFuryStampede.EditorTools
             // level, a double jump up from the platform, carrying the passage sign.
             b.StoneBlocks(65, 6, 13);
             b.CropAt(66.5f, 9.5f).CropAt(69f, 9.5f);
-            b.SecretPassage(68f, 13, 74.5f, PassageLayout.Tunnel);  // secret passage (rare pellet + coins): sign on the top level, back up on the top-1 terrace
+            b.SecretPassage(68f, 13, PassageLayout.Tunnel);  // secret passage (rare pellet + coins): sign on the top level (back up on the same spot)
 
             b.Start(0).Goal(116).Checkpoint(24).Checkpoint(72);
             b.Scout(10, 3).Harvester(17, 2.5f);
@@ -223,27 +228,30 @@ namespace FarmFuryStampede.EditorTools
 
         // ---------------------------------------------------------------- 6
 
-        // A frozen middle stretch under two slab stairs; the Chaser arrives, Drones over both ends.
+        // A frozen middle stretch under two slab stairs, sliding straight to a chasm crossed on two moving ledges that
+        // meet in the middle; the Chaser arrives, Drones over both ends.
         private static LevelBuilder Level6()
         {
             var b = new LevelBuilder("FrozenTundra_06", "Aurora Ridge");
             b.Flat(30);                       // [-4,26)
             b.Gap(4);                         // [26,30)
-            b.IceFlat(32);                    // [30,62) frozen
-            b.Gap(3);                         // [62,65)
-            b.Flat(40);                       // [65,105)
+            b.IceFlat(32);                    // [30,62) frozen, right up to the chasm
+            b.Gap(16);                        // [62,78) chasm: two moving ledges slide together mid-way and apart
+            b.Flat(27);                       // [78,105)
+            b.MovingLedge(63, 3, 0, 4, 0, 4f);        // [63,66) <-> [67,70)
+            b.MovingLedge(74, 3, 0, -4, 0, 4f);       // [74,77) <-> [70,73): they meet in the middle
 
             b.Mound(40, 3, 2);                // raised platforms mid-level
             b.Floating(45, 4, 4);
             b.Floating(50, 4, 5);
-            b.Mound(78, 3, 2);                // bonus stair
-            b.Floating(82, 4, 4);
-            b.Floating(87, 4, 6);
+            b.Mound(80, 3, 2);                // bonus stair
+            b.Floating(84, 4, 4);
+            b.Floating(89, 4, 6);
 
-            b.Start(0).Goal(103).Checkpoint(33).Checkpoint(68);
+            b.Start(0).Goal(103).Checkpoint(33).Checkpoint(79);
             b.Scout(9, 3).Harvester(17, 3).Scout(23, 2);
             b.Scout(37.5f, 1.5f).Harvester(47, 3).Scout(57, 3);
-            b.Scout(73, 3).Harvester(86, 3);
+            b.Harvester(86, 3);
             b.Scout(95, 2.5f).Scout(101, 1.5f);
             b.Chaser(58, 7);                  // wakes on the ice as the player comes off the stair
             b.Drone(20, 2.8f, 3).Drone(92, 2.8f, 3);
@@ -251,9 +259,8 @@ namespace FarmFuryStampede.EditorTools
             GapArc(b, 26, 4, 0);
             b.Crop(41.5f);
             b.CropAt(46, 4.9f).CropAt(47.5f, 4.9f).CropAt(51, 5.9f).CropAt(52.5f, 5.9f);
-            GapArc(b, 62, 3, 0);
-            b.CropAt(83, 4.9f).CropAt(84.5f, 4.9f);
-            b.SecretRow(87.5f, 90.5f, 1f, 6.5f);
+            b.CropAt(85, 4.9f).CropAt(86.5f, 4.9f);
+            b.SecretRow(89.5f, 92.5f, 1f, 6.5f);
             return b;
         }
 
@@ -293,15 +300,18 @@ namespace FarmFuryStampede.EditorTools
 
         // ---------------------------------------------------------------- 8
 
-        // The first 5-wide gaps taken off from ice; a stair over the last gap up to the passage sign.
+        // A 5-wide gap taken off from ice, an 11-wide one crossed on two ledges bobbing up and down in turn, and a stair
+        // over the last gap up to the passage sign.
         private static LevelBuilder Level8()
         {
             var b = new LevelBuilder("FrozenTundra_08", "Blizzard Gate");
             b.Flat(28);                       // [-4,24) top 0
             b.Gap(3);                         // [24,27)
             b.IceFlat(23, 2);                 // [27,50) top 2, frozen up to a 5-wide gap
-            b.Gap(5);                         // [50,55)
-            b.Flat(20, 2);                    // [55,75) top 2
+            b.Gap(11);                        // [50,61) gap with two ledges bobbing up and down in turn
+            b.Flat(14, 2);                    // [61,75) top 2
+            b.MovingLedge(52, 2, 1, 0, 3, 3.5f);         // top 1 <-> 4
+            b.MovingLedge(56, 2, 1, 0, 3, 3.5f, 0.5f);   // starts at the top: up while the first is down
             b.Gap(3);                         // [75,78)
             b.IceFlat(25, 4);                 // [78,103) top 4, frozen up to another 5-wide gap
             b.Gap(5);                         // [103,108)
@@ -309,19 +319,18 @@ namespace FarmFuryStampede.EditorTools
 
             b.Mound(98, 3, 2);                // stair over the last big gap
             b.Floating(102, 4, 8);
-            b.SecretPassage(104.5f, 8, 110.5f, PassageLayout.Ledges);   // secret passage (rare pellet + coins): sign on the platform over the gap
+            b.SecretPassage(104.5f, 8, PassageLayout.Ledges);   // secret passage (rare pellet + coins): sign on the platform over the gap
 
-            b.Start(0).Goal(128).Checkpoint(30).Checkpoint(58).Checkpoint(82).Checkpoint(111);
+            b.Start(0).Goal(128).Checkpoint(30).Checkpoint(62).Checkpoint(82).Checkpoint(111);
             b.Scout(9, 3).Harvester(18, 3);
             b.Scout(38, 3).Scout(45, 2.5f);
-            b.Harvester(65, 3).Scout(71, 2);
+            b.Harvester(67, 2).Scout(71, 2);
             b.Scout(87, 2);
             b.Chaser(95, 9);                  // wakes as the player passes x=86; stopped by the mound at 98
             b.Harvester(118, 3).Scout(125, 2);
             b.Drone(46, 2.8f, 3).Drone(88, 2.8f, 3).Drone(123, 2.8f, 3);
             b.CropRow(4, 8, 2);
             GapArc(b, 24, 3, 0);
-            GapArc(b, 50, 5, 2);
             GapArc(b, 75, 3, 2);
             b.Crop(99.5f);
             GapArc(b, 103, 5, 4);
@@ -352,7 +361,7 @@ namespace FarmFuryStampede.EditorTools
             b.BreakableFloor(78, 4);          // hollow beneath: Bessie's Ground Pound
             b.Gate(CharacterType.Bessie, "Cracked wooden floor at x=78..82 on the plateau hides a hollow; only Ground Pound breaks it.");
             b.SecretRow(78.5f, 81.5f, 1f, 1.5f);
-            b.SecretPassage(62f, 8, 86.5f, PassageLayout.Staircase);   // secret passage (rare pellet + coins): sign on the plateau perch, back up past the cracked floor
+            b.SecretPassage(62f, 8, PassageLayout.Staircase);   // secret passage (rare pellet + coins): sign on the plateau perch (back up on the same spot)
 
             b.Start(0).Goal(128).Checkpoint(27).Checkpoint(47).Checkpoint(84).Checkpoint(111);
             b.Scout(7, 2).Harvester(17.5f, 2.5f);
@@ -392,9 +401,9 @@ namespace FarmFuryStampede.EditorTools
             b.BarrelPyramid(20);
             b.StoneBlocks(52, 3, 4);          // bonus perch over the Chaser's stretch
             // Secret passage (rare pellet + coins): its sign on an ice-block perch just ahead of the start, in view
-            // from spawn and a double jump up; back up on the frozen run.
+            // from spawn and a double jump up; back up on the same perch.
             b.StoneBlocks(3, 3, 4);
-            b.SecretPassage(4.5f, 4, 36f, PassageLayout.Pyramid);
+            b.SecretPassage(4.5f, 4, PassageLayout.Pyramid);
             b.Gate(CharacterType.Gerald, "Island across a 15-unit crevasse behind the start: too wide for the base jump; Puff Glide crosses it.", CharacterType.Woolly);
             b.SecretRow(-40.5f, -36.5f, 1f, 0.5f);
 
@@ -418,7 +427,7 @@ namespace FarmFuryStampede.EditorTools
         // ---------------------------------------------------------------- 11
 
         // Capstone before the boss: five terraces, three of them frozen, three 5-wide gaps, five checkpoints, and the
-        // Breakable Wall chamber on the highest platform with the passage sign on its roof.
+        // passage sign on a block top level above the highest platform.
         private static LevelBuilder Level11()
         {
             var b = new LevelBuilder("FrozenTundra_11", "Overlord's Icecap");
@@ -437,13 +446,13 @@ namespace FarmFuryStampede.EditorTools
 
             b.Mound(52, 3, 2);                // perch after the first wide gap
             b.Floating(56, 4, 6);
-            b.Mound(93, 3, 2);                // open stair up to the chamber's platform
+            b.Mound(93, 3, 2);                // open stair up to the high platform
             b.Floating(97, 4, 8);
             b.Floating(102, 10, 10);
-            b.Chamber(106, 10, 4);            // sealed by a Breakable Wall: Billy's Charge Break
-            b.Gate(CharacterType.Billy, "Sealed chamber on the highest platform, above the last gap but one; its Breakable Wall only breaks to Charge Break.");
-            b.SecretRow(107.5f, 110.5f, 1f, 10.5f);
-            b.SecretPassage(109f, 14, 113.5f, PassageLayout.Pillars);   // secret passage (rare pellet + coins): sign on the chamber's roof
+            // The Breakable Wall chamber was removed (2026-10-03, as in Meadow Ruins 11): its roof is now a block top
+            // level, a double jump up from the platform, carrying the passage sign.
+            b.StoneBlocks(106, 6, 13);
+            b.SecretPassage(109f, 13, PassageLayout.Pillars);   // secret passage (rare pellet + coins): sign on the top level
 
             b.Start(0).Goal(158).Checkpoint(26).Checkpoint(51).Checkpoint(91).Checkpoint(114).Checkpoint(141);
             b.Scout(8, 3).Harvester(15.5f, 2.5f);

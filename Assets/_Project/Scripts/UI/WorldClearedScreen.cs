@@ -6,13 +6,14 @@ using UnityEngine.UI;
 namespace FarmFuryStampede.UI
 {
     /// <summary>
-    /// The celebration after a world's boss falls, shown over Level Complete (and over any New Character page, so it
-    /// comes first). In the New Character page's look: the sunset backdrop (MenuArt.newCharacterBackground) fitted
-    /// like the results art, "WORLD CLEARED!" in gold lettering, the beaten world's card popping in over turning
-    /// golden rays, confetti, and "The Robot Commander is defeated!". When the clear opened the next world, a tap
-    /// moves on to it: the World Unlocked sign, the next world's card revealed from a silhouette with a flash and
-    /// another burst of confetti, and "Next stop: [world]". The last tap closes it (taps in the first
-    /// MinShowSeconds are ignored, so the moment isn't skipped by accident). Unscaled time throughout.
+    /// The World Unlocked page after a world's boss falls, when the clear opened the next world; shown over Level
+    /// Complete (and over any New Character page, so it comes first). In the New Character page's look: the beaten
+    /// world's backdrop (WorldData.newCharacterBackground, else MenuArt's sunset) fitted like the results art, the
+    /// World Unlocked sign, the next world's card revealed from a silhouette with a flash over turning golden rays,
+    /// confetti, and "Next stop: [world]!". A tap closes it (taps in the first MinShowSeconds are ignored, so the
+    /// moment isn't skipped by accident). Unscaled time throughout. (Until 2026-10-03 a "WORLD CLEARED!" page with the
+    /// beaten world's card came first; it was removed. A clear that opens no world - the finale, or a paid next
+    /// world - shows nothing here.)
     /// </summary>
     public class WorldClearedScreen : OverlayScreen
     {
@@ -32,8 +33,6 @@ namespace FarmFuryStampede.UI
         private readonly ConfettiBurst _confetti;
         private readonly Driver _anim;
         private readonly Image _backdrop;
-        private WorldData _next;
-        private bool _showingNext;
 
         public WorldClearedScreen(Transform canvas, MenuArt art, ShopArt shop) : base(canvas, "WorldCleared", art, shop, posterBackdrop: false)
         {
@@ -59,7 +58,7 @@ namespace FarmFuryStampede.UI
             _rays.color = new Color(1f, 0.9f, 0.5f, 0.6f);
             ResultsScreen.PlaceInArt(_rays.rectTransform, RaysBox);
 
-            _title = OutlinedText(frame, "Title", "WORLD CLEARED!", 120, 4f);
+            _title = OutlinedText(frame, "Title", "NEW WORLD UNLOCKED!", 120, 4f);
             ResultsScreen.PlaceInArt(_title.rectTransform, TitleBox);
 
             _sign = UIKit.Picture(frame, "WorldUnlockedSign", Art.worldUnlockedSign);
@@ -83,44 +82,30 @@ namespace FarmFuryStampede.UI
             _anim.Screen = this;
         }
 
-        /// <summary>Celebrates beating this world's boss; with nextUnlocked, a tap then shows the world it opened.</summary>
+        /// <summary>Shows the world this boss clear opened; does nothing when it opened none.</summary>
         public void ShowFor(WorldType cleared, bool nextUnlocked)
         {
             var data = DataManager.Instance;
-            var world = data != null ? data.GetWorldData(cleared) : null;
-            _next = nextUnlocked && data != null ? data.GetWorldData(cleared + 1) : null;
-            _showingNext = false;
+            var next = nextUnlocked && data != null ? data.GetWorldData(cleared + 1) : null;
+            if (next == null) { return; }
+            var world = data.GetWorldData(cleared);
             if (_backdrop != null)   // the beaten world's own backdrop (Frozen Tundra's aurora), else the shared sunset
             {
                 _backdrop.sprite = world != null && world.newCharacterBackground != null ? world.newCharacterBackground : Art.newCharacterBackground;
             }
 
             Show();
-            _title.gameObject.SetActive(true);
-            _title.text = "WORLD CLEARED!";
-            _sign.gameObject.SetActive(false);
-            SetCard(world != null ? world.selectCardArt : null, world != null ? world.displayName : cleared.ToString());
-            _message.text = "The Robot Commander is defeated!";
-            _anim.Play(silhouette: false);
+            bool sign = Art.worldUnlockedSign != null;
+            _sign.gameObject.SetActive(sign);
+            _title.gameObject.SetActive(!sign);
+            _message.text = $"Next stop: {next.displayName}!";
+            SetCard(next.selectCardArt, next.displayName);
+            _anim.Play(silhouette: true);
         }
 
         private void OnTap()
         {
             if (Time.unscaledTime - _anim.ShownAt < MinShowSeconds) { return; }
-
-            if (_next != null && !_showingNext)
-            {
-                _showingNext = true;
-                bool sign = Art.worldUnlockedSign != null;
-                _sign.gameObject.SetActive(sign);
-                _title.gameObject.SetActive(!sign);
-                _title.text = "NEW WORLD UNLOCKED!";
-                SetCard(_next.selectCardArt, _next.displayName);
-                _message.text = $"Next stop: {_next.displayName}!";
-                _anim.Play(silhouette: true);
-                return;
-            }
-
             Hide();
         }
 

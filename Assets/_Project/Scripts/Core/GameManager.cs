@@ -42,7 +42,8 @@ namespace FarmFuryStampede.Core
         /// </summary>
         public bool BossVictoryPending { get; private set; }
 
-        // The boss victory moment: explosions over the Commander in slow motion, then a beat at normal speed.
+        // The boss victory moment: bursts of stars (ImpactStars.png) over the Commander in slow motion, then a beat at
+        // normal speed.
         private const int BossBursts = 7;
         private const float BossBurstSeconds = 1.4f;
         private const float BossSlowMotion = 0.4f;
@@ -246,7 +247,7 @@ namespace FarmFuryStampede.Core
         private System.Collections.IEnumerator BossVictory(Vector3 at)
         {
             var player = LevelLoader.Instance != null ? LevelLoader.Instance.Player : null;
-            var burst = player != null ? player.Prefabs.poundEffect : null;
+            var burst = player != null ? player.Prefabs.victoryEffect : null;   // ImpactStars (was Bessie's slam art)
 
             Time.timeScale = BossSlowMotion;
             for (int i = 0; i < BossBursts; i++)

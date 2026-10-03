@@ -104,6 +104,22 @@ namespace FarmFuryStampede.EditorTools
         // ... and its New Character page backdrop: the same aurora with only the logo (the page adds the lettering).
         private const string TundraNewCharacterSourcePath = EnvironmentDir + "/FT_NewCharacter_Canvas.png";
         private const string TundraNewCharacterBackgroundPath = EnvironmentDir + "/FT_NewCharacter_Canvas_Wide.png";
+        // The in-level character swap: CharacterCanvas.png (sunset hills, "Character" painted in) for Meadow Ruins and
+        // any world without its own; FT_Character_Canvas.png = FT_Paralax_Far.png scaled to 1280x720 (as the other
+        // Tundra canvases) with the UI/Character.png lettering composed where CharacterCanvas has it (x 377-937,
+        // y 72-200). Widened the same way.
+        private const string CharacterSwapSourcePath = EnvironmentDir + "/CharacterCanvas.png";
+        private const string CharacterSwapBackgroundPath = EnvironmentDir + "/CharacterCanvas_Wide.png";
+        private const string TundraCharacterSwapSourcePath = EnvironmentDir + "/FT_Character_Canvas.png";
+        private const string TundraCharacterSwapBackgroundPath = EnvironmentDir + "/FT_Character_Canvas_Wide.png";
+        // Watermill Village's menu canvases (2026-10-03): MenuCanvas.png (the mill and river) scaled to 1280x720 with
+        // the logo, the lettering and Meadow's three gold stars composed at the Tundra canvases' positions. Widened the
+        // same way.
+        private const string WatermillCompleteSourcePath = EnvironmentDir + "/WV_LevelComplete_Canvas.png";
+        private const string WatermillFailedSourcePath = EnvironmentDir + "/WV_LevelFailed_Canvas.png";
+        private const string WatermillNewCharacterSourcePath = EnvironmentDir + "/WV_NewCharacter_Canvas.png";
+        private const string WatermillCharacterSourcePath = EnvironmentDir + "/WV_Character_Canvas.png";
+        private static string Wide(string source) => source.Replace(".png", "_Wide.png");
         // Pause (per its mockup): the same kind of backdrop, "Pause" and the logo painted in, widened the same way.
         private const string PauseSourcePath = EnvironmentDir + "/Pause_Canvas.png";
         private const string PauseBackgroundPath = EnvironmentDir + "/Pause_Canvas_Wide.png";
@@ -179,6 +195,12 @@ namespace FarmFuryStampede.EditorTools
             BuildWideResultsArt(TundraNewCharacterSourcePath, TundraNewCharacterBackgroundPath);
             BuildWideResultsArt(PauseSourcePath, PauseBackgroundPath);
             BuildWideResultsArt(NewCharacterSourcePath, NewCharacterBackgroundPath);
+            BuildWideResultsArt(CharacterSwapSourcePath, CharacterSwapBackgroundPath);
+            BuildWideResultsArt(TundraCharacterSwapSourcePath, TundraCharacterSwapBackgroundPath);
+            foreach (string source in new[] { WatermillCompleteSourcePath, WatermillFailedSourcePath, WatermillNewCharacterSourcePath, WatermillCharacterSourcePath })
+            {
+                BuildWideResultsArt(source, Wide(source));
+            }
             ImportAnchored(CheckpointIdleFile, CheckpointPixelsPerUnit);
             ImportAnchored(CheckpointActiveFile, CheckpointPixelsPerUnit);
             ImportAnchored(GoalFile, GoalPixelsPerUnit);
@@ -192,10 +214,12 @@ namespace FarmFuryStampede.EditorTools
 
             ImportCentered(LedgeFile, 253f); // 253px tall -> 1 unit, one tile
             ImportCentered(StoneBlockFile, 292f); // 292px tall -> 1 unit, one tile
+            ImportCentered(BridgeFile, 100f);     // LevelBuilder sizes it to the span (Bridge())
 
             foreach (var (file, pivotY, metres) in SceneryFiles) { ImportToScale(file, pivotY, metres); }
             ImportToScale(BarrelFile, BarrelPivotY, BarrelMetres);
             ImportTundraArt();
+            ImportWatermillArt();
 
             foreach (string file in MenuSpriteFiles()) { ImportMenuSprite(file); }
         }
@@ -221,6 +245,12 @@ namespace FarmFuryStampede.EditorTools
             yield return TundraNewCharacterBackgroundPath;
             yield return PauseBackgroundPath;
             yield return NewCharacterBackgroundPath;
+            yield return CharacterSwapBackgroundPath;
+            yield return TundraCharacterSwapBackgroundPath;
+            yield return Wide(WatermillCompleteSourcePath);
+            yield return Wide(WatermillFailedSourcePath);
+            yield return Wide(WatermillNewCharacterSourcePath);
+            yield return Wide(WatermillCharacterSourcePath);
             yield return $"{UIDir}/{StarEmptyFile}";
             yield return $"{UIDir}/{QuitButtonFile}";
             yield return $"{UIDir}/{ExitButtonFile}";
@@ -277,14 +307,28 @@ namespace FarmFuryStampede.EditorTools
         public static Sprite PauseBackground() => AssetDatabase.LoadAssetAtPath<Sprite>(PauseBackgroundPath);
         public static Sprite NewCharacterBackground() => AssetDatabase.LoadAssetAtPath<Sprite>(NewCharacterBackgroundPath);
         public static Sprite LevelFailedBackground() => AssetDatabase.LoadAssetAtPath<Sprite>(LevelFailedBackgroundPath);
+        public static Sprite CharacterSwapBackground() => AssetDatabase.LoadAssetAtPath<Sprite>(CharacterSwapBackgroundPath);
+        /// <summary>A world's own character swap backdrop, or null for the shared Meadow Ruins one.</summary>
+        public static Sprite WorldCharacterSwapBackground(WorldType world) => world switch
+        {
+            WorldType.FrozenTundra => AssetDatabase.LoadAssetAtPath<Sprite>(TundraCharacterSwapBackgroundPath),
+            WorldType.WatermillVillage => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(WatermillCharacterSourcePath)),
+            _ => null,
+        };
         /// <summary>A world's own New Character page backdrop, or null for the shared sunset one.</summary>
-        public static Sprite WorldNewCharacterBackground(WorldType world) => world == WorldType.FrozenTundra
-            ? AssetDatabase.LoadAssetAtPath<Sprite>(TundraNewCharacterBackgroundPath)
-            : null;
+        public static Sprite WorldNewCharacterBackground(WorldType world) => world switch
+        {
+            WorldType.FrozenTundra => AssetDatabase.LoadAssetAtPath<Sprite>(TundraNewCharacterBackgroundPath),
+            WorldType.WatermillVillage => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(WatermillNewCharacterSourcePath)),
+            _ => null,
+        };
         /// <summary>A world's own Level Complete / Level Failed backdrop, or null for the shared Meadow Ruins one.</summary>
-        public static Sprite WorldResultsBackground(WorldType world, bool complete) => world == WorldType.FrozenTundra
-            ? AssetDatabase.LoadAssetAtPath<Sprite>(complete ? TundraCompleteBackgroundPath : TundraFailedBackgroundPath)
-            : null;
+        public static Sprite WorldResultsBackground(WorldType world, bool complete) => world switch
+        {
+            WorldType.FrozenTundra => AssetDatabase.LoadAssetAtPath<Sprite>(complete ? TundraCompleteBackgroundPath : TundraFailedBackgroundPath),
+            WorldType.WatermillVillage => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(complete ? WatermillCompleteSourcePath : WatermillFailedSourcePath)),
+            _ => null,
+        };
         /// <summary>World Select's backdrop: the sunset farm (Environment/Canvas.png).</summary>
         public static Sprite WorldSelectBackground() => AssetDatabase.LoadAssetAtPath<Sprite>(WorldSelectBackgroundPath);
         public static Sprite ExitButton() => Load(ExitButtonFile);
@@ -438,6 +482,46 @@ namespace FarmFuryStampede.EditorTools
             ("WoodBlock.png", 122f),    // Bessie's breakable floor
         };
 
+        // ---- Watermill Village (World 3) props, in Sprites/UI/WatermillVillage/Props: the 2048px originals in the
+        // folder above had a white studio background, cut out (with its soft shadow) and trimmed to 768px by a script
+        // on 2026-10-03; edit the Props copies. Same world scale; each stands in for a Meadow farm prop (WatermillBackdrop).
+        private const string WatermillDir = "WatermillVillage/Props/";
+        private static readonly (string file, float pivotY, float metres)[] WatermillFiles =
+        {
+            ("Cottage.png", 0.02f, 5.5f),          // ~3.6 units (the barn's place)
+            ("WaterWheel.png", 0.03f, 6.5f),       // ~4.2 (the windmill's)
+            ("OldWell.png", 0.03f, 3.6f),          // ~2.3 (the water wheel's)
+            ("StoneArch.png", 0.04f, 7f),          // ~4.6 (the silo's)
+            ("WeepingWillow.png", 0.02f, 9f),      // ~5.9 (the oak's)
+            ("RiverReed.png", 0.04f, 2.4f),        // ~1.6 (the gnarled tree's)
+            ("FlowerBasket.png", 0.02f, 1.3f),     // ~0.8 (the cart's, in front)
+            ("WoodenCrate.png", 0.05f, 3.2f),      // ~2.1: random obstacle on the 2.1x1.95 collider
+            ("MossyLog.png", 0.06f, 2.6f),         // ~1.7: random obstacle
+        };
+
+        private static void ImportWatermillArt()
+        {
+            foreach (var (file, pivotY, metres) in WatermillFiles) { ImportToScale(WatermillDir + file, pivotY, metres); }
+        }
+
+        public static Sprite Watermill(string file) => Load(WatermillDir + file);
+
+        /// <summary>Watermill Village's props in the farm-prop roles; Meadow's corn, fences, flowers and biplane stay.</summary>
+        internal static FarmBackdropArt WatermillBackdrop(FarmBackdropArt meadow) => new()
+        {
+            cornStalks = meadow.cornStalks,
+            fence = meadow.fence,
+            wildflowers = meadow.wildflowers,
+            plane = meadow.plane,
+            barn = Watermill("Cottage.png") ?? meadow.barn,
+            windmill = Watermill("WaterWheel.png") ?? meadow.windmill,
+            waterWheel = Watermill("OldWell.png") ?? meadow.waterWheel,
+            silo = Watermill("StoneArch.png") ?? meadow.silo,
+            oak = Watermill("WeepingWillow.png") ?? meadow.oak,
+            gnarledTree = Watermill("RiverReed.png") ?? meadow.gnarledTree,
+            cart = Watermill("FlowerBasket.png") ?? meadow.cart,
+        };
+
         /// <summary>Imports the Frozen Tundra prop and block art (called by ImportUIArt).</summary>
         private static void ImportTundraArt()
         {
@@ -486,6 +570,9 @@ namespace FarmFuryStampede.EditorTools
 
         // Square block art for LevelBuilder.StoneBlocks() bonus platforms, one block per tile.
         private const string StoneBlockFile = "Stone_Square.png";
+        // Rope bridge (211x46): the deck along the lower third, rope rails above; repeated across each Bridge() span.
+        private const string BridgeFile = "Bridge.png";
+        public static Sprite Bridge() => Load(BridgeFile);
         public static Sprite StoneBlock() => Load(StoneBlockFile);
         public static Sprite Coin() => Load(CoinFile);
 

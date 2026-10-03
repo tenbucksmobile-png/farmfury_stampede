@@ -22,12 +22,30 @@ namespace FarmFuryStampede.LevelSystem
         [Tooltip("Height above the pole base where the player reappears.")]
         [SerializeField] private float respawnHeight = 0.6f;
 
+        private static readonly Color ReachedGlow = new(1f, 0.82f, 0.35f);
+
         private bool _active;
+        private Sprite _worldArt;   // a world's own single-frame art (SetWorldArt); null = the signpost pair
 
         private void OnEnable()
         {
             _active = false;
+            _worldArt = null;
             SetFlagState(inactiveSprite, inactiveColor);
+        }
+
+        /// <summary>
+        /// Gives this spawn a world's own checkpoint art (one frame: shown plain, tinted gold once reached); null keeps
+        /// the signpost. Call right after spawning (the pool resets it on every spawn).
+        /// </summary>
+        public void SetWorldArt(Sprite art)
+        {
+            _worldArt = art;
+            if (art != null && flag != null)
+            {
+                flag.sprite = art;
+                flag.color = Color.white;
+            }
         }
 
         private void OnTriggerEnter2D(Collider2D other)
@@ -40,7 +58,8 @@ namespace FarmFuryStampede.LevelSystem
             }
 
             _active = true;
-            SetFlagState(activeSprite, activeColor);
+            if (_worldArt != null && flag != null) { flag.color = ReachedGlow; }
+            else { SetFlagState(activeSprite, activeColor); }
 
             Vector2 respawn = (Vector2)transform.position + Vector2.up * respawnHeight;
             gm.RunState.SetCheckpoint(respawn);

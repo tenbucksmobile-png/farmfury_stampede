@@ -274,7 +274,7 @@ namespace FarmFuryStampede.UI
 
             if (_artLook)
             {
-                SetArt(WorldArt(true) ?? _art.levelCompleteBackground);
+                SetArt(Either(WorldArt(true), _art.levelCompleteBackground));
                 for (int i = 0; i < _emptyStars.Length; i++)
                 {
                     _emptyStars[i].gameObject.SetActive(_art.levelCompleteStarEmpty != null && i >= run.starsEarned);
@@ -319,7 +319,7 @@ namespace FarmFuryStampede.UI
             _doubleCoins.SetActive(false);
             if (_artLook)
             {
-                SetArt(WorldArt(false) ?? _art.levelFailedBackground);
+                SetArt(Either(WorldArt(false), _art.levelFailedBackground));
                 foreach (var star in _emptyStars) { star.gameObject.SetActive(false); }
                 _score.SetActive(false);
                 _newCharacterSign.gameObject.SetActive(false);
@@ -354,6 +354,10 @@ namespace FarmFuryStampede.UI
             if (world == null) { return null; }
             return complete ? world.levelCompleteBackground : world.levelFailedBackground;
         }
+
+        // The world's art when it has some, else the shared art. Not '??': an unassigned sprite field on an asset can
+        // be a Unity "fake null" object, which '??' keeps (so the backdrop drew as a plain white Image).
+        private static Sprite Either(Sprite world, Sprite shared) => world != null ? world : shared;
 
         private void SetArt(Sprite sprite)
         {

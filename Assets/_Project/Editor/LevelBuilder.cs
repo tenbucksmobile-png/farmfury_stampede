@@ -43,6 +43,12 @@ namespace FarmFuryStampede.EditorTools
         public FarmBackdropArt farmArt = new();
         /// <summary>Square block art for StoneBlocks() bonus platforms; null draws them with platformTile.</summary>
         public Sprite stoneBlockSprite;
+        /// <summary>Rope bridge art for Bridge() spans (UI/Bridge.png, deck along its lower third), repeated across the span; null draws them with platformTile.</summary>
+        public Sprite bridgeSprite;
+        /// <summary>Square block art for BrickBlocks() steps (Frozen Tundra: WoodBlock.png); null uses stoneBlockSprite.</summary>
+        public Sprite brickBlockSprite;
+        /// <summary>Hung in the chasm under every main-path Bridge() (Frozen Tundra: FrozenWaterfall.png, feet-pivoted); null places none.</summary>
+        public Sprite chasmWaterfallSprite;
         /// <summary>Art for BonusCoin() crops (CropSpawnPoint.visualOverride).</summary>
         public Sprite coinSprite;
         /// <summary>The rare pellet (crystal apple) placed by RarePellet(); null places none.</summary>
@@ -61,6 +67,8 @@ namespace FarmFuryStampede.EditorTools
         public Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)> robotArt = new();
         /// <summary>How much bigger than the prefab the robotArt robots are drawn (feet on the ground, colliders unchanged).</summary>
         public float robotArtScale = 1f;
+        /// <summary>This world's checkpoint art (one frame, feet-pivoted), written onto every checkpoint marker; null keeps the signpost.</summary>
+        public Sprite checkpointSprite;
 
         /// <summary>A copy to override per world (the dictionary and arrays are shared until replaced).</summary>
         public LevelAssets Clone() => (LevelAssets)MemberwiseClone();
@@ -109,6 +117,9 @@ namespace FarmFuryStampede.EditorTools
             public bool blocks;  // StoneBlocks(): drawn with LevelAssets.stoneBlockSprite squares instead
             public bool bonus;   // optional platform validated against the double jump, not the base jump
             public bool ice;     // IceFlat(): main-path ground on the slippery Ice tilemap
+            public bool bridge;  // Bridge(): a rope bridge, drawn with LevelAssets.bridgeSprite over invisible collision tiles
+            public bool brick;   // BrickBlocks(): StoneBlocks drawn with LevelAssets.brickBlockSprite
+            public Surface partner;   // MovingLedge(): the same ledge at the other end of its trip (validation only)
             public override string ToString() => $"{(secret ? "Secret" : "")}{kind}[{x0},{x1}) top={top}";
         }
 
@@ -116,6 +127,7 @@ namespace FarmFuryStampede.EditorTools
         private struct RobotRec { public RobotType type; public float x, y, patrol; public int wave; }
         private struct BreakableRec { public int x, length, top; }
         private struct ChamberRec { public int x0, floorTop, interiorWidth; public bool barrierSeal; }
+        private sealed class MoverRec { public Surface start, end; public float period, phase; }
 
         private const float MaxRise = 2.5f;
         // Rise a bonus (StoneBlocks) platform may need: every character has a full-height double jump (3.5 + 3.5).
@@ -142,6 +154,7 @@ namespace FarmFuryStampede.EditorTools
         private readonly List<Vector2> _checkpoints = new();
         private readonly List<BreakableRec> _breakables = new();
         private readonly List<ChamberRec> _chambers = new();
+        private readonly List<MoverRec> _movers = new();
         private readonly List<RectInt> _water = new();
         private readonly List<Vector2> _pyramids = new();
         private readonly List<(Vector2 at, int rows)> _haystacks = new();   // bale stacks: 2 rows = HayStack, 3 = HayPyramid
@@ -253,6 +266,52 @@ namespace FarmFuryStampede.EditorTools
         public LevelBuilder StoneBlocks(int x, int length, int top)
         {
             _surfaces.Add(new Surface { x0 = x, x1 = x + length, top = top, baseTop = top - 1, kind = Kind.Floating, stone = true, blocks = true, bonus = true });
+            return this;
+        }
+
+        /// <summary>
+        /// A rope bridge: a walkable span [x, x+length) with its deck at 'top' (one tile of collision, drawn with
+        /// LevelAssets.bridgeSprite). Laid across a Gap() at the ground's height it carries the main path over a chasm
+        /// too wide to jump (path corn runs along its deck, and in Frozen Tundra a frozen waterfall hangs in the chasm
+        /// below); pass bonus = true for an optional raised span (validated against the double jump, like StoneBlocks).
+        /// </summary>
+        public LevelBuilder Bridge(int x, int length, int top, bool bonus = false)
+        {
+            _surfaces.Add(new Surface { x0 = x, x1 = x + length, top = top, baseTop = top - 1, kind = Kind.Floating, bridge = true, bonus = bonus });
+            return this;
+        }
+
+        /// <summary>
+        /// Mario-style moving ledge (MovingPlatform at runtime): a one-tile-thick ledge [x, x+length) with its top at
+        /// 'top' that glides to (x+dx, top+dy) and back, one round trip every 'period' seconds, starting 'phase' (0-1)
+        /// of the way round (0.5 = at the far end, so two ledges can move in turn). The player rides it. Validated as
+        /// its two end positions, joined (riding from one to the other); the whole sweep must stay clear of the ground.
+        /// Put them over a chasm too wide to jump to make the player hop across from one to the next.
+        /// </summary>
+        public LevelBuilder MovingLedge(int x, int length, int top, int dx, int dy, float period = 4f, float phase = 0f)
+        {
+            var start = new Surface { x0 = x, x1 = x + length, top = top, baseTop = top - 1, kind = Kind.Floating };
+            var end = new Surface { x0 = x + dx, x1 = x + dx + length, top = top + dy, baseTop = top + dy - 1, kind = Kind.Floating };
+            start.partner = end;
+            end.partner = start;
+            _surfaces.Add(start);
+            _surfaces.Add(end);
+            _movers.Add(new MoverRec { start = start, end = end, period = period, phase = phase });
+            return this;
+        }
+
+        /// <summary>An optional floating ledge (ledge slab art, like Floating) validated against the double jump.</summary>
+        public LevelBuilder BonusLedge(int x, int length, int top)
+        {
+            _surfaces.Add(new Surface { x0 = x, x1 = x + length, top = top, baseTop = top - 1, kind = Kind.Floating, bonus = true });
+            return this;
+        }
+
+        /// <summary>StoneBlocks drawn with the world's brick block art (Frozen Tundra: the snow-capped WoodBlock).</summary>
+        public LevelBuilder BrickBlocks(int x, int length, int top)
+        {
+            StoneBlocks(x, length, top);
+            _surfaces[_surfaces.Count - 1].brick = true;
             return this;
         }
 
@@ -651,6 +710,10 @@ namespace FarmFuryStampede.EditorTools
                     while (queue.Count > 0)
                     {
                         var current = queue.Dequeue();
+                        if (current.partner != null && reached.Add(current.partner))
+                        {
+                            queue.Enqueue(current.partner);   // ride a moving ledge to the other end of its trip
+                        }
                         foreach (var next in _surfaces)
                         {
                             if (!reached.Contains(next) && CanReach(current, next))
@@ -710,6 +773,19 @@ namespace FarmFuryStampede.EditorTools
                 foreach (var b in _breakables.Where(b => r.x + r.patrol > b.x - 1 && r.x - r.patrol < b.x + b.length + 1))
                 {
                     Error($"Harvester at x={r.x} patrols over the breakable floor at x={b.x}.");
+                }
+            }
+
+            foreach (var m in _movers)
+            {
+                int sx0 = Mathf.Min(m.start.x0, m.end.x0), sx1 = Mathf.Max(m.start.x1, m.end.x1);
+                int lowBase = Mathf.Min(m.start.baseTop, m.end.baseTop);
+                foreach (var g in _surfaces.Where(s => s.kind != Kind.Floating && s.x0 < sx1 && sx0 < s.x1))
+                {
+                    if (lowBase < g.top)
+                    {
+                        Error($"Moving ledge from {m.start} to {m.end} sweeps through {g}.");
+                    }
                 }
             }
 
@@ -790,18 +866,31 @@ namespace FarmFuryStampede.EditorTools
                     case Kind.Mound:
                         Fill(ground, assets.groundTile, s.x0, s.x1 - 1, s.baseTop, s.top - 1);
                         break;
+                    case Kind.Floating when s.partner != null:
+                        break;   // a moving ledge: built as its own object below
                     case Kind.Floating:
                         // Every floating platform (ordinary ones too, not just secret ledges) is drawn with the
                         // Stone_Block.png slabs; StoneBlocks() bonus platforms keep their square blocks.
-                        Sprite stoneSprite = s.blocks ? assets.stoneBlockSprite : assets.ledgeSprite;
+                        Sprite stoneSprite = s.bridge ? assets.bridgeSprite
+                            : s.brick && assets.brickBlockSprite != null ? assets.brickBlockSprite
+                            : s.blocks ? assets.stoneBlockSprite : assets.ledgeSprite;
                         bool stoneArt = stoneSprite != null && assets.invisibleTile != null;
                         Fill(platforms, stoneArt ? assets.invisibleTile : assets.platformTile, s.x0, s.x1 - 1, s.top - 1, s.top - 1);
-                        if (stoneArt)
+                        if (stoneArt && s.bridge)
+                        {
+                            AddBridge(root.transform, stoneSprite, s);
+                        }
+                        else if (stoneArt)
                         {
                             AddStoneSlabs(root.transform, stoneSprite, s);
                         }
                         break;
                 }
+            }
+
+            for (int i = 0; i < _movers.Count; i++)
+            {
+                BuildMovingLedge(root.transform, assets, _movers[i], i);
             }
 
             foreach (var c in _chambers)
@@ -845,6 +934,7 @@ namespace FarmFuryStampede.EditorTools
                 ice.gameObject.AddComponent<IceSurface>();
                 PlaceIceSigns(root.transform, assets);
             }
+            PlaceChasmWaterfalls(root.transform, assets);
 
             if (_breakables.Count > 0)
             {
@@ -891,7 +981,7 @@ namespace FarmFuryStampede.EditorTools
 
             for (int i = 0; i < _checkpoints.Count; i++)
             {
-                AddMarker<CheckpointMarker>(markers.transform, $"Checkpoint_{i + 1}", _checkpoints[i]);
+                AddMarker<CheckpointMarker>(markers.transform, $"Checkpoint_{i + 1}", _checkpoints[i]).worldArt = assets.checkpointSprite;
             }
 
             for (int i = 0; i < _chambers.Count; i++)
@@ -1090,11 +1180,13 @@ namespace FarmFuryStampede.EditorTools
         // character can reach. Walking into it drops the player (SecretPassageDoor, automatic, a short fade) into an
         // underground cellar built far below and beyond the level (clear of the pit trigger and the level's camera
         // span): a dirt room with three stone-block steps, PassageCoins coins (1 coin each, not crops) and the level's
-        // rare pellet on the middle, tallest step. A second sign at the room's far end brings the player back up at
-        // exitX, further along the level. The room is generated, not authored, and is laid out so every coin and the
-        // pellet are reachable with the ordinary jump and double jump; the author only picks the entrance and exit.
+        // rare pellet on the middle, tallest step. A second sign at the room's far end brings the player back up where
+        // they went down, on the entrance sign (which ignores them until they step off it), so no part of the level is
+        // skipped (since 2026-10-03; was: further along the level at an authored exitX). The room is generated, not
+        // authored, and is laid out so every coin and the pellet are reachable with the ordinary jump and double jump;
+        // the author only picks the entrance.
 
-        private struct PassageRec { public float x; public int top; public float exitX; public PassageLayout layout; }
+        private struct PassageRec { public float x; public int top; public PassageLayout layout; }
         private PassageRec? _passage;
 
         private const int RoomWidth = 34;        // interior cells
@@ -1102,7 +1194,6 @@ namespace FarmFuryStampede.EditorTools
         private const int RoomFloorTop = -40;    // far below the pit trigger at y=-10
         private const int RoomOffsetX = 20;      // gap between the level's right wall and the room
         private const float DoorWidth = 1.2f, DoorHeight = 2.4f;
-        private const float ExitRobotClearance = 2.5f;   // open ground between the exit landing and a patrol's end
         private const int PassageSignSortingOrder = 3;   // over the farm backdrop, under crops (5) and actors
         private static readonly Color BackwallTint = new(0.3f, 0.24f, 0.2f, 1f);
         private const float RoomEntryX = 2f, RoomExitX = 32f;
@@ -1148,18 +1239,18 @@ namespace FarmFuryStampede.EditorTools
 
         /// <summary>
         /// The level's secret passage: its entrance sign stands at x on a surface whose top is 'top' (ground, mound,
-        /// platform, ledge or a Chamber roof), and its exit brings the player back up on the level ground at exitX. The
+        /// platform, ledge or a Chamber roof); the room's exit brings the player back up on the same spot. The
         /// passage room holds the level's rare pellet, so don't also call RarePellet(). Put the sign somewhere
         /// optional (entering is automatic) that every character can reach. 'layout' picks the room's shape (see
         /// RoomLayouts); give each passage in a world a different one.
         /// </summary>
-        public LevelBuilder SecretPassage(float x, int top, float exitX, PassageLayout layout)
+        public LevelBuilder SecretPassage(float x, int top, PassageLayout layout)
         {
             if (_passage.HasValue)
             {
                 Error("Only one secret passage per level.");
             }
-            _passage = new PassageRec { x = x, top = top, exitX = exitX, layout = layout };
+            _passage = new PassageRec { x = x, top = top, layout = layout };
             return this;
         }
 
@@ -1187,37 +1278,6 @@ namespace FarmFuryStampede.EditorTools
                 Error($"Secret passage sign at x={p.x} has no surface with top {p.top} under it.");
             }
 
-            int exitTop = GroundTopAt(p.exitX, out bool found);
-            bool exitOnPath = found && _surfaces.Any(s => !s.secret && s.kind != Kind.Floating && p.exitX >= s.x0 && p.exitX < s.x1);
-            for (float dx = -1.5f; dx <= 1.5f && exitOnPath; dx += 0.5f)
-            {
-                exitOnPath = GroundTopAt(p.exitX + dx, out bool f) == exitTop && f;
-            }
-            if (!exitOnPath)
-            {
-                Error($"Secret passage exit at x={p.exitX} needs flat main-path ground 1.5 either side.");
-            }
-
-            foreach (var r in _robots.Where(r => r.type != RobotType.Drone && r.type != RobotType.Chaser && r.wave == 0))
-            {
-                if (Mathf.Abs(r.x - p.exitX) < r.patrol + ExitRobotClearance)
-                {
-                    Error($"Secret passage exit at x={p.exitX} lands on the {r.type} patrolling at x={r.x}.");
-                }
-            }
-            if (_pyramids.Any(q => Mathf.Abs(q.x - p.exitX) < BarrelRows * BarrelWidth * 0.5f + 2f)
-                || _haystacks.Any(q => Mathf.Abs(q.at.x - p.exitX) < q.rows * BaleWidth * 0.5f + 2f))
-            {
-                Error($"Secret passage exit at x={p.exitX} lands in a barrel pyramid or hay stack.");
-            }
-            if (_breakables.Any(b => p.exitX > b.x - 2f && p.exitX < b.x + b.length + 2f))
-            {
-                Error($"Secret passage exit at x={p.exitX} is on a breakable floor.");
-            }
-            if (_goal.HasValue && Mathf.Abs(_goal.Value.x - p.exitX) < 4f)
-            {
-                Error($"Secret passage exit at x={p.exitX} is on top of the goal.");
-            }
         }
 
         private void BuildPassage(Transform root, Transform grid, Tilemap ground, Tilemap platforms, LevelAssets assets, int endX)
@@ -1266,9 +1326,11 @@ namespace FarmFuryStampede.EditorTools
             entrance.cameraMinX = r0 - 1;
             entrance.cameraMaxX = r1 + 1;
 
+            // Back up where they went down: on the entrance sign, which then waits for them to step off it.
             var exit = AddDoor(root, "SecretPassage_Exit", new Vector2(r0 + RoomExitX, f), assets.secretSignSprite, true);
-            exit.destination = new Vector2(p.exitX, GroundTopAt(p.exitX, out _) + 0.6f);
+            exit.destination = new Vector2(p.x, p.top + 0.6f);
             exit.returnsToLevel = true;
+            exit.entrance = entrance;
             PassageRoom = new RectInt(r0, f, RoomWidth, RoomHeight);
         }
 
@@ -1454,6 +1516,9 @@ namespace FarmFuryStampede.EditorTools
             return found;
         }
 
+        // The main-path bridge deck at x, if any (bonus bridges aren't on the path line).
+        private Surface PathBridgeAt(float x) => _surfaces.FirstOrDefault(s => s.bridge && !s.bonus && x >= s.x0 && x < s.x1);
+
         // Replaces the hand-placed crops on the path line with one evenly spaced line of kernels (see PathCorn).
         private void AddPathCorn()
         {
@@ -1463,9 +1528,9 @@ namespace FarmFuryStampede.EditorTools
             var pits = new List<(int a, int b, float baseTop)>();
             for (int cx = Mathf.FloorToInt(x0); cx < Mathf.CeilToInt(x1); cx++)
             {
-                if (HasGround(cx + 0.5f)) { continue; }
+                if (HasGround(cx + 0.5f) || PathBridgeAt(cx + 0.5f) != null) { continue; }
                 int a = cx;
-                while (cx < x1 && !HasGround(cx + 0.5f)) { cx++; }
+                while (cx < x1 && !HasGround(cx + 0.5f) && PathBridgeAt(cx + 0.5f) == null) { cx++; }
                 int b = cx;
                 if (b - a > MaxFlatGap || !HasGround(a - 0.5f) || !HasGround(b + 0.5f)) { continue; }
                 float baseTop = Mathf.Max(PathSurface(a - 0.5f, out _), PathSurface(b + 0.5f, out _));
@@ -1476,14 +1541,17 @@ namespace FarmFuryStampede.EditorTools
             {
                 if (c.x < x0 - 1f || c.x > x1 + 1f) { return false; }
                 if (HasGround(c.x)) { return Mathf.Abs(c.y - (PathRestTop(c.x) + CropRestHeight)) < 0.6f; }
+                if (PathBridgeAt(c.x) is { } deck) { return Mathf.Abs(c.y - (deck.top + CropRestHeight)) < 0.6f; }
                 return pits.Any(p => c.x > p.a - 0.5f && c.x < p.b + 0.5f && c.y < p.baseTop + PitArcLift + PitArcPeak + 1f);
             }
             _crops.RemoveAll(c => !c.secret && !c.coin && OnPathLine(c));
 
             for (float x = x0 + 1f; x <= x1 - 0.5f; x += PathCornSpacing)
             {
-                if (!HasGround(x)) { continue; }   // pits get their arc below
-                float y = PathRestTop(x) + CropRestHeight;
+                float y;
+                if (HasGround(x)) { y = PathRestTop(x) + CropRestHeight; }
+                else if (PathBridgeAt(x) is { } deck) { y = deck.top + CropRestHeight; }   // along a bridge's deck
+                else { continue; }   // pits get their arc below
                 if (!BlockedForCrop(x, y)) { _crops.Add(new CropRec { x = x, y = y, path = true }); }
             }
 
@@ -1576,14 +1644,17 @@ namespace FarmFuryStampede.EditorTools
                 return null;
             }
 
-            // Places a group near preferredLeft (its left edge); returns its extent, or null.
-            (float a, float b)? PlaceGroup(string name, (FarmProp prop, float dx)[] group, float preferredLeft, bool reserve)
+            // Places a group near preferredLeft (its left edge); returns its extent, or null. When the whole group
+            // finds no room, each fallback (a smaller version of it) is tried in turn.
+            (float a, float b)? PlaceGroup(string name, (FarmProp prop, float dx)[] group, float preferredLeft, bool reserve,
+                params (FarmProp prop, float dx)[][] fallbacks)
             {
                 float left = 0f, right = 0f;
                 foreach (var (prop, dx) in group)
                 {
                     var sprite = FarmSprite(prop, art);
-                    float half = (sprite != null ? sprite.bounds.size.x * 0.5f : 1f) * 0.8f;
+                    // The whole width (the art is cropped to its opaque pixels), so no prop overhangs a pit or step.
+                    float half = sprite != null ? sprite.bounds.size.x * 0.5f : 1f;
                     left = Mathf.Max(left, half - dx);
                     right = Mathf.Max(right, dx + half);
                 }
@@ -1592,6 +1663,10 @@ namespace FarmFuryStampede.EditorTools
                 // try again tighter, without the corn margin, before leaving the group out.
                 float? at = FindSpot(preferredLeft + left, left, right, reserve, LedgeClearance)
                     ?? FindSpot(preferredLeft + left, left, right, false, TightLedgeClearance);
+                if (!at.HasValue && fallbacks.Length > 0)
+                {
+                    return PlaceGroup(name, fallbacks[0], preferredLeft, reserve, fallbacks.Skip(1).ToArray());
+                }
                 if (!at.HasValue)
                 {
                     Debug.LogWarning($"[LevelBuilder] {Id}: no clear flat stretch for the {name}; left out.");
@@ -1605,7 +1680,10 @@ namespace FarmFuryStampede.EditorTools
             }
 
             PlaceGroup("entrance (water wheel, windmill, gnarled tree)", EntranceGroup, x0 + length * EntranceFraction, true);
-            PlaceGroup("farmyard (barn, cart, oak)", FarmyardGroup, x0 + length * FarmyardFraction - 4f, true);
+            // A crowded level that can't fit the whole farmyard on flat ground drops the cart, then the oak.
+            PlaceGroup("farmyard (barn, cart, oak)", FarmyardGroup, x0 + length * FarmyardFraction - 4f, true,
+                FarmyardGroup.Where(g => g.prop != FarmProp.Cart).ToArray(),
+                FarmyardGroup.Where(g => g.prop == FarmProp.Barn).ToArray());
             var silo = PlaceGroup("silo", SiloGroup, x0 + length * SiloFraction, false);
             if (silo.HasValue) { occupied.Add(silo.Value); }   // later groups keep off it; the corn doesn't
 
@@ -1759,7 +1837,7 @@ namespace FarmFuryStampede.EditorTools
                     float x = anchor.x + side * offset;
                     int top = (int)anchor.y;
                     bool grounded = true;
-                    for (float dx = -half * 0.7f; dx <= half * 0.7f; dx += 0.5f)
+                    for (float dx = -half; dx <= half + 0.001f; dx += 0.25f)
                     {
                         if (GroundTopAt(x + dx, out bool found) != top || !found) { grounded = false; break; }
                     }
@@ -1847,7 +1925,7 @@ namespace FarmFuryStampede.EditorTools
                 };
                 if (sprite == null) { continue; }
                 float half = sprite.bounds.size.x * 0.5f * scale;
-                int? top = FlatTop(x, half * 0.6f);
+                int? top = FlatTop(x, half);   // the whole width: never out over a pit or a step
                 if (top == null || scenery.Any(p => Mathf.Abs(p.x - x) < p.halfWidth + half * 0.8f))
                 {
                     Debug.LogWarning($"[LevelBuilder] {Id}: skipped backdrop {prop} at x={x} (over a gap/step or covering a barn/windmill).");
@@ -2021,6 +2099,88 @@ namespace FarmFuryStampede.EditorTools
             }
         }
 
+        // Bridge.png: the plank deck spans the art's rows 31-41 of 46 (top down), rails above, post stubs below.
+        private const float BridgeDeckTop = 15f / 46f;   // the deck's top edge, as a fraction of the art from its bottom
+        private const float BridgeArtHeight = 2f;        // units: a ~0.5 deck and rails ~1.35 high (the actors are 1.5)
+
+        // Repeats the bridge art across the span (whole copies at close to its own aspect, stretched to fit exactly),
+        // the deck's top on the surface top.
+        private static void AddBridge(Transform root, Sprite art, Surface s)
+        {
+            Vector2 native = art.bounds.size;
+            float aspect = native.x / Mathf.Max(native.y, 0.01f);
+            int length = s.x1 - s.x0;
+            int count = Mathf.Max(1, Mathf.RoundToInt(length / (BridgeArtHeight * aspect)));
+            float width = (float)length / count;
+            float centreY = s.top - BridgeDeckTop * BridgeArtHeight + BridgeArtHeight * 0.5f;
+
+            for (int i = 0; i < count; i++)
+            {
+                var go = new GameObject($"Bridge_{s.x0}_{i}");
+                go.transform.SetParent(root, false);
+                go.transform.position = new Vector3(s.x0 + width * (i + 0.5f), centreY, 0f);
+                go.transform.localScale = new Vector3(width / native.x, BridgeArtHeight / native.y, 1f);
+                var renderer = go.AddComponent<SpriteRenderer>();
+                renderer.sprite = art;
+                renderer.sortingOrder = 1; // with the Platforms tilemap: behind robots and the player
+            }
+        }
+
+        // A moving ledge: its own solid object on the Ground layer (a kinematic body with a MovingPlatform), drawn with
+        // the world's ledge slabs (or the plain platform tile's sprite), placed at the start of its trip.
+        private static void BuildMovingLedge(Transform root, LevelAssets assets, MoverRec m, int index)
+        {
+            var s = m.start;
+            int length = s.x1 - s.x0;
+            var go = new GameObject($"MovingLedge_{index + 1}") { layer = assets.groundLayer };
+            go.transform.SetParent(root, false);
+            go.transform.position = new Vector3(s.x0 + length * 0.5f, s.top - 0.5f, 0f);
+            var body = go.AddComponent<Rigidbody2D>();
+            body.bodyType = RigidbodyType2D.Kinematic;
+            body.interpolation = RigidbodyInterpolation2D.Interpolate;
+            var box = go.AddComponent<BoxCollider2D>();
+            box.size = new Vector2(length, 1f);
+            var mover = go.AddComponent<MovingPlatform>();
+            mover.travel = new Vector2(m.end.x0 - s.x0, m.end.top - s.top);
+            mover.period = m.period;
+            mover.phase = m.phase;
+
+            if (assets.ledgeSprite != null)
+            {
+                AddStoneSlabs(go.transform, assets.ledgeSprite, s);   // world positions: the ledge is at its start
+            }
+            else if (assets.platformTile != null && assets.platformTile.sprite != null)
+            {
+                var art = new GameObject("Art");
+                art.transform.SetParent(go.transform, false);
+                Vector2 native = assets.platformTile.sprite.bounds.size;
+                art.transform.localScale = new Vector3(length / native.x, 1f / native.y, 1f);
+                var renderer = art.AddComponent<SpriteRenderer>();
+                renderer.sprite = assets.platformTile.sprite;
+                renderer.sortingOrder = 1;
+            }
+        }
+
+        // A frozen waterfall hung in the chasm under every main-path bridge (scenery, behind the ground tiles), its
+        // top just under the deck and narrowed to fit between the cliffs if needed.
+        private void PlaceChasmWaterfalls(Transform root, LevelAssets assets)
+        {
+            if (assets.chasmWaterfallSprite == null) { return; }
+            foreach (var s in _surfaces.Where(s => s.bridge && !s.bonus))
+            {
+                Vector2 native = assets.chasmWaterfallSprite.bounds.size;
+                float scale = Mathf.Min(1f, (s.x1 - s.x0 - 0.6f) / native.x);
+                var go = new GameObject($"ChasmWaterfall_{s.x0}");
+                go.transform.SetParent(root, false);
+                go.transform.position = new Vector3((s.x0 + s.x1) * 0.5f, s.top - 0.4f - native.y * scale, 0f);
+                go.transform.localScale = new Vector3(scale, scale, 1f);
+                var renderer = go.AddComponent<SpriteRenderer>();
+                renderer.sprite = assets.chasmWaterfallSprite;
+                renderer.color = SceneryTint;
+                renderer.sortingOrder = -5;
+            }
+        }
+
         private static void AddBarrel(Transform root, LevelAssets assets, string barrelName, Vector2 feet, int sortingOrder)
         {
             var barrel = new GameObject(barrelName) { layer = assets.groundLayer };
@@ -2057,8 +2217,7 @@ namespace FarmFuryStampede.EditorTools
             bool Near(Vector2? p, float range) => p.HasValue && Mathf.Abs(p.Value.x - x) < range;
             if (Near(_playerStart, 6f) || Near(_goal, 4f)) { return false; }
             if (Near(_rarePellet, ObstacleWidth * 0.5f + 2f)) { return false; }   // the pellet floats over open ground
-            if (_passage.HasValue && (Mathf.Abs(_passage.Value.x - x) < ObstacleWidth * 0.5f + 2f
-                || Mathf.Abs(_passage.Value.exitX - x) < ObstacleWidth * 0.5f + 3f)) { return false; }   // passage sign / exit landing
+            if (_passage.HasValue && Mathf.Abs(_passage.Value.x - x) < ObstacleWidth * 0.5f + 2f) { return false; }   // passage sign
             if (_checkpoints.Any(c => Mathf.Abs(c.x - x) < 3f)) { return false; }
             if (_robots.Any(r => Mathf.Abs(r.x - x) < r.patrol + ObstacleWidth * 0.5f + 1.2f)) { return false; }
             if (_breakables.Any(b => x > b.x - 2f && x < b.x + b.length + 2f)) { return false; }

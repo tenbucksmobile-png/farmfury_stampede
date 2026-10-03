@@ -15,9 +15,9 @@ namespace FarmFuryStampede.UI
     /// On-screen controls, one row along the bottom, all the same size: hold-to-run left and right, then pause,
     /// bottom-left; the character swap and the Locker centred; the played character's ability card and jump
     /// bottom-right, jump in the corner.
-    /// Ability cooldown (Arcade's setup): after each use the card greys out with a seconds countdown for
-    /// CharacterData.abilityCooldown (5s). Meanwhile a spinning coin badge on its top-left corner skips the wait for
-    /// SkipCooldownCoinsCost coins (tappable only when affordable), and a Watch Ad button above the card skips it for
+    /// Ability cooldown (Arcade's setup): after each use the card greys out for CharacterData.abilityCooldown (5s;
+    /// no countdown text since 2026-10-03). Meanwhile a spinning coin badge (no price text) on its top-left corner
+    /// skips the wait for SkipCooldownCoinsCost coins (tappable only when affordable), and a Watch Ad button above the card skips it for
     /// a rewarded ad (shown only while an ad is loaded; the level is frozen while it plays). The life icons are the played character giving a
     /// thumbs up.
     /// Without art the lives fall back to red squares and pause to a plain "II" button.
@@ -43,7 +43,6 @@ namespace FarmFuryStampede.UI
         private readonly Image _ability;
         private readonly Text _abilityLabel;
         private static readonly Color AbilitySpent = new(0.45f, 0.45f, 0.45f, 0.7f);
-        private readonly Text _cooldownText;
         private readonly Button _skipCoinButton;
         private readonly Button _skipAdButton;
         private CharacterController2D _player;
@@ -52,7 +51,7 @@ namespace FarmFuryStampede.UI
 
         /// <summary>Coins to skip the ability cooldown (Arcade's SkipCooldownCoinsCost).</summary>
         public const int SkipCooldownCoinsCost = 3;
-        private const float SkipBadgeSize = 64f;
+        private const float SkipBadgeSize = 84f;
         public bool SkipCoinShown => _skipCoinButton.gameObject.activeSelf;
         public bool SkipAdShown => _skipAdButton.gameObject.activeSelf;
         public Button SkipCoinButton => _skipCoinButton;
@@ -130,13 +129,7 @@ namespace FarmFuryStampede.UI
             _abilityLabel = ability.GetComponentInChildren<Text>();
             if (_abilityLabel != null) { _abilityLabel.fontSize = 30; }
 
-            // Cooldown countdown: whole seconds left, big over the greyed card.
-            _cooldownText = UIKit.Label(ability.transform, "CooldownText", "", 72, TextAnchor.MiddleCenter, Color.white);
-            _cooldownText.fontStyle = FontStyle.Bold;
-            _cooldownText.gameObject.AddComponent<Outline>().effectDistance = new Vector2(3f, -3f);
-            UIKit.Stretch(_cooldownText.rectTransform);
-
-            // Skip for coins: a coin with the price on the card's top-left corner, drawn over the card so a tap on
+            // Skip for coins: a coin (no price text) on the card's top-left corner, drawn over the card so a tap on
             // it never reaches the card's own press. The coin turns like the revive prompt's.
             _skipCoinButton = UIKit.MakeButton(ability.transform, "SkipCooldownCoinBadge", "", Color.clear, SkipWithCoins);
             UIKit.Place(_skipCoinButton.image.rectTransform, new Vector2(0f, 1f), new Vector2(0.5f, 0.5f), new Vector2(8f, -8f),
@@ -148,10 +141,6 @@ namespace FarmFuryStampede.UI
             UIKit.Stretch(badgeCoin.rectTransform);
             badgeCoin.gameObject.AddComponent<SpinAroundY>();
             _skipCoinButton.targetGraphic = badgeCoin;   // the disabled tint greys the coin when it can't be afforded
-            var price = UIKit.Label(_skipCoinButton.transform, "Price", SkipCooldownCoinsCost.ToString(), 40, TextAnchor.MiddleCenter, Color.white);
-            price.fontStyle = FontStyle.Bold;
-            price.gameObject.AddComponent<Outline>().effectDistance = new Vector2(2f, -2f);
-            UIKit.Stretch(price.rectTransform);
             _skipCoinButton.transform.Find("Label").gameObject.SetActive(false);
             _skipCoinButton.gameObject.SetActive(false);
 
@@ -285,7 +274,6 @@ namespace FarmFuryStampede.UI
             float cooldown = player != null ? player.CooldownRemaining : 0f;
             bool ready = cooldown <= 0f;
             _ability.color = _ability.sprite != null ? (ready ? Color.white : AbilitySpent) : (ready ? PlainButton : AbilitySpent);
-            _cooldownText.text = ready ? "" : Mathf.CeilToInt(cooldown).ToString();
             // Checked every frame so a coin pickup mid-cooldown makes the badge tappable at once (as in Arcade).
             _skipCoinButton.gameObject.SetActive(!ready);
             _skipCoinButton.interactable = SaveManager.Instance != null && SaveManager.Instance.CoinBalance >= SkipCooldownCoinsCost;

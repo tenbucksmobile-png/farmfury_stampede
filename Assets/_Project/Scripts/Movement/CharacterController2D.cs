@@ -380,6 +380,13 @@ namespace FarmFuryStampede.Movement
             float moveInput = _input.Move;
             bool groundedAtStart = _grounded;
 
+            // Riding a moving ledge: move with it first (sideways stops at a wall; up and down follow it exactly).
+            if (_grounded && _groundCollider != null && _groundCollider.TryGetComponent(out LevelSystem.MovingPlatform ride))
+            {
+                MoveAndCollide(new Vector2(ride.Delta.x, 0f), out _, out _);
+                _position.y += ride.Delta.y;
+            }
+
             // Per-step modifiers start neutral; the active ability re-applies its own in Tick.
             GravityScale = 1f;
             InputLocked = false;
@@ -488,7 +495,9 @@ namespace FarmFuryStampede.Movement
                 _velocity.y = 0f;
             }
 
-            _grounded = landed || (_velocity.y <= 0f && GroundCheck());
+            // GroundCheck runs on a landing too, so what we stand on (ice, a moving ledge) is always current.
+            bool onSomething = _velocity.y <= 0f && GroundCheck();
+            _grounded = landed || onSomething;
             AirTime = _grounded ? 0f : AirTime + dt;
             if (_grounded)
             {

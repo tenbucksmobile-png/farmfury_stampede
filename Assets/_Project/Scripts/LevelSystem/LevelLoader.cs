@@ -114,7 +114,8 @@ namespace FarmFuryStampede.LevelSystem
 
             foreach (var marker in _levelInstance.GetComponentsInChildren<CheckpointMarker>())
             {
-                Spawn(checkpointPrefab, marker.transform.position);
+                var checkpoint = Spawn(checkpointPrefab, marker.transform.position);
+                if (checkpoint != null && checkpoint.TryGetComponent(out Checkpoint cp)) { cp.SetWorldArt(marker.worldArt); }
             }
 
             foreach (var marker in _levelInstance.GetComponentsInChildren<GoalMarker>())
@@ -286,10 +287,10 @@ namespace FarmFuryStampede.LevelSystem
                 return;
             }
 
-            _passageRoutine = StartCoroutine(PassageTransition(door.destination, door.returnsToLevel, door.cameraMinX, door.cameraMaxX));
+            _passageRoutine = StartCoroutine(PassageTransition(door.destination, door.returnsToLevel, door.cameraMinX, door.cameraMaxX, door.entrance));
         }
 
-        private System.Collections.IEnumerator PassageTransition(Vector2 destination, bool toLevel, float minX, float maxX)
+        private System.Collections.IEnumerator PassageTransition(Vector2 destination, bool toLevel, float minX, float maxX, SecretPassageDoor returnTo)
         {
             var fade = FadeRenderer();
             for (float t = 0f; t < PassageFadeSeconds; t += Time.deltaTime)
@@ -302,6 +303,7 @@ namespace FarmFuryStampede.LevelSystem
             if (toLevel)
             {
                 RestoreLevelCamera();
+                if (returnTo != null) { returnTo.HoldUntilLeft(); }   // back up on the entrance: don't drop straight back in
             }
             else if (cameraFollow != null)
             {

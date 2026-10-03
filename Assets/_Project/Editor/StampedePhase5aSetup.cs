@@ -44,6 +44,7 @@ namespace FarmFuryStampede.EditorTools
         private const string BreakableTilePath = SpritesDir + "/BreakableTile.asset";
         private const string GroundSurfaceTileName = "GroundSurfaceTile";
         private const string TundraSurfaceTileName = "TundraSurfaceTile";
+        private const string WatermillSurfaceTileName = "WatermillSurfaceTile";
         private const string TundraIceTileName = "TundraIceTile";
         private const string TundraBreakableTileName = "TundraBreakableTile";
         private const string WaterTilePath = SpritesDir + "/WaterTile.asset";
@@ -222,13 +223,20 @@ namespace FarmFuryStampede.EditorTools
             {
                 CreateTile($"{TundraSurfaceTileName}_{i}", tundraFloor[i], Color.white, FloorTileTransform(tundraFloor[i]));
             }
+            // Watermill Village: riverside grass surface variants (UI/WatermillVillage/GroundStrip.png).
+            Sprite[] watermillFloor = StampedeEnvironmentArt.WatermillFloorArt();
+            for (int i = 0; i < watermillFloor.Length; i++)
+            {
+                CreateTile($"{WatermillSurfaceTileName}_{i}", watermillFloor[i], Color.white, FloorTileTransform(watermillFloor[i]));
+            }
             CreateTile(TundraIceTileName, StampedeUIArt.Tundra("Ice_block.png"), Color.white);
             CreateTile(TundraBreakableTileName, StampedeUIArt.Tundra("WoodBlock.png"), Color.white);
 
             BuildCloudPrefab(square, groundLayer, ImportCentredArt(CloudArtFile, CloudArtWidth));
             BuildHorseshoePrefab(ImportCentredArt(HorseshoeArtFile, HorseshoeHeight) ?? horseshoeSprite);
             BuildEggPrefab(ImportCentredArt(EggArtFile, EggHeight) ?? horseshoeSprite);
-            BuildPoundEffectPrefab(ImportCentredArt(PoundArtFile, PoundArtHeight));
+            BuildFadeEffectPrefab(ImportCentredArt(PoundArtFile, PoundArtHeight), "PoundEffect", PoundEffectPrefabPath);
+            BuildFadeEffectPrefab(ImportCentredArt(VictoryArtFile, VictoryArtHeight, VictoryArtPath), "VictoryEffect", VictoryEffectPrefabPath);
             BuildBreakableWallPrefab(barrierSprite, groundLayer);
             BuildPlayerPrefab(groundLayer, playerLayer);
             BuildCropPrefab(cropSprite);
@@ -272,6 +280,7 @@ namespace FarmFuryStampede.EditorTools
                 windmillSprite = StampedeUIArt.Windmill(),
                 farmArt = StampedeUIArt.FarmBackdrop(),
                 stoneBlockSprite = StampedeUIArt.StoneBlock(),
+                bridgeSprite = StampedeUIArt.Bridge(),
                 coinSprite = StampedeUIArt.Coin(),
                 rarePelletSprite = StampedeUIArt.RarePellet(),
                 secretSignSprite = StampedeUIArt.SecretSign(),
@@ -281,6 +290,7 @@ namespace FarmFuryStampede.EditorTools
             };
 
             var tundraAssets = TundraAssets(assets);
+            var watermillAssets = WatermillAssets(assets);
 
             var harvesterRobot = AssetDatabase.LoadAssetAtPath<GameObject>(HarvesterPrefabPath);
             var droneRobot = AssetDatabase.LoadAssetAtPath<GameObject>(DronePrefabPath);
@@ -325,6 +335,7 @@ namespace FarmFuryStampede.EditorTools
             {
                 (WorldType.MeadowRuins, MeadowRuinsLevels.CreateAll(), assets),
                 (WorldType.FrozenTundra, FrozenTundraLevels.CreateAll(), tundraAssets),
+                (WorldType.WatermillVillage, WatermillVillageLevels.CreateAll(), watermillAssets),
             };
             foreach (var (world, levels, art) in worlds)
             foreach (var builder in levels)
@@ -607,6 +618,31 @@ namespace FarmFuryStampede.EditorTools
         /// the Tundra props in the farm-scenery roles, the aurora parallax and the ice robots. Anything missing keeps
         /// Meadow Ruins' piece.
         /// </summary>
+        /// <summary>
+        /// Watermill Village (World 3): Meadow Ruins' ledges, barrels, checkpoints and robots, with the village's own
+        /// grass surface (GroundStrip.png) and parallax (sky, mill village, reed bank), the village props
+        /// (Sprites/UI/WatermillVillage/Props) in the scenery roles and crates / mossy logs as the random obstacles.
+        /// No hay, so no bale obstacles or the barns and windmills drawn behind them.
+        /// </summary>
+        private static LevelAssets WatermillAssets(LevelAssets meadow)
+        {
+            var village = meadow.Clone();
+            village.farmArt = StampedeUIArt.WatermillBackdrop(meadow.farmArt);
+            var obstacles = new[] { StampedeUIArt.Watermill("WoodenCrate.png"), StampedeUIArt.Watermill("MossyLog.png") }
+                .Where(s => s != null).ToArray();
+            if (obstacles.Length > 0) { village.obstacleSprites = obstacles; }
+            village.haybaleSprite = null;
+            village.barnSprite = null;
+            village.windmillSprite = null;
+            var surface = Enumerable.Range(0, 16)
+                .Select(i => AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{WatermillSurfaceTileName}_{i}.asset"))
+                .TakeWhile(t => t != null)
+                .ToArray();
+            if (surface.Length > 0) { village.groundSurfaceTiles = surface; }
+            village.parallaxLayers = StampedeEnvironmentArt.WatermillParallax();
+            return village;
+        }
+
         private static LevelAssets TundraAssets(LevelAssets meadow)
         {
             var tundra = meadow.Clone();
@@ -618,9 +654,14 @@ namespace FarmFuryStampede.EditorTools
 
             tundra.iceTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{TundraIceTileName}.asset");
             tundra.breakableTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{TundraBreakableTileName}.asset") ?? meadow.breakableTile;
-            tundra.iceSignSprite = StampedeUIArt.Tundra("IceSign.png");
+            // The THIN ICE sign is the Tundra's checkpoint; since 2026-10-03 the ice stretches get no warning sign of
+            // their own (with both, there were too many signs).
+            tundra.checkpointSprite = StampedeUIArt.Tundra("IceSign.png");
+            tundra.iceSignSprite = null;
             tundra.ledgeSprite = StampedeUIArt.Tundra("Snow_block.png") ?? meadow.ledgeSprite;
             tundra.stoneBlockSprite = StampedeUIArt.Tundra("Ice_block.png") ?? meadow.stoneBlockSprite;
+            tundra.brickBlockSprite = StampedeUIArt.Tundra("WoodBlock.png");            // BrickBlocks() steps
+            tundra.chasmWaterfallSprite = StampedeUIArt.Tundra("FrozenWaterfall.png");  // under every bridged chasm
             tundra.barrelSprite = StampedeUIArt.Tundra("IceBarrel.png") ?? meadow.barrelSprite;
             var boulder = StampedeUIArt.Tundra("IceBoulder.png");
             tundra.obstacleSprites = boulder != null ? new[] { boulder } : meadow.obstacleSprites;
@@ -711,6 +752,7 @@ namespace FarmFuryStampede.EditorTools
             so.FindProperty("abilityPrefabs.horseshoe").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(HorseshoePrefabPath);
             so.FindProperty("abilityPrefabs.egg").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(EggPrefabPath);
             so.FindProperty("abilityPrefabs.poundEffect").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(PoundEffectPrefabPath);
+            so.FindProperty("abilityPrefabs.victoryEffect").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(VictoryEffectPrefabPath);
             so.ApplyModifiedPropertiesWithoutUndo();
 
             SavePrefab(root, PlayerPrefabPath);
@@ -782,9 +824,9 @@ namespace FarmFuryStampede.EditorTools
 
         // Imports an effect/projectile image from Sprites/Characters as a centred sprite 'units' tall (its source
         // height); null if the file is missing, so the caller can fall back to placeholder art.
-        private static Sprite ImportCentredArt(string file, float units)
+        private static Sprite ImportCentredArt(string file, float units, string pathOverride = null)
         {
-            string path = ArtPath(file);
+            string path = pathOverride ?? ArtPath(file);
             if (!File.Exists(path))
             {
                 Debug.LogWarning($"[Phase5aSetup] Missing {path}; placeholder art is used instead.");
@@ -806,23 +848,23 @@ namespace FarmFuryStampede.EditorTools
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
-        // Bessie's ground-pound impact: the BessieSlam ring, grown and faded out by FadeEffect. No art = no prefab
-        // (GroundPoundAbility skips the effect).
-        private static void BuildPoundEffectPrefab(Sprite sprite)
+        // A burst grown and faded out by FadeEffect: Bessie's ground-pound impact (the BessieSlam ring) and the boss
+        // victory bursts (ImpactStars). No art = no prefab (the effect is skipped).
+        private static void BuildFadeEffectPrefab(Sprite sprite, string name, string prefabPath)
         {
             if (sprite == null)
             {
                 return;
             }
 
-            var root = new GameObject("PoundEffect");
+            var root = new GameObject(name);
             var visual = AddVisual(root.transform, "Visual", sprite, Color.white, Vector3.zero, Vector3.one, 7);
-            AddPooled(root, "PoundEffect");
+            AddPooled(root, name);
             var effect = root.AddComponent<FadeEffect>();
             var so = new SerializedObject(effect);
             so.FindProperty("visual").objectReferenceValue = visual;
             so.ApplyModifiedPropertiesWithoutUndo();
-            SavePrefab(root, PoundEffectPrefabPath);
+            SavePrefab(root, prefabPath);
         }
 
         private static void BuildBreakableWallPrefab(Sprite barrier, int groundLayer)
@@ -1175,6 +1217,11 @@ namespace FarmFuryStampede.EditorTools
         private const string PoundArtFile = "BessieSlam.png";
         private const float PoundArtHeight = 2.6f;
         private const string PoundEffectPrefabPath = PrefabsDir + "/PoundEffect.prefab";
+        // The boss victory bursts over the defeated Commander (GameManager.BossVictory), from Sprites/UI.
+        private const string VictoryArtFile = "ImpactStars.png";
+        private const string VictoryArtPath = "Assets/_Project/Sprites/UI/" + VictoryArtFile;
+        private const float VictoryArtHeight = 2.6f;
+        private const string VictoryEffectPrefabPath = PrefabsDir + "/VictoryEffect.prefab";
 
         private static string ArtPath(string file) => $"{ArtDir}/{file}";
 
@@ -1346,6 +1393,7 @@ namespace FarmFuryStampede.EditorTools
                 data.levelCompleteBackground = StampedeUIArt.WorldResultsBackground(spec.type, true);
                 data.levelFailedBackground = StampedeUIArt.WorldResultsBackground(spec.type, false);
                 data.newCharacterBackground = StampedeUIArt.WorldNewCharacterBackground(spec.type);
+                data.characterSwapBackground = StampedeUIArt.WorldCharacterSwapBackground(spec.type);
                 data.purchaseRequired = spec.paid;
                 EditorUtility.SetDirty(data);
                 list.Add(data);
@@ -1456,6 +1504,7 @@ namespace FarmFuryStampede.EditorTools
             flowSo.FindProperty("menuArt.pauseBackground").objectReferenceValue = StampedeUIArt.PauseBackground();
             flowSo.FindProperty("menuArt.newCharacterBackground").objectReferenceValue = StampedeUIArt.NewCharacterBackground();
             flowSo.FindProperty("menuArt.newCharacterTitle").objectReferenceValue = StampedeUIArt.NewCharacterTitle();
+            flowSo.FindProperty("menuArt.characterSwapBackground").objectReferenceValue = StampedeUIArt.CharacterSwapBackground();
             flowSo.FindProperty("menuArt.levelCompleteStarEmpty").objectReferenceValue = StampedeUIArt.LevelCompleteStarEmpty();
             flowSo.FindProperty("menuArt.worldSelectBackground").objectReferenceValue = StampedeUIArt.WorldSelectBackground();
             flowSo.FindProperty("menuArt.exitButton").objectReferenceValue = StampedeUIArt.ExitButton();
