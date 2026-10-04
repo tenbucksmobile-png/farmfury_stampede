@@ -15,6 +15,8 @@ namespace FarmFuryStampede.EditorTools
     ///   12    the boss: the Commander's mill-yard arena, waves after hits 1 and 2
     /// Character-gated secrets: 3 = high ledge (double jump / Woolly), 6 = Breakable Floor (Bessie), 9 = island behind
     /// the start (Gerald / Woolly). Secret passages (rare pellet + coins) in 1, 3, 4, 7, 9 and 11, each a different room.
+    /// Rivers (2026-10-04): water under the chasms of 1, 3, 6, 8, 10 and 11, a rowing Boat() in place of the sliding ledge
+    /// in 1, 6, 8 and 11, and a Piranha() leaping through the bridges of 3, 10 and 11 (none where a boat rides).
     /// Every level also gets PathCorn and StandardFarm (here the village props), applied in CreateAll.
     /// </summary>
     internal static class WatermillVillageLevels
@@ -45,7 +47,8 @@ namespace FarmFuryStampede.EditorTools
             b.Flat(22);                       // [61,83)
             b.Gap(8);                         // [83,91) under a rope bridge
             b.Flat(30);                       // [91,121)
-            b.MovingLedge(50, 3, 0, 7, 0, 4f);          // [50,53) <-> [57,60)
+            b.River(49, 61).Boat(3, 4.5f);              // the millpond: a boat rows bank to bank, [49,52) <-> [58,61)
+            b.River(83, 91);
             b.Bridge(83, 8, 0);
 
             b.StoneBlocks(95, 3, 4);          // perch for the passage sign past the bridge (a double jump up); was at
@@ -101,6 +104,7 @@ namespace FarmFuryStampede.EditorTools
             b.Flat(18, 2);                    // [61,79) top 2
             b.Gap(4);                         // [79,83)
             b.Flat(36, 0);                    // [83,119)
+            b.River(28, 37).Piranha(32.5f, 2f);         // leaps up through the bridge: time the crossing
             b.Bridge(28, 9, 0);
 
             b.SecretLedge(46, 5, 5);          // 5 up: the double jump every character has (or Woolly's Cloud Step)
@@ -198,7 +202,7 @@ namespace FarmFuryStampede.EditorTools
             b.Flat(24);                       // [70,94)
             b.Gap(4);                         // [94,98)
             b.Flat(26);                       // [98,124)
-            b.MovingLedge(57, 3, 0, 9, 0, 5f);          // [57,60) <-> [66,69)
+            b.River(56, 70).Boat(3, 5.5f);              // rows [56,59) <-> [67,70)
 
             b.BreakableFloor(37, 4);          // hollow beneath: Bessie's Ground Pound
             b.Gate(CharacterType.Bessie, "Cracked floor at x=37..41 hides a hollow below; only Ground Pound breaks it.");
@@ -260,7 +264,7 @@ namespace FarmFuryStampede.EditorTools
             b.Flat(16, 4);                    // [91,107) top 4
             b.Flat(12, 2);                    // [107,119) top 2
             b.Flat(14, 0);                    // [119,133)
-            b.MovingLedge(23, 3, 0, 5, 0, 4f);          // [23,26) <-> [28,31)
+            b.River(22, 32).Boat(3, 4f);                // rows [22,25) <-> [29,32)
             b.MovingLedge(54, 3, 0, 0, 4, 4f);          // top 0 <-> 4: the only way up
             b.Bridge(82, 9, 4);
 
@@ -330,6 +334,7 @@ namespace FarmFuryStampede.EditorTools
             b.MovingLedge(23, 2, 0, 5, 0, 4f);           // slides [23,25) <-> [28,30)
             b.MovingLedge(32, 2, 0, 0, 3, 3.5f);         // rises top 0 <-> 3
             b.MovingLedge(36, 3, 3, 0, -3, 3.5f, 0.5f);  // sinks top 3 <-> 0, low while the riser is high
+            b.River(64, 74).Piranha(69, 2f);
             b.Bridge(64, 10, 0);
 
             b.Start(0).Goal(131).Checkpoint(42).Checkpoint(76).Checkpoint(96).Checkpoint(117);
@@ -361,10 +366,11 @@ namespace FarmFuryStampede.EditorTools
             b.Flat(14, 4);                    // [117,131) top 4
             b.Flat(10, 2);                    // [131,141) top 2
             b.Flat(20, 0);                    // [141,161)
-            b.MovingLedge(21, 3, 0, 7, 0, 4.5f);        // [21,24) <-> [28,31)
+            b.River(20, 32).Boat(3, 4.5f);              // rows [20,23) <-> [29,32)
             b.MovingLedge(52, 3, 0, 0, 4, 4f);          // top 0 <-> 4: the only way up
             b.MovingLedge(79, 3, 4, 4, 0, 4f);          // [79,82) <-> [83,86)
             b.MovingLedge(88, 3, 4, -2, 0, 4f);         // [88,91) <-> [86,89): they meet at x=86
+            b.River(108, 117).Piranha(112.5f, 2f);
             b.Bridge(108, 9, 4);
 
             b.StoneBlocks(64, 3, 8);          // a double jump up from the high terrace

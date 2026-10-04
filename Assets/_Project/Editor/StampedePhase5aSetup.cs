@@ -47,6 +47,10 @@ namespace FarmFuryStampede.EditorTools
         private const string WatermillSurfaceTileName = "WatermillSurfaceTile";
         private const string TundraIceTileName = "TundraIceTile";
         private const string TundraBreakableTileName = "TundraBreakableTile";
+        // Sky Islands' ground is cloud: a cloud fill body, the cloud-strip surface and a grey storm-cloud breakable floor.
+        private const string SkyGroundTileName = "SkyGroundTile";
+        private const string SkySurfaceTileName = "SkySurfaceTile";
+        private const string SkyBreakableTileName = "SkyBreakableTile";
         private const string WaterTilePath = SpritesDir + "/WaterTile.asset";
         private const string InvisibleTilePath = SpritesDir + "/InvisibleTile.asset";
         private const string OldClusterPrefabPath = PrefabsDir + "/Cluck.prefab";
@@ -65,6 +69,7 @@ namespace FarmFuryStampede.EditorTools
         private const string DronePrefabPath = RobotPrefabsDir + "/Drone.prefab";
         private const string ScoutPrefabPath = RobotPrefabsDir + "/Scout.prefab";
         private const string ChaserPrefabPath = RobotPrefabsDir + "/Chaser.prefab";
+        private const string PiranhaPrefabPath = RobotPrefabsDir + "/Piranha.prefab";
         private const string CommanderPrefabPath = RobotPrefabsDir + "/Commander.prefab";
         private const string BarrierPrefabPath = RobotPrefabsDir + "/BarrierUnit.prefab";
         private const string WorldDataDir = "Assets/_Project/ScriptableObjects/Worlds";
@@ -229,6 +234,16 @@ namespace FarmFuryStampede.EditorTools
             {
                 CreateTile($"{WatermillSurfaceTileName}_{i}", watermillFloor[i], Color.white, FloorTileTransform(watermillFloor[i]));
             }
+            // Sky Islands: the cloud surface slices hang from the cell top as they are (no stretch), over the fill.
+            Sprite[] skyFloor = StampedeEnvironmentArt.SkyFloorArt();
+            for (int i = 0; i < skyFloor.Length; i++)
+            {
+                CreateTile($"{SkySurfaceTileName}_{i}", skyFloor[i], Color.white);
+            }
+            // The body under the cloud is a light mist (35% opaque) so the sky shows through, while raised cloud banks and
+            // steps stay faintly visible (fully transparent, they would be invisible walls).
+            CreateTile(SkyGroundTileName, StampedeUIArt.Sky("CloudFill.png"), new Color(1f, 1f, 1f, 0.35f));
+            if (skyFloor.Length > 0) { CreateTile(SkyBreakableTileName, skyFloor[0], new Color(0.62f, 0.62f, 0.72f)); }
             CreateTile(TundraIceTileName, StampedeUIArt.Tundra("Ice_block.png"), Color.white);
             CreateTile(TundraBreakableTileName, StampedeUIArt.Tundra("WoodBlock.png"), Color.white);
 
@@ -250,6 +265,8 @@ namespace FarmFuryStampede.EditorTools
                 art: RobotArt("DriftRobot_right.png", "DriftRobot_left.png", null), visualScale: ChaserVisualScale);
             BuildRobotPrefab<CommanderBoss>("Commander", RobotType.Commander, commanderSprite, CommanderPrefabPath, bossSize: true,
                 art: RobotArt(BossArtRight, BossArtLeft, BossArtDefeated));
+            BuildRobotPrefab<PiranhaRobot>("Piranha", RobotType.Piranha, droneSprite, PiranhaPrefabPath,
+                art: (StampedeUIArt.Piranha(), null, null));
             BuildBarrierUnitPrefab(barrierUnitSprite, groundLayer);
             BuildCheckpointPrefab(square);
             BuildGoalPrefab(square);
@@ -291,6 +308,7 @@ namespace FarmFuryStampede.EditorTools
 
             var tundraAssets = TundraAssets(assets);
             var watermillAssets = WatermillAssets(assets);
+            var skyAssets = SkyAssets(assets);
 
             var harvesterRobot = AssetDatabase.LoadAssetAtPath<GameObject>(HarvesterPrefabPath);
             var droneRobot = AssetDatabase.LoadAssetAtPath<GameObject>(DronePrefabPath);
@@ -324,7 +342,10 @@ namespace FarmFuryStampede.EditorTools
                 "Stationary; blocks the path outright. Only Billy Charge Break clears it.", barrierRobot, RobotBehaviour.Stationary, AbilityType.ChargeBreak);
             var robotCommander = CreateRobotData("Commander", RobotType.Commander, 2.5f,
                 "World boss: patrols the arena, takes several stomps with a stagger window between them, calls reinforcements.", commanderRobot, RobotBehaviour.Guard);
-            var robots = new[] { robotHarvester, robotDrone, robotScout, robotChaser, robotBarrier, robotCommander };
+            var robotPiranha = CreateRobotData("Piranha", RobotType.Piranha, 0f,
+                "Waits under a river's surface and leaps out in an arc; harmless underwater, stompable in the air.",
+                AssetDatabase.LoadAssetAtPath<GameObject>(PiranhaPrefabPath), RobotBehaviour.Ambush);
+            var robots = new[] { robotHarvester, robotDrone, robotScout, robotChaser, robotBarrier, robotCommander, robotPiranha };
 
             var worldDatas = CreateWorldDatas();
 
@@ -336,6 +357,7 @@ namespace FarmFuryStampede.EditorTools
                 (WorldType.MeadowRuins, MeadowRuinsLevels.CreateAll(), assets),
                 (WorldType.FrozenTundra, FrozenTundraLevels.CreateAll(), tundraAssets),
                 (WorldType.WatermillVillage, WatermillVillageLevels.CreateAll(), watermillAssets),
+                (WorldType.SkyIslands, SkyIslandsLevels.CreateAll(), skyAssets),
             };
             foreach (var (world, levels, art) in worlds)
             foreach (var builder in levels)
@@ -631,6 +653,7 @@ namespace FarmFuryStampede.EditorTools
             var obstacles = new[] { StampedeUIArt.Watermill("WoodenCrate.png"), StampedeUIArt.Watermill("MossyLog.png") }
                 .Where(s => s != null).ToArray();
             if (obstacles.Length > 0) { village.obstacleSprites = obstacles; }
+            village.cropSprite = StampedeUIArt.WatermillCrop();   // golden acorns instead of corn kernels
             village.haybaleSprite = null;
             village.barnSprite = null;
             village.windmillSprite = null;
@@ -640,7 +663,89 @@ namespace FarmFuryStampede.EditorTools
                 .ToArray();
             if (surface.Length > 0) { village.groundSurfaceTiles = surface; }
             village.parallaxLayers = StampedeEnvironmentArt.WatermillParallax();
+
+            // The Millstone Mauler: Watermill's boss in the Commander's place (same pattern, its own look). No defeat
+            // frame yet, so the wreck falls back to the Commander's.
+            // Rivers: the water, the rowing boat, a mooring post at each end and reeds on the banks.
+            village.riverSprite = StampedeUIArt.River();
+            village.boatSprite = StampedeUIArt.Boat();
+            village.mooringPostSprite = StampedeUIArt.Watermill("Wooddock.png");
+            village.reedSprite = StampedeUIArt.Watermill("RiverReed.png");
+
+            var mauler = (right: ImportBossArt(WatermillBossRight), left: ImportBossArt(WatermillBossLeft));
+            village.robotArt = new Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)>();
+            if (mauler.right != null) { village.robotArt[RobotType.Commander] = (mauler.right, mauler.left, null); }
             return village;
+        }
+
+        /// <summary>
+        /// Sky Islands (World 4): Meadow Ruins' grass islands, checkpoints, bridges, barrels and robots, with the sky
+        /// over a sea of clouds behind, flat-topped clouds for every ledge (CloudTile.png), puffy clouds for the block
+        /// steps, the Sky props as scenery, lanterns hung under the bridges, plums for crops, the storm cloud in the
+        /// Drone's place and the Storm Baron airship as the boss. Rocks are the only random obstacle (no hay up here).
+        /// </summary>
+        private static LevelAssets SkyAssets(LevelAssets meadow)
+        {
+            var sky = meadow.Clone();
+            sky.farmArt = StampedeUIArt.SkyBackdrop();
+            sky.parallaxLayers = StampedeEnvironmentArt.SkyParallax();
+            sky.ledgeSprite = StampedeUIArt.Sky("CloudLedge.png") ?? meadow.ledgeSprite;
+            sky.stoneBlockSprite = StampedeUIArt.Sky("Cloud.png") ?? meadow.stoneBlockSprite;
+            sky.chasmWaterfallSprite = StampedeUIArt.Sky("HangingLantern.png");
+            sky.cropSprite = StampedeUIArt.SkyCrop();   // plums on clouds instead of corn kernels
+            sky.balloonSprite = StampedeUIArt.Sky("AirBalloon.png");
+            sky.updraftSprite = StampedeUIArt.Sky("UpdraftSpiral.png");
+            // The ground is cloud (no grass strip up here): the cloud-strip surface over a cloud fill, a grey storm
+            // cloud for Bessie's breakable floor, and no rocks or bales on it.
+            var cloudSurface = Enumerable.Range(0, 16)
+                .Select(i => AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{SkySurfaceTileName}_{i}.asset"))
+                .TakeWhile(t => t != null)
+                .ToArray();
+            if (cloudSurface.Length > 0) { sky.groundSurfaceTiles = cloudSurface; }
+            sky.groundTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{SkyGroundTileName}.asset") ?? meadow.groundTile;
+            sky.breakableTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{SkyBreakableTileName}.asset") ?? meadow.breakableTile;
+            sky.obstacleSprites = System.Array.Empty<Sprite>();
+            sky.haybaleSprite = null;
+            sky.barnSprite = null;
+            sky.windmillSprite = null;
+
+            sky.robotArt = new Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)>();
+            var storm = StampedeUIArt.Sky("AnchorCloud.png");
+            if (storm != null) { sky.robotArt[RobotType.Drone] = (storm, null, null); }   // one frame, flipped to turn
+            // The Storm Baron (faces left) and its mirror (StormBaron_Right.png, a script copy), feet-pivoted at the
+            // Commander's 500px-frame scale like the Millstone Mauler.
+            var baronLeft = ImportBossArt("Assets/_Project/Sprites/UI/SkyIsland/StormBaron.png");
+            var baronRight = ImportBossArt("Assets/_Project/Sprites/UI/SkyIsland/StormBaron_Right.png");
+            if (baronLeft != null && baronRight != null) { sky.robotArt[RobotType.Commander] = (baronRight, baronLeft, null); }
+            return sky;
+        }
+
+        // Watermill Village's boss frames (Sprites/UI/WatermillVillage, 500px like the Commander's). Despite its name,
+        // MilestoneMaulerRight.png faces left and MileStoneMauler.png faces right (swapped 2026-10-04: the boss faced
+        // away from the way it walked).
+        private const string WatermillBossRight = "Assets/_Project/Sprites/UI/WatermillVillage/MileStoneMauler.png";
+        private const string WatermillBossLeft = "Assets/_Project/Sprites/UI/WatermillVillage/MilestoneMaulerRight.png";
+
+        // Imports a boss frame at the Commander's fixed 500px-frame scale, feet on its lowest visible row.
+        private static Sprite ImportBossArt(string path)
+        {
+            if (!File.Exists(path))
+            {
+                Debug.LogWarning($"[Phase5aSetup] Missing boss art {path}; the boss keeps the Commander's look.");
+                return null;
+            }
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spritePixelsPerUnit = ArtPixelsPerUnit;
+            StampedeUIArt.SetPivot(importer, new Vector2(FeetPivot.x, StampedeUIArt.BottomPaddingFraction(path)));
+            importer.filterMode = FilterMode.Bilinear;
+            importer.mipmapEnabled = false;
+            importer.alphaIsTransparency = true;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
         private static LevelAssets TundraAssets(LevelAssets meadow)
@@ -658,6 +763,7 @@ namespace FarmFuryStampede.EditorTools
             // their own (with both, there were too many signs).
             tundra.checkpointSprite = StampedeUIArt.Tundra("IceSign.png");
             tundra.iceSignSprite = null;
+            tundra.cropSprite = StampedeUIArt.TundraCrop();   // blueberries instead of corn kernels
             tundra.ledgeSprite = StampedeUIArt.Tundra("Snow_block.png") ?? meadow.ledgeSprite;
             tundra.stoneBlockSprite = StampedeUIArt.Tundra("Ice_block.png") ?? meadow.stoneBlockSprite;
             tundra.brickBlockSprite = StampedeUIArt.Tundra("WoodBlock.png");            // BrickBlocks() steps
@@ -939,7 +1045,7 @@ namespace FarmFuryStampede.EditorTools
             var renderer = visualObject.AddComponent<SpriteRenderer>();
             renderer.sprite = art.right != null ? art.right : sprite;
             renderer.sortingOrder = 8;
-            if (type != RobotType.Drone)
+            if (type != RobotType.Drone && type != RobotType.Piranha)   // both centre-pivoted
             {
                 visualObject.transform.localPosition = new Vector3(0f, bossSize ? BossFeetY : RobotFeetY, 0f);
             }
@@ -1253,7 +1359,9 @@ namespace FarmFuryStampede.EditorTools
                     importer.spriteImportMode = SpriteImportMode.Single;
                     bool jumpFrame = file.IndexOf("jump", StringComparison.OrdinalIgnoreCase) >= 0;
                     importer.spritePixelsPerUnit = jumpFrame ? ArtPixelsPerUnit / JumpFrameScale : ArtPixelsPerUnit;
-                    StampedeUIArt.SetPivot(importer, FeetPivot);
+                    // Feet on the lowest opaque row, not the frame's bottom edge: some frames (Horace_right 40px,
+                    // Clucky_Left1 35px, Bessie_right 15px) have empty space under the feet, which floated the character.
+                    StampedeUIArt.SetPivot(importer, new Vector2(FeetPivot.x, StampedeUIArt.BottomPaddingFraction(path)));
                     importer.filterMode = FilterMode.Bilinear;
                     importer.mipmapEnabled = false;
                     importer.alphaIsTransparency = true;

@@ -105,6 +105,16 @@ namespace FarmFuryStampede.EditorTools
         private static readonly RectInt WatermillFloorArea = new(35, 90, 548, 196);   // bottom-up pixel rows
         private const int WatermillFloorVariants = 3, WatermillFloorDirtPixels = 150;
 
+        // ---- Sky Islands (World 4): one opaque layer, the sky over a sea of clouds (a copy of the user's
+        // Sprites/UI/SkyIsland/SkyIslands.png).
+        private static readonly string[] SkyLayers = { "SI_Parallax_Far.png" };
+
+        /// <summary>Sky Islands' parallax layers, far to near (missing ones left out).</summary>
+        public static Sprite[] SkyParallax() => SkyLayers
+            .Select(f => AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/{f}"))
+            .Where(s => s != null)
+            .ToArray();
+
         /// <summary>Watermill Village's parallax layers, far to near (missing ones left out).</summary>
         public static Sprite[] WatermillParallax() => WatermillLayers
             .Select(f => AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/{f}"))
@@ -132,7 +142,7 @@ namespace FarmFuryStampede.EditorTools
         /// <summary>Imports every configured layer file as a smooth, opaque sprite. Idempotent; missing files warn and are skipped.</summary>
         public static void ImportBackgroundArt()
         {
-            foreach (string file in Layers.Select(l => l.file).Concat(TundraLayers).Concat(WatermillLayers))
+            foreach (string file in Layers.Select(l => l.file).Concat(TundraLayers).Concat(WatermillLayers).Concat(SkyLayers))
             {
                 string path = $"{EnvironmentDir}/{file}";
                 if (!File.Exists(path))
@@ -168,6 +178,72 @@ namespace FarmFuryStampede.EditorTools
             }
             SliceFloorStrip(TundraFloorPath, "FT_Ground", TundraFloorArea, TundraFloorVariants, TundraFloorDirtPixels);
             SliceFloorStrip(WatermillFloorPath, "WV_Ground", WatermillFloorArea, WatermillFloorVariants, WatermillFloorDirtPixels);
+            SliceCloudStrip(SkyFloorPath, "SI_Cloud", SkyFloorArea, SkyFloorVariants);
+        }
+
+        // ---- Sky Islands' ground: there is no grass strip up here. The ground is cloud: CloudTile.png is two copies of
+        // one seamless flat-topped cloud (933px each); one copy is cut into SkyFloorVariants one-cell slices, and
+        // PaintSurface uses variant = column % count, so consecutive columns rebuild the cloud and it repeats without a
+        // seam. Each slice keeps its aspect (~1.6 cells tall), pivoted so the flat top is the cell's top and the puffs
+        // hang down over the cloud fill below (CloudFill.png, StampedePhase5aSetup.SkyGroundTileName).
+        private const string SkyFloorPath = "Assets/_Project/Sprites/UI/SkyIsland/CloudTile.png";
+        private static readonly RectInt SkyFloorArea = new(0, 2, 933, 252);   // bottom-up pixel rows
+        private const int SkyFloorVariants = 6;
+
+        /// <summary>Sky Islands' cloud surface slices, left to right; empty if the art is missing.</summary>
+        public static Sprite[] SkyFloorArt() => AssetDatabase.LoadAllAssetsAtPath(SkyFloorPath)
+            .OfType<Sprite>()
+            .OrderBy(s => s.name)
+            .ToArray();
+
+        // Like SliceFloorStrip, but each slice hangs from the cell's top instead of filling it from the bottom.
+        private static void SliceCloudStrip(string path, string prefix, RectInt area, int variants)
+        {
+            if (!File.Exists(path))
+            {
+                Debug.LogWarning($"[EnvironmentArt] Missing cloud strip {path}; Sky Islands' ground falls back to the grass.");
+                return;
+            }
+
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+            var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+            int sliceWidth = area.width / variants;
+            int height = area.height;
+
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Multiple;
+            importer.spritePixelsPerUnit = sliceWidth; // one slice = one cell wide
+            importer.filterMode = FilterMode.Bilinear;
+            importer.mipmapEnabled = false;
+            importer.alphaIsTransparency = true;
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.SaveAndReimport();
+
+            var factory = new SpriteDataProviderFactories();
+            factory.Init();
+            var provider = factory.GetSpriteEditorDataProviderFromObject(importer);
+            provider.InitSpriteEditorDataProvider();
+            var existing = provider.GetSpriteRects();
+
+            var rects = new SpriteRect[variants];
+            for (int i = 0; i < variants; i++)
+            {
+                string spriteName = $"{prefix}_{i}";
+                var previous = System.Array.Find(existing, r => r.name == spriteName);
+                rects[i] = new SpriteRect
+                {
+                    name = spriteName,
+                    rect = new Rect(area.x + i * sliceWidth, area.y, sliceWidth, height),
+                    alignment = SpriteAlignment.Custom,
+                    pivot = new Vector2(0.5f, 1f - sliceWidth * 0.5f / height),   // the cell centre, half a cell under the top
+                    spriteID = previous != null ? previous.spriteID : GUID.Generate(),
+                };
+            }
+            provider.SetSpriteRects(rects);
+            var nameIds = provider.GetDataProvider<ISpriteNameFileIdDataProvider>();
+            nameIds?.SetNameFileIdPairs(rects.Select(r => new SpriteNameFileIdPair(r.name, r.spriteID)));
+            provider.Apply();
+            importer.SaveAndReimport();
         }
 
         // Slices a strip of grass-topped dirt blocks (inside 'area', bottom-up pixels) into equal-width sprites named

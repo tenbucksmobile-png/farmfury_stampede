@@ -84,6 +84,8 @@ namespace FarmFuryStampede.Movement
         private bool _characterAssigned;
 
         private bool _inWaterFlag;
+        private float _updraftLift;   // set each physics step by an UpdraftZone the player is inside
+        private const float UpdraftAcceleration = 45f;
         private float _waterTime;
 
         // ---- public state
@@ -336,6 +338,12 @@ namespace FarmFuryStampede.Movement
             GrantInvulnerability(seconds + 0.25f);
         }
 
+        /// <summary>Called every physics step by an UpdraftZone while the player is inside it: carried up at liftSpeed.</summary>
+        public void NotifyInUpdraft(float liftSpeed)
+        {
+            _updraftLift = Mathf.Max(_updraftLift, liftSpeed);
+        }
+
         /// <summary>Called every physics step by WaterZone while the player overlaps it.</summary>
         public void NotifyInWater()
         {
@@ -479,7 +487,17 @@ namespace FarmFuryStampede.Movement
             float g = (_velocity.y > 0f ? _gravity : _gravity * fallGravityMultiplier) * GravityScale;
             float fallCap = MaxFallSpeedOverride >= 0f ? MaxFallSpeedOverride : maxFallSpeed;
             float previousVy = _velocity.y;
-            _velocity.y = Mathf.Max(previousVy - g * dt, -fallCap);
+            if (_updraftLift > 0f)
+            {
+                // An updraft replaces gravity: ease towards its rise speed (lifting off the ground too).
+                _velocity.y = Mathf.MoveTowards(previousVy, _updraftLift, UpdraftAcceleration * dt);
+                _isJumping = false;
+                _updraftLift = 0f;
+            }
+            else
+            {
+                _velocity.y = Mathf.Max(previousVy - g * dt, -fallCap);
+            }
             float dy = (previousVy + _velocity.y) * 0.5f * dt;
 
             MoveAndCollide(new Vector2(_velocity.x * dt, dy), out bool hitX, out bool hitY);
@@ -503,6 +521,16 @@ namespace FarmFuryStampede.Movement
             {
                 _isJumping = false;
                 _airJumpsLeft = airJumps;
+            }
+
+            // A rising ledge's collider only moves to this step's position in the physics step after this, so the
+            // casts above stopped the feet on its old top; left there the deck rises into the player, and every cast
+            // next step (walking off, jumping) starts inside it and is blocked. Stand on its new top instead.
+            if (_grounded && _groundCollider != null && _groundCollider.TryGetComponent(out LevelSystem.MovingPlatform lift)
+                && lift.Delta.y > 0f)
+            {
+                float below = _groundCollider.bounds.max.y + lift.Delta.y - FeetPosition.y;
+                if (below > 0f) { _position.y += below; }
             }
 
             _body.MovePosition(_position);

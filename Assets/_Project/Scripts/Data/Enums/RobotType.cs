@@ -9,6 +9,8 @@ namespace FarmFuryStampede.Data
         BarrierUnit,
         Chaser,
         /// <summary>World boss variant (the "Robot Commander"). Appended so serialized values stay stable.</summary>
-        Commander
+        Commander,
+        /// <summary>Robot piranha-submarine that leaps out of a River() (Watermill Village). Appended so serialized values stay stable.</summary>
+        Piranha
     }
 }

@@ -49,6 +49,8 @@ namespace FarmFuryStampede.EditorTools
         public Sprite brickBlockSprite;
         /// <summary>Hung in the chasm under every main-path Bridge() (Frozen Tundra: FrozenWaterfall.png, feet-pivoted); null places none.</summary>
         public Sprite chasmWaterfallSprite;
+        /// <summary>The world's everyday crop art (Frozen Tundra: the blueberry, Watermill Village: the golden acorn) for every normal, non-coin crop; null keeps the pickup's corn kernel.</summary>
+        public Sprite cropSprite;
         /// <summary>Art for BonusCoin() crops (CropSpawnPoint.visualOverride).</summary>
         public Sprite coinSprite;
         /// <summary>The rare pellet (crystal apple) placed by RarePellet(); null places none.</summary>
@@ -69,6 +71,18 @@ namespace FarmFuryStampede.EditorTools
         public float robotArtScale = 1f;
         /// <summary>This world's checkpoint art (one frame, feet-pivoted), written onto every checkpoint marker; null keeps the signpost.</summary>
         public Sprite checkpointSprite;
+        /// <summary>River() water (Watermill: Props/River.png, top-pivoted, full-rect mesh so it tiles sideways); null draws no water.</summary>
+        public Sprite riverSprite;
+        /// <summary>Boat() art (Watermill: FishingBoat.png, centred, gunwale at its middle row); null draws a boat as a plain ledge.</summary>
+        public Sprite boatSprite;
+        /// <summary>Mooring post stood in the water at each end of a River() (feet-pivoted); null places none.</summary>
+        public Sprite mooringPostSprite;
+        /// <summary>Reeds stood on each bank of a River() (feet-pivoted); null places none.</summary>
+        public Sprite reedSprite;
+        /// <summary>Balloon() art (Sky Islands: AirBalloon.png); its basket rim is the deck. Null draws a balloon as a plain ledge.</summary>
+        public Sprite balloonSprite;
+        /// <summary>Updraft() column art (Sky Islands: UpdraftSpiral.png), stretched over the column; null leaves the wind invisible.</summary>
+        public Sprite updraftSprite;
 
         /// <summary>A copy to override per world (the dictionary and arrays are shared until replaced).</summary>
         public LevelAssets Clone() => (LevelAssets)MemberwiseClone();
@@ -127,7 +141,9 @@ namespace FarmFuryStampede.EditorTools
         private struct RobotRec { public RobotType type; public float x, y, patrol; public int wave; }
         private struct BreakableRec { public int x, length, top; }
         private struct ChamberRec { public int x0, floorTop, interiorWidth; public bool barrierSeal; }
-        private sealed class MoverRec { public Surface start, end; public float period, phase; }
+        private sealed class MoverRec { public Surface start, end; public float period, phase; public bool boat, balloon; }
+        private struct UpdraftRec { public float x; public int baseTop; public float height; }
+        private struct RiverRec { public int x0, x1; public float surface; }
 
         private const float MaxRise = 2.5f;
         // Rise a bonus (StoneBlocks) platform may need: every character has a full-height double jump (3.5 + 3.5).
@@ -156,6 +172,8 @@ namespace FarmFuryStampede.EditorTools
         private readonly List<ChamberRec> _chambers = new();
         private readonly List<MoverRec> _movers = new();
         private readonly List<RectInt> _water = new();
+        private readonly List<RiverRec> _rivers = new();
+        private readonly List<UpdraftRec> _updrafts = new();
         private readonly List<Vector2> _pyramids = new();
         private readonly List<(Vector2 at, int rows)> _haystacks = new();   // bale stacks: 2 rows = HayStack, 3 = HayPyramid
         private bool _manualScenery;
@@ -297,6 +315,96 @@ namespace FarmFuryStampede.EditorTools
             _surfaces.Add(start);
             _surfaces.Add(end);
             _movers.Add(new MoverRec { start = start, end = end, period = period, phase = phase });
+            return this;
+        }
+
+        /// <summary>
+        /// A rowing boat across the last River(): a MovingLedge 'length' wide at the banks' height (deck level with the
+        /// grass), drawn with LevelAssets.boatSprite, docked flush against the near bank and rowing to the far bank and
+        /// back once per 'period' (phase as MovingLedge), so the player simply walks aboard and off again.
+        /// </summary>
+        public LevelBuilder Boat(int length = 3, float period = 4f, float phase = 0f)
+        {
+            if (_rivers.Count == 0)
+            {
+                Error("Boat() needs a River() declared first.");
+                return this;
+            }
+            var river = _rivers[_rivers.Count - 1];
+            MovingLedge(river.x0, length, Mathf.RoundToInt(river.surface + RiverSurfaceDrop), river.x1 - river.x0 - length, 0, period, phase);
+            _movers[_movers.Count - 1].boat = true;
+            return this;
+        }
+
+        /// <summary>
+        /// A hot-air balloon lift (Sky Islands): a two-wide MovingLedge whose deck is the basket rim, rising 'rise'
+        /// units from 'top' and back once per 'period' (phase as MovingLedge). Drawn with LevelAssets.balloonSprite.
+        /// </summary>
+        public LevelBuilder Balloon(int x, int top, int rise, float period = 4.5f, float phase = 0f)
+        {
+            MovingLedge(x, BalloonDeck, top, 0, rise, period, phase);
+            _movers[_movers.Count - 1].balloon = true;
+            return this;
+        }
+
+        private const int BalloonDeck = 2;
+        // AirBalloon.png: the basket rim is 22.7% of the art up from its bottom and spans 60% of its width.
+        private const float BalloonRimFromBottom = 0.227f, BalloonBasketWidth = 0.6f;
+
+        /// <summary>
+        /// A rising wind (Sky Islands, UpdraftZone at runtime): a 2-wide column on the ground at x, 'height' units tall.
+        /// Inside it the player floats up at 9 u/s and can drift out sideways at any height; leaving the top they coast
+        /// ~0.9 higher. Validation counts it as a ride from the ground under it to any surface beside the column
+        /// whose top is no higher than the column's top + 0.5 (so a gated secret must stay out of its reach).
+        /// </summary>
+        public LevelBuilder Updraft(float x, float height)
+        {
+            int baseTop = GroundTopAt(x, out bool found);
+            if (!found)
+            {
+                Error($"Updraft at x={x} needs ground under it.");
+                return this;
+            }
+            _updrafts.Add(new UpdraftRec { x = x, baseTop = baseTop, height = height });
+            return this;
+        }
+
+        private const float UpdraftHalfWidth = 1f;
+        private const float UpdraftReach = 2.5f;   // sideways from the column's edge to a surface the rider steps onto
+
+        // The water's surface sits this far under the lower bank, so a boat's hull and a bridge's ropes dip into it.
+        private const float RiverSurfaceDrop = 0.7f;
+
+        /// <summary>
+        /// Fills the Gap() [x0, x1) with a river (LevelAssets.riverSprite): its surface RiverSurfaceDrop under the lower
+        /// bank, a splash line just under the surface that costs a life (as a pit does), a mooring post in the water at
+        /// each end and reeds on both banks. Cross it by Bridge(), Boat() or moving ledges; Piranha() robots leap out.
+        /// </summary>
+        public LevelBuilder River(int x0, int x1)
+        {
+            int left = GroundTopAt(x0 - 0.5f, out bool foundLeft), right = GroundTopAt(x1 + 0.5f, out bool foundRight);
+            bool open = !_surfaces.Any(g => g.kind != Kind.Floating && g.x0 < x1 && x0 < g.x1);
+            if (!foundLeft || !foundRight || !open)
+            {
+                Error($"River [{x0},{x1}) needs a Gap() with ground on both sides.");
+                return this;
+            }
+            _rivers.Add(new RiverRec { x0 = x0, x1 = x1, surface = Mathf.Min(left, right) - RiverSurfaceDrop });
+            return this;
+        }
+
+        /// <summary>A piranha robot waiting under a River()'s surface at x, leaping leapAbove units over the banks.</summary>
+        public LevelBuilder Piranha(float x, float leapAbove = 2f, int wave = 0)
+        {
+            var river = _rivers.FirstOrDefault(r => x > r.x0 + 0.5f && x < r.x1 - 0.5f);
+            if (river.x1 == river.x0)
+            {
+                Error($"Piranha at x={x} needs a River() under it (declare the river first).");
+                return this;
+            }
+            float wait = river.surface - 1.2f;   // fully under the surface art
+            _robots.Add(new RobotRec { type = RobotType.Piranha, x = x, y = wait, patrol = river.surface + RiverSurfaceDrop + leapAbove - wait, wave = wave });
+            _noPatrolCheck.Add(x);
             return this;
         }
 
@@ -714,6 +822,14 @@ namespace FarmFuryStampede.EditorTools
                         {
                             queue.Enqueue(current.partner);   // ride a moving ledge to the other end of its trip
                         }
+                        foreach (var u in _updrafts.Where(u => u.baseTop == current.top && u.x >= current.x0 && u.x < current.x1))
+                        {
+                            foreach (var next in _surfaces.Where(n => n.top > u.baseTop && n.top <= u.baseTop + u.height + 0.5f
+                                && n.x1 > u.x - UpdraftHalfWidth - UpdraftReach && n.x0 < u.x + UpdraftHalfWidth + UpdraftReach))
+                            {
+                                if (reached.Add(next)) { queue.Enqueue(next); }   // ride the updraft up beside it
+                            }
+                        }
                         foreach (var next in _surfaces)
                         {
                             if (!reached.Contains(next) && CanReach(current, next))
@@ -935,6 +1051,8 @@ namespace FarmFuryStampede.EditorTools
                 PlaceIceSigns(root.transform, assets);
             }
             PlaceChasmWaterfalls(root.transform, assets);
+            BuildRivers(root.transform, assets);
+            BuildUpdrafts(root.transform, assets);
 
             if (_breakables.Count > 0)
             {
@@ -1008,6 +1126,10 @@ namespace FarmFuryStampede.EditorTools
                     crop.visualOverride = assets.coinSprite;
                     crop.coinValue = 1;
                     crop.passageCoin = _crops[i].passage;
+                }
+                else if (!_crops[i].secret && assets.cropSprite != null)
+                {
+                    crop.visualOverride = assets.cropSprite;
                 }
             }
 
@@ -1791,9 +1913,14 @@ namespace FarmFuryStampede.EditorTools
                     var obstacle = new GameObject($"Obstacle_{art.name}_{n + 1}") { layer = assets.groundLayer };
                     obstacle.transform.SetParent(root, false);
                     obstacle.transform.position = new Vector3(x, top, 0f);
+                    // The box follows the art's own top and width (a log is lower than a crate), so nothing stands
+                    // on air above it; the fixed 2.1 x 1.95 is only the fallback when the art can't be read.
+                    Vector2 fit = StampedeUIArt.ObstacleTopAndWidth(art);
+                    height = fit.x > 0f ? Mathf.Clamp(fit.x, 0.6f, 2.3f) : ObstacleHeight;
+                    float width = fit.y > 0f ? Mathf.Clamp(fit.y, 1f, ObstacleWidth) : ObstacleWidth;
                     var box = obstacle.AddComponent<BoxCollider2D>();
-                    box.size = new Vector2(ObstacleWidth, ObstacleHeight);
-                    box.offset = new Vector2(0f, ObstacleHeight * 0.5f);
+                    box.size = new Vector2(width, height);
+                    box.offset = new Vector2(0f, height * 0.5f);
                     var renderer = obstacle.AddComponent<SpriteRenderer>();
                     renderer.sprite = art;
                     renderer.sortingOrder = 3; // in front of the ground tiles, behind robots (8) and the player (10)
@@ -2145,7 +2272,37 @@ namespace FarmFuryStampede.EditorTools
             mover.period = m.period;
             mover.phase = m.phase;
 
-            if (assets.ledgeSprite != null)
+            if (m.balloon && assets.balloonSprite != null)
+            {
+                // Sized so the basket matches the deck, its rim 0.1 over the deck; the envelope rises above, behind the
+                // player (sorting 7). Works whatever the sprite's pivot (it doubles as feet-pivoted scenery).
+                var art = new GameObject("Balloon");
+                art.transform.SetParent(go.transform, false);
+                Sprite sprite = assets.balloonSprite;
+                float k = (length + 0.4f) / BalloonBasketWidth / sprite.bounds.size.x;
+                float height = sprite.bounds.size.y * k;
+                float pivotFromBottom = sprite.pivot.y / sprite.rect.height;
+                art.transform.localScale = new Vector3(k, k, 1f);
+                art.transform.localPosition = new Vector3(0f, 0.5f + 0.1f - (BalloonRimFromBottom - pivotFromBottom) * height, 0f);
+                var renderer = art.AddComponent<SpriteRenderer>();
+                renderer.sprite = sprite;
+                renderer.sortingOrder = 7;
+            }
+            else if (m.boat && assets.boatSprite != null)
+            {
+                // The boat a little longer than its deck, gunwale (the art's middle row) just over the deck so the
+                // rider stands inside it; the hull below the water line hides behind the river (sorting 9).
+                var art = new GameObject("Boat");
+                art.transform.SetParent(go.transform, false);
+                Vector2 native = assets.boatSprite.bounds.size;
+                float k = (length + 0.6f) / native.x;
+                art.transform.localScale = new Vector3(k, k, 1f);
+                art.transform.localPosition = new Vector3(0f, 0.5f + 0.25f, 0f);
+                var renderer = art.AddComponent<SpriteRenderer>();
+                renderer.sprite = assets.boatSprite;
+                renderer.sortingOrder = 7;
+            }
+            else if (assets.ledgeSprite != null)
             {
                 AddStoneSlabs(go.transform, assets.ledgeSprite, s);   // world positions: the ledge is at its start
             }
@@ -2158,6 +2315,94 @@ namespace FarmFuryStampede.EditorTools
                 var renderer = art.AddComponent<SpriteRenderer>();
                 renderer.sprite = assets.platformTile.sprite;
                 renderer.sortingOrder = 1;
+            }
+        }
+
+        // Updrafts: a trigger column (UpdraftZone) with the spiral art stretched over it, behind the player.
+        private void BuildUpdrafts(Transform root, LevelAssets assets)
+        {
+            for (int i = 0; i < _updrafts.Count; i++)
+            {
+                var u = _updrafts[i];
+                var go = new GameObject($"Updraft_{i + 1}");
+                go.transform.SetParent(root, false);
+                go.transform.position = new Vector3(u.x, u.baseTop, 0f);
+                var box = go.AddComponent<BoxCollider2D>();
+                box.isTrigger = true;
+                box.size = new Vector2(UpdraftHalfWidth * 2f, u.height);
+                box.offset = new Vector2(0f, u.height * 0.5f);
+                var zone = go.AddComponent<UpdraftZone>();
+
+                if (assets.updraftSprite != null)
+                {
+                    var art = new GameObject("Spiral");
+                    art.transform.SetParent(go.transform, false);
+                    Vector2 native = assets.updraftSprite.bounds.size;
+                    art.transform.localPosition = new Vector3(0f, u.height * 0.5f, 0f);   // centre-pivoted art
+                    art.transform.localScale = new Vector3(2.6f / native.x, u.height / native.y, 1f);
+                    var renderer = art.AddComponent<SpriteRenderer>();
+                    renderer.sprite = assets.updraftSprite;
+                    renderer.color = new Color(1f, 1f, 1f, 0.8f);
+                    renderer.sortingOrder = 5;
+                    zone.art = art.transform;
+                }
+            }
+        }
+
+        // Rivers: the water art tiled across each gap (in front of robots so a waiting piranha and a boat's hull hide
+        // under it, behind the player), a splash line under the surface, mooring posts in the water and reeds on the banks.
+        private void BuildRivers(Transform root, LevelAssets assets)
+        {
+            foreach (var r in _rivers)
+            {
+                float width = r.x1 - r.x0;
+                if (assets.riverSprite != null)
+                {
+                    var water = new GameObject($"River_{r.x0}");
+                    water.transform.SetParent(root, false);
+                    water.transform.position = new Vector3((r.x0 + r.x1) * 0.5f, r.surface, 0f);
+                    var renderer = water.AddComponent<SpriteRenderer>();
+                    renderer.sprite = assets.riverSprite;
+                    renderer.drawMode = SpriteDrawMode.Tiled;
+                    renderer.tileMode = SpriteTileMode.Continuous;
+                    renderer.size = new Vector2(width, assets.riverSprite.bounds.size.y);
+                    renderer.sortingOrder = 9;
+                }
+
+                var splash = new GameObject($"RiverSplash_{r.x0}");
+                splash.transform.SetParent(root, false);
+                splash.transform.position = new Vector3((r.x0 + r.x1) * 0.5f, r.surface - 0.9f, 0f);
+                var box = splash.AddComponent<BoxCollider2D>();
+                box.isTrigger = true;
+                box.size = new Vector2(width, 0.6f);
+                splash.AddComponent<PitDeathZone>();
+
+                if (assets.mooringPostSprite != null)
+                {
+                    foreach (float px in new[] { r.x0 + 0.35f, r.x1 - 0.35f })
+                    {
+                        var post = new GameObject($"MooringPost_{px:0.#}");
+                        post.transform.SetParent(root, false);
+                        post.transform.position = new Vector3(px, r.surface - 0.8f, 0f);
+                        var renderer = post.AddComponent<SpriteRenderer>();
+                        renderer.sprite = assets.mooringPostSprite;
+                        renderer.sortingOrder = 6;   // behind a boat (7) and the water (9)
+                    }
+                }
+
+                if (assets.reedSprite != null)
+                {
+                    foreach (float px in new[] { r.x0 - 0.9f, r.x1 + 0.9f })
+                    {
+                        var reed = new GameObject($"RiverReed_{px:0.#}");
+                        reed.transform.SetParent(root, false);
+                        reed.transform.position = new Vector3(px, GroundTopAt(px, out _) - 0.1f, 0f);
+                        var renderer = reed.AddComponent<SpriteRenderer>();
+                        renderer.sprite = assets.reedSprite;
+                        renderer.flipX = px > r.x1;
+                        renderer.sortingOrder = 2;   // in front of the ground tiles, behind robots and the player
+                    }
+                }
             }
         }
 

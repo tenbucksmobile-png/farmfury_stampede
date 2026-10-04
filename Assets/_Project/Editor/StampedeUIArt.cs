@@ -36,6 +36,12 @@ namespace FarmFuryStampede.EditorTools
         // Per-marker art override (CropSpawnPoint.visualOverride): the bonus coin on a stone tower top.
         private const string CoinFile = "Collectable Coin.png";
         private static readonly string[] SecretCropFiles = { "CornCob.png" };   // the golden cob marks a gated secret
+        // Frozen Tundra's everyday crop in place of the corn kernel (LevelAssets.cropSprite).
+        private const string TundraCropFile = "FrozenTundra/BlueBerry.png";
+        // ... and Watermill Village's (the golden acorn).
+        private const string WatermillCropFile = "WatermillVillage/GoldenAcorn.png";
+        // ... and Sky Islands' (the cloud plum).
+        private const string SkyCropFile = "SkyIsland/FloatingPlum.png";
 
         // Crops drawn bigger than CropTargetWorldSize. Their pivot is lowered so every crop's bottom edge sits at
         // the same height as a standard one, keeping the big icons clear of the grass too.
@@ -45,6 +51,9 @@ namespace FarmFuryStampede.EditorTools
             { CoinFile, 0.9f },
             { "CornCob.png", 1.2f },
             { RarePelletFile, 1.3f },            // the rare pellet: bigger than any crop, so it reads as special
+            { TundraCropFile, 1.6f },            // the berry fills ~56% of its 500px frame: ~0.9 visible, like the kernel
+            { WatermillCropFile, 1f },
+            { SkyCropFile, 1.1f },               // the plum sits on a cloud: drawn a little bigger so the fruit reads           // fills its frame; a touch taller than the kernel, as it is a tall shape
         };
         // The rare pellet (RarePelletPickup): a glowing crystal apple at the end of each gated secret.
         private const string RarePelletFile = "RarePellets_apple.png";
@@ -119,6 +128,13 @@ namespace FarmFuryStampede.EditorTools
         private const string WatermillFailedSourcePath = EnvironmentDir + "/WV_LevelFailed_Canvas.png";
         private const string WatermillNewCharacterSourcePath = EnvironmentDir + "/WV_NewCharacter_Canvas.png";
         private const string WatermillCharacterSourcePath = EnvironmentDir + "/WV_Character_Canvas.png";
+        // Sky Islands' menu canvases (2026-10-04): SkyIslands.png (sky over a sea of clouds) scaled to 1280x720 with the
+        // logo, lettering and gold stars composed exactly where the Watermill canvases have them (found by template
+        // matching; a script, not in the repo). Widened the same way.
+        private const string SkyCompleteSourcePath = EnvironmentDir + "/SI_LevelComplete_Canvas.png";
+        private const string SkyFailedSourcePath = EnvironmentDir + "/SI_LevelFailed_Canvas.png";
+        private const string SkyNewCharacterSourcePath = EnvironmentDir + "/SI_NewCharacter_Canvas.png";
+        private const string SkyCharacterSourcePath = EnvironmentDir + "/SI_Character_Canvas.png";
         private static string Wide(string source) => source.Replace(".png", "_Wide.png");
         // Pause (per its mockup): the same kind of backdrop, "Pause" and the logo painted in, widened the same way.
         private const string PauseSourcePath = EnvironmentDir + "/Pause_Canvas.png";
@@ -197,7 +213,8 @@ namespace FarmFuryStampede.EditorTools
             BuildWideResultsArt(NewCharacterSourcePath, NewCharacterBackgroundPath);
             BuildWideResultsArt(CharacterSwapSourcePath, CharacterSwapBackgroundPath);
             BuildWideResultsArt(TundraCharacterSwapSourcePath, TundraCharacterSwapBackgroundPath);
-            foreach (string source in new[] { WatermillCompleteSourcePath, WatermillFailedSourcePath, WatermillNewCharacterSourcePath, WatermillCharacterSourcePath })
+            foreach (string source in new[] { WatermillCompleteSourcePath, WatermillFailedSourcePath, WatermillNewCharacterSourcePath, WatermillCharacterSourcePath,
+                         SkyCompleteSourcePath, SkyFailedSourcePath, SkyNewCharacterSourcePath, SkyCharacterSourcePath })
             {
                 BuildWideResultsArt(source, Wide(source));
             }
@@ -209,6 +226,9 @@ namespace FarmFuryStampede.EditorTools
             foreach (string file in SecretCropFiles) { ImportCropIcon(file); }
             ImportCropIcon(CoinFile);
             ImportCropIcon(RarePelletFile);
+            ImportCropIcon(TundraCropFile);
+            ImportCropIcon(WatermillCropFile);
+            ImportCropIcon(SkyCropFile);
             foreach (string file in CharacterCardFiles.Values) { ImportCentered(file, CardPixelsPerUnit); }
             foreach (var (file, pivotY, metres) in ObstacleFiles) { ImportToScale(file, pivotY, metres); }
 
@@ -220,6 +240,7 @@ namespace FarmFuryStampede.EditorTools
             ImportToScale(BarrelFile, BarrelPivotY, BarrelMetres);
             ImportTundraArt();
             ImportWatermillArt();
+            ImportSkyArt();
 
             foreach (string file in MenuSpriteFiles()) { ImportMenuSprite(file); }
         }
@@ -251,6 +272,10 @@ namespace FarmFuryStampede.EditorTools
             yield return Wide(WatermillFailedSourcePath);
             yield return Wide(WatermillNewCharacterSourcePath);
             yield return Wide(WatermillCharacterSourcePath);
+            yield return Wide(SkyCompleteSourcePath);
+            yield return Wide(SkyFailedSourcePath);
+            yield return Wide(SkyNewCharacterSourcePath);
+            yield return Wide(SkyCharacterSourcePath);
             yield return $"{UIDir}/{StarEmptyFile}";
             yield return $"{UIDir}/{QuitButtonFile}";
             yield return $"{UIDir}/{ExitButtonFile}";
@@ -313,6 +338,7 @@ namespace FarmFuryStampede.EditorTools
         {
             WorldType.FrozenTundra => AssetDatabase.LoadAssetAtPath<Sprite>(TundraCharacterSwapBackgroundPath),
             WorldType.WatermillVillage => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(WatermillCharacterSourcePath)),
+            WorldType.SkyIslands => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(SkyCharacterSourcePath)),
             _ => null,
         };
         /// <summary>A world's own New Character page backdrop, or null for the shared sunset one.</summary>
@@ -320,6 +346,7 @@ namespace FarmFuryStampede.EditorTools
         {
             WorldType.FrozenTundra => AssetDatabase.LoadAssetAtPath<Sprite>(TundraNewCharacterBackgroundPath),
             WorldType.WatermillVillage => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(WatermillNewCharacterSourcePath)),
+            WorldType.SkyIslands => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(SkyNewCharacterSourcePath)),
             _ => null,
         };
         /// <summary>A world's own Level Complete / Level Failed backdrop, or null for the shared Meadow Ruins one.</summary>
@@ -327,6 +354,7 @@ namespace FarmFuryStampede.EditorTools
         {
             WorldType.FrozenTundra => AssetDatabase.LoadAssetAtPath<Sprite>(complete ? TundraCompleteBackgroundPath : TundraFailedBackgroundPath),
             WorldType.WatermillVillage => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(complete ? WatermillCompleteSourcePath : WatermillFailedSourcePath)),
+            WorldType.SkyIslands => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(complete ? SkyCompleteSourcePath : SkyFailedSourcePath)),
             _ => null,
         };
         /// <summary>World Select's backdrop: the sunset farm (Environment/Canvas.png).</summary>
@@ -430,6 +458,79 @@ namespace FarmFuryStampede.EditorTools
             }
         }
 
+        /// <summary>
+        /// Fraction of the PNG's height that is empty below its lowest visible row (3+ pixels over ~16% alpha). A feet pivot at
+        /// this height stands the art on the ground instead of on its transparent margin.
+        /// </summary>
+        public static float BottomPaddingFraction(string path)
+        {
+            var texture = new Texture2D(2, 2);
+            try
+            {
+                if (!texture.LoadImage(File.ReadAllBytes(path))) { return 0f; }
+                Color32[] pixels = texture.GetPixels32();
+                int w = texture.width, h = texture.height;
+                // A row counts once it has a few clearly visible pixels, so faint stray specks under the feet
+                // (Horace_right has some ~30px below its hooves) don't hold the pivot down.
+                for (int y = 0; y < h; y++)
+                {
+                    int visible = 0;
+                    for (int x = 0; x < w; x++)
+                    {
+                        if (pixels[y * w + x].a > 40 && ++visible >= 3) { return (float)y / h; }
+                    }
+                }
+                return 0f;
+            }
+            finally
+            {
+                Object.DestroyImmediate(texture);
+            }
+        }
+
+        /// <summary>
+        /// The walkable top of an obstacle's art and the width it stands on, in units from its pivot: the median top
+        /// edge across the middle half of its opaque columns (so a branch, a mushroom or a tilted log end doesn't set
+        /// the height), and 80% of its opaque width. Read from the source PNG; (0, 0) when it can't be read.
+        /// </summary>
+        public static Vector2 ObstacleTopAndWidth(Sprite sprite)
+        {
+            string path = sprite != null ? AssetDatabase.GetAssetPath(sprite) : null;
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) { return Vector2.zero; }
+            var texture = new Texture2D(2, 2);
+            try
+            {
+                if (!texture.LoadImage(File.ReadAllBytes(path))) { return Vector2.zero; }
+                Color32[] pixels = texture.GetPixels32();
+                int w = texture.width, h = texture.height;
+                var tops = new int[w];
+                int left = -1, right = -1;
+                for (int x = 0; x < w; x++)
+                {
+                    tops[x] = -1;
+                    for (int y = h - 1; y >= 0; y--)
+                    {
+                        if (pixels[y * w + x].a > 20) { tops[x] = y; break; }
+                    }
+                    if (tops[x] >= 0) { if (left < 0) { left = x; } right = x; }
+                }
+                if (left < 0) { return Vector2.zero; }
+
+                int span = right - left + 1;
+                var middle = new List<int>();
+                for (int x = left + span / 4; x <= right - span / 4; x++) { if (tops[x] >= 0) { middle.Add(tops[x]); } }
+                middle.Sort();
+                float topFraction = (middle[middle.Count / 2] + 1f) / h;
+                float pivotFraction = sprite.pivot.y / sprite.rect.height;
+                Vector2 size = sprite.bounds.size;
+                return new Vector2((topFraction - pivotFraction) * size.y, 0.8f * span / w * size.x);
+            }
+            finally
+            {
+                Object.DestroyImmediate(texture);
+            }
+        }
+
         // Barrel for LevelBuilder.BarrelPyramid: a 2.3 m tun, 1.5 units - the same height as a hay bale - on a
         // matching collider. Pivot y = the barrel's base (34px of padding).
         private const string BarrelFile = "Wooden Barrel.png";
@@ -497,14 +598,99 @@ namespace FarmFuryStampede.EditorTools
             ("FlowerBasket.png", 0.02f, 1.3f),     // ~0.8 (the cart's, in front)
             ("WoodenCrate.png", 0.05f, 3.2f),      // ~2.1: random obstacle on the 2.1x1.95 collider
             ("MossyLog.png", 0.06f, 2.6f),         // ~1.7: random obstacle
+            ("Wooddock.png", 0.03f, 3.4f),         // ~2.2: the mooring post at each end of a River()
         };
 
         private static void ImportWatermillArt()
         {
             foreach (var (file, pivotY, metres) in WatermillFiles) { ImportToScale(WatermillDir + file, pivotY, metres); }
+            ImportRiverArt();
         }
 
         public static Sprite Watermill(string file) => Load(WatermillDir + file);
+
+        // ---- Rivers (LevelBuilder.River / Boat / Piranha). Props/River.png is River.png cropped to its waves, the see-
+        // through foam band filled white (as the art reads on white) and deep water added below (a script, 2026-10-04;
+        // edit River.png and re-make it, or edit the Props copy). 4 units per repeat, top-pivoted, full-rect so the
+        // renderer can tile it sideways.
+        private const string RiverFile = WatermillDir + "River.png";
+        private const string BoatFile = "WatermillVillage/FishingBoat.png";       // the user's transparent 500px boat
+        private const string PiranhaFile = "WatermillVillage/WaterRobot.png";     // the river robot, faces right
+        private const float RiverRepeatWidth = 4f, PiranhaWidth = 1.7f;
+
+        private static void ImportRiverArt()
+        {
+            var river = BeginImport(RiverFile);
+            if (river != null)
+            {
+                river.GetSourceTextureWidthAndHeight(out int w, out _);
+                river.spritePixelsPerUnit = w / RiverRepeatWidth;
+                var settings = new TextureImporterSettings();
+                river.ReadTextureSettings(settings);
+                settings.spriteMeshType = SpriteMeshType.FullRect;
+                river.SetTextureSettings(settings);
+                river.wrapMode = TextureWrapMode.Repeat;
+                river.maxTextureSize = 2048;
+                SetPivot(river, new Vector2(0.5f, 1f));
+                FinishImport(river);
+            }
+            ImportCentered(BoatFile, 100f);   // LevelBuilder scales it to each boat's length
+            var piranha = BeginImport(PiranhaFile);
+            if (piranha != null)
+            {
+                piranha.GetSourceTextureWidthAndHeight(out int w, out _);
+                piranha.spritePixelsPerUnit = w / PiranhaWidth;
+                SetPivot(piranha, new Vector2(0.5f, 0.5f));
+                FinishImport(piranha);
+            }
+        }
+
+        public static Sprite River() => Load(RiverFile);
+
+        // ---- Sky Islands (World 4) art, in Sprites/UI/SkyIsland (transparent already). Props to the world scale; each
+        // stands in for a Meadow farm prop (SkyBackdrop). The air balloon doubles as scenery (moored on the ground) and
+        // as the Balloon() lift, which rescales it to its deck whatever its import size.
+        private const string SkyDir = "SkyIsland/";
+        private static readonly (string file, float pivotY, float metres)[] SkyFiles =
+        {
+            ("SkyTemple.png", 0.03f, 5.5f),        // ~3.6 units (the barn's place)
+            ("Windvane.png", 0.01f, 6f),           // ~3.9 (the windmill's)
+            ("StonePillar.png", 0.02f, 7f),        // ~4.6 (the silo's)
+            ("GiantMushroom.png", 0.12f, 8f),      // ~5.2 (the oak's); its floating clod half in the grass
+            ("AirBalloon.png", 0.01f, 6f),         // ~3.9 (the water wheel's): moored on the ground
+            ("Kite.png", 0.5f, 2.6f),              // not to scale: the sky drifter in the plane's place
+            ("HangingLantern.png", 0f, 2.2f),      // ~1.4, hung under every main-path bridge (feet-pivoted at its foot)
+        };
+        // Centred pieces: (file, pixels per unit).
+        private static readonly (string file, float ppu)[] SkyBlocks =
+        {
+            ("CloudLedge.png", 252f),       // one cloud of CloudTile.png (flat top): every ledge and moving ledge, 1 unit tall
+            ("Cloud.png", 356f),            // the puffy cloud: StoneBlocks() squares, 1 unit tall
+            ("UpdraftSpiral.png", 100f),    // LevelBuilder stretches it over each updraft column
+            ("CloudFill.png", 128f),        // the cloud body under the cloud surface (a generated tileable fill), one cell
+            ("AnchorCloud.png", 344f),      // the storm cloud in the Drone's place, ~1.8 wide
+        };
+
+        private static void ImportSkyArt()
+        {
+            foreach (var (file, pivotY, metres) in SkyFiles) { ImportToScale(SkyDir + file, pivotY, metres); }
+            foreach (var (file, ppu) in SkyBlocks) { ImportCentered(SkyDir + file, ppu); }
+        }
+
+        public static Sprite Sky(string file) => Load(SkyDir + file);
+
+        /// <summary>Sky Islands' scenery in the farm-prop roles; the gnarled tree and cart have no Sky art and are left out.</summary>
+        internal static FarmBackdropArt SkyBackdrop() => new()
+        {
+            barn = Sky("SkyTemple.png"),
+            windmill = Sky("Windvane.png"),
+            silo = Sky("StonePillar.png"),
+            oak = Sky("GiantMushroom.png"),
+            waterWheel = Sky("AirBalloon.png"),
+            plane = Sky("Kite.png"),
+        };
+        public static Sprite Boat() => Load(BoatFile);
+        public static Sprite Piranha() => Load(PiranhaFile);
 
         /// <summary>
         /// Watermill Village's props in the farm-prop roles. Meadow's corn fields and fences are Meadow-only (removed
@@ -594,6 +780,9 @@ namespace FarmFuryStampede.EditorTools
         public static Sprite ChamberBackdrop() => Load(ChamberBackdropFile);
         public static Sprite[] NormalCrops() => Load(NormalCropFiles);
         public static Sprite[] SecretCrops() => Load(SecretCropFiles);
+        public static Sprite TundraCrop() => Load(TundraCropFile);
+        public static Sprite WatermillCrop() => Load(WatermillCropFile);
+        public static Sprite SkyCrop() => Load(SkyCropFile);
         public static Sprite RarePellet() => Load(RarePelletFile);
 
         /// <summary>The character's Character Select card, or null if it has none.</summary>
@@ -654,7 +843,8 @@ namespace FarmFuryStampede.EditorTools
             // Oversized icons keep their bottom edge CropTargetWorldSize/2 below the placement point, like a standard
             // icon; standard-size ones stay centred (pivot 0.5).
             float worldHeight = size * h / Mathf.Max(maxDimension, 1);
-            float pivotY = Mathf.Min(0.5f, CropTargetWorldSize * 0.5f / Mathf.Max(worldHeight, 0.01f));
+            // Measured from the art's lowest visible row, so an icon with an empty margin below it doesn't float.
+            float pivotY = Mathf.Min(0.5f, BottomPaddingFraction(path) + CropTargetWorldSize * 0.5f / Mathf.Max(worldHeight, 0.01f));
             SetPivot(importer, new Vector2(0.5f, pivotY));
             importer.filterMode = FilterMode.Bilinear;
             importer.mipmapEnabled = false;
