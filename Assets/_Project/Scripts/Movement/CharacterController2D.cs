@@ -197,10 +197,22 @@ namespace FarmFuryStampede.Movement
             RecalculateJump();
         }
 
+        /// <summary>Sunken City: how much longer every jump hangs in the air (same height, gravity lower to match).</summary>
+        public const float UnderwaterHangTime = 1.35f;
+        private float _hangTime = 1f;
+
+        /// <summary>Underwater (Sunken City levels, LevelPrefabRoot.underwater): floatier jumps and slower sinking.</summary>
+        public void SetUnderwater(bool underwater)
+        {
+            _hangTime = underwater ? UnderwaterHangTime : 1f;
+            RecalculateJump();
+        }
+
         private void RecalculateJump()
         {
-            _gravity = 2f * jumpHeight / (timeToApex * timeToApex);
-            _jumpVelocity = _gravity * timeToApex;
+            float apexTime = timeToApex * _hangTime;
+            _gravity = 2f * jumpHeight / (apexTime * apexTime);
+            _jumpVelocity = _gravity * apexTime;
             _minJumpVelocity = Mathf.Sqrt(2f * _gravity * Mathf.Min(minJumpHeight, jumpHeight));
         }
 
@@ -485,7 +497,7 @@ namespace FarmFuryStampede.Movement
 
             // Manual gravity. Averaged velocity keeps the apex height exact regardless of dt.
             float g = (_velocity.y > 0f ? _gravity : _gravity * fallGravityMultiplier) * GravityScale;
-            float fallCap = MaxFallSpeedOverride >= 0f ? MaxFallSpeedOverride : maxFallSpeed;
+            float fallCap = MaxFallSpeedOverride >= 0f ? MaxFallSpeedOverride : maxFallSpeed / _hangTime;
             float previousVy = _velocity.y;
             if (_updraftLift > 0f)
             {

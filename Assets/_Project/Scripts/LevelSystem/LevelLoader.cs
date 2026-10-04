@@ -152,6 +152,8 @@ namespace FarmFuryStampede.LevelSystem
                 PlacePlayer(start.transform.position);
             }
 
+            player.SetUnderwater(root != null && root.underwater);   // every load sets it, so it never carries over
+
             if (root != null)
             {
                 _levelMinX = root.cameraMinX;

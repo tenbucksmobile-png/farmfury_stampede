@@ -51,6 +51,14 @@ namespace FarmFuryStampede.EditorTools
         private const string SkyGroundTileName = "SkyGroundTile";
         private const string SkySurfaceTileName = "SkySurfaceTile";
         private const string SkyBreakableTileName = "SkyBreakableTile";
+        // Sunken City's ground: the generated sand-topped seabed, a rock fill body and a cracked-shell breakable floor.
+        private const string SunkenGroundTileName = "SunkenGroundTile";
+        private const string SunkenSurfaceTileName = "SunkenSurfaceTile";
+        private const string SunkenBreakableTileName = "SunkenBreakableTile";
+        // The Mothership's: the generated steel deck, a hull-panel body and a red-tinted cracked deck plate to break.
+        private const string MothershipGroundTileName = "MothershipGroundTile";
+        private const string MothershipSurfaceTileName = "MothershipSurfaceTile";
+        private const string MothershipBreakableTileName = "MothershipBreakableTile";
         private const string WaterTilePath = SpritesDir + "/WaterTile.asset";
         private const string InvisibleTilePath = SpritesDir + "/InvisibleTile.asset";
         private const string OldClusterPrefabPath = PrefabsDir + "/Cluck.prefab";
@@ -244,6 +252,22 @@ namespace FarmFuryStampede.EditorTools
             // steps stay faintly visible (fully transparent, they would be invisible walls).
             CreateTile(SkyGroundTileName, StampedeUIArt.Sky("CloudFill.png"), new Color(1f, 1f, 1f, 0.35f));
             if (skyFloor.Length > 0) { CreateTile(SkyBreakableTileName, skyFloor[0], new Color(0.62f, 0.62f, 0.72f)); }
+            // Sunken City: the seabed (sand cap over rock), like the grass floors.
+            Sprite[] sunkenFloor = StampedeEnvironmentArt.SunkenFloorArt();
+            for (int i = 0; i < sunkenFloor.Length; i++)
+            {
+                CreateTile($"{SunkenSurfaceTileName}_{i}", sunkenFloor[i], Color.white, FloorTileTransform(sunkenFloor[i]));
+            }
+            CreateTile(SunkenGroundTileName, StampedeUIArt.Sunken("SeabedFill.png"), Color.white);
+            if (sunkenFloor.Length > 0) { CreateTile(SunkenBreakableTileName, sunkenFloor[0], BreakableFloorTint, FloorTileTransform(sunkenFloor[0])); }
+            // The Mothership: the steel deck over hull panels.
+            Sprite[] deck = StampedeEnvironmentArt.MothershipFloorArt();
+            for (int i = 0; i < deck.Length; i++)
+            {
+                CreateTile($"{MothershipSurfaceTileName}_{i}", deck[i], Color.white, FloorTileTransform(deck[i]));
+            }
+            CreateTile(MothershipGroundTileName, StampedeUIArt.Mothership("HullFill.png"), Color.white);
+            if (deck.Length > 0) { CreateTile(MothershipBreakableTileName, deck[0], new Color(1f, 0.55f, 0.45f), FloorTileTransform(deck[0])); }
             CreateTile(TundraIceTileName, StampedeUIArt.Tundra("Ice_block.png"), Color.white);
             CreateTile(TundraBreakableTileName, StampedeUIArt.Tundra("WoodBlock.png"), Color.white);
 
@@ -309,6 +333,8 @@ namespace FarmFuryStampede.EditorTools
             var tundraAssets = TundraAssets(assets);
             var watermillAssets = WatermillAssets(assets);
             var skyAssets = SkyAssets(assets);
+            var sunkenAssets = SunkenAssets(assets);
+            var mothershipAssets = MothershipAssets(assets);
 
             var harvesterRobot = AssetDatabase.LoadAssetAtPath<GameObject>(HarvesterPrefabPath);
             var droneRobot = AssetDatabase.LoadAssetAtPath<GameObject>(DronePrefabPath);
@@ -358,6 +384,8 @@ namespace FarmFuryStampede.EditorTools
                 (WorldType.FrozenTundra, FrozenTundraLevels.CreateAll(), tundraAssets),
                 (WorldType.WatermillVillage, WatermillVillageLevels.CreateAll(), watermillAssets),
                 (WorldType.SkyIslands, SkyIslandsLevels.CreateAll(), skyAssets),
+                (WorldType.SunkenCity, SunkenCityLevels.CreateAll(), sunkenAssets),
+                (WorldType.RobotMothership, RobotMothershipLevels.CreateAll(), mothershipAssets),
             };
             foreach (var (world, levels, art) in worlds)
             foreach (var builder in levels)
@@ -629,6 +657,9 @@ namespace FarmFuryStampede.EditorTools
         // The Tundra robots are drawn this much bigger than the 1.5-unit Meadow ones (2.1 units tall), from the feet
         // up; their colliders stay the prefab's. (2026-10-01: at 1.5 they read as very small next to the Tundra props.)
         private const float TundraRobotScale = 1.4f;
+        // Sunken City's and the Mothership's own ground robots are imported this tall (the Tundra robots' drawn size)
+        // instead of scaled, so robotArtScale stays 1 for their boss and flyer.
+        private const float WorldRobotHeight = 1.5f * TundraRobotScale;
 
         // The Chaser (DriftRobot art) is drawn this much bigger than the other 1.5-unit robots in every world
         // (2026-10-01: enlarged at the user's request); its colliders stay the standard size.
@@ -674,7 +705,8 @@ namespace FarmFuryStampede.EditorTools
 
             var mauler = (right: ImportBossArt(WatermillBossRight), left: ImportBossArt(WatermillBossLeft));
             village.robotArt = new Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)>();
-            if (mauler.right != null) { village.robotArt[RobotType.Commander] = (mauler.right, mauler.left, null); }
+            var maulerDown = ImportBossArt("Assets/_Project/Sprites/UI/WatermillVillage/MileStoneMauler_Defeated.png");
+            if (mauler.right != null) { village.robotArt[RobotType.Commander] = (mauler.right, mauler.left, maulerDown); }
             return village;
         }
 
@@ -720,11 +752,108 @@ namespace FarmFuryStampede.EditorTools
             return sky;
         }
 
-        // Watermill Village's boss frames (Sprites/UI/WatermillVillage, 500px like the Commander's). Despite its name,
-        // MilestoneMaulerRight.png faces left and MileStoneMauler.png faces right (swapped 2026-10-04: the boss faced
-        // away from the way it walked).
+        /// <summary>
+        /// Sunken City (World 5): the drowned ruins behind, a generated sand-topped seabed over rock, Meadow's stone
+        /// ledges and checkpoints, floating rocks for the block steps, submarines for every moving ledge, pearls for
+        /// crops and clams for secret crops, jellyfish in the Drones' place, the Deep Dredger as the boss, treasure
+        /// chests and fallen columns as the random obstacles and the ruins and reef props as scenery. Every level is
+        /// underwater (SunkenCityLevels: LevelBuilder.Underwater()).
+        /// </summary>
+        private static LevelAssets SunkenAssets(LevelAssets meadow)
+        {
+            var sea = meadow.Clone();
+            sea.farmArt = StampedeUIArt.SunkenBackdrop();
+            sea.parallaxLayers = StampedeEnvironmentArt.SunkenParallax();
+            var surface = Enumerable.Range(0, 16)
+                .Select(i => AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{SunkenSurfaceTileName}_{i}.asset"))
+                .TakeWhile(t => t != null)
+                .ToArray();
+            if (surface.Length > 0) { sea.groundSurfaceTiles = surface; }
+            sea.groundTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{SunkenGroundTileName}.asset") ?? meadow.groundTile;
+            sea.breakableTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{SunkenBreakableTileName}.asset") ?? meadow.breakableTile;
+            sea.stoneBlockSprite = StampedeUIArt.Sunken("FloatingRock_Cut.png") ?? meadow.stoneBlockSprite;
+            sea.moverSprite = StampedeUIArt.Sunken("Submarine.png");
+            sea.cropSprite = StampedeUIArt.SunkenCrop();
+            sea.secretCropSprite = StampedeUIArt.SunkenSecretCrop();
+            var obstacles = new[] { StampedeUIArt.Sunken("TreasureChest.png"), StampedeUIArt.Sunken("SunkenPillar.png") }
+                .Where(s => s != null).ToArray();
+            sea.obstacleSprites = obstacles;
+            sea.haybaleSprite = null;
+            sea.barnSprite = null;
+            sea.windmillSprite = null;
+
+            sea.robotArt = new Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)>();
+            // The crab (faces right) patrols as the Harvester, the shrimp as the Scout (it faces left; Shrimp_Right.png
+            // is its mirror, a script copy). Drawn 2.1 units tall like Frozen Tundra's robots (visual only).
+            var crab = StampedeUIArt.ImportActor("SunkenCity/Crab.png", WorldRobotHeight);
+            if (crab != null) { sea.robotArt[RobotType.Harvester] = (crab, null, null); }
+            var shrimpRight = StampedeUIArt.ImportActor("SunkenCity/Shrimp_Right.png", WorldRobotHeight);
+            var shrimpLeft = StampedeUIArt.ImportActor("SunkenCity/Shrimp.png", WorldRobotHeight);
+            if (shrimpRight != null && shrimpLeft != null) { sea.robotArt[RobotType.Scout] = (shrimpRight, shrimpLeft, null); }
+            var jelly = StampedeUIArt.Sunken("JellyFish.png");
+            if (jelly != null) { sea.robotArt[RobotType.Drone] = (jelly, null, null); }
+            // The Deep Dredger: DeepDredger.png faces right, DeepDredger_Left.png left (the user's own pair since 2026-10-04).
+            var dredgerRight = ImportBossArt("Assets/_Project/Sprites/UI/SunkenCity/DeepDredger.png");
+            var dredgerLeft = ImportBossArt("Assets/_Project/Sprites/UI/SunkenCity/DeepDredger_Left.png");
+            if (dredgerRight != null && dredgerLeft != null) { sea.robotArt[RobotType.Commander] = (dredgerRight, dredgerLeft, null); }
+            return sea;
+        }
+
+        /// <summary>
+        /// Robot Mothership (World 6): space over the planet behind, a generated steel deck over hull panels, steel
+        /// girders for every ledge, circuit panels for the block steps, the carrier for every moving ledge, containment
+        /// pods (energy cells) for crops, the flying turbine in the Drones' place, laser emitters and plasma conduits
+        /// as the random obstacles, and the factory machine standing in for the Robot Overlord (no Overlord art yet).
+        /// The world's twist is zero-G: every level has low gravity (LevelBuilder.LowGravity(), the underwater
+        /// physics) and a gravity lift (an Updraft() with the gravity sling at its foot and a beam of light).
+        /// </summary>
+        private static LevelAssets MothershipAssets(LevelAssets meadow)
+        {
+            var ship = meadow.Clone();
+            ship.farmArt = StampedeUIArt.MothershipBackdrop();
+            ship.parallaxLayers = StampedeEnvironmentArt.MothershipParallax();
+            var surface = Enumerable.Range(0, 16)
+                .Select(i => AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{MothershipSurfaceTileName}_{i}.asset"))
+                .TakeWhile(t => t != null)
+                .ToArray();
+            if (surface.Length > 0) { ship.groundSurfaceTiles = surface; }
+            ship.groundTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{MothershipGroundTileName}.asset") ?? meadow.groundTile;
+            ship.breakableTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{MothershipBreakableTileName}.asset") ?? meadow.breakableTile;
+            ship.ledgeSprite = StampedeUIArt.Mothership("SteelGirder.png") ?? meadow.ledgeSprite;
+            ship.stoneBlockSprite = StampedeUIArt.Mothership("CircuitPanel.png") ?? meadow.stoneBlockSprite;
+            ship.moverSprite = StampedeUIArt.Mothership("Ship.png");
+            ship.moverDeckFromBottom = 0.55f;   // the carrier's flight deck
+            ship.moverDeckWidth = 0.9f;
+            ship.updraftSprite = StampedeUIArt.Mothership("GravityBeam.png");
+            ship.updraftBaseSprite = StampedeUIArt.Mothership("GravitySling.png");
+            ship.cropSprite = StampedeUIArt.MothershipCrop();
+            ship.obstacleSprites = new[] { StampedeUIArt.Mothership("LaserEmitter.png"), StampedeUIArt.Mothership("PlasmaConduit.png") }
+                .Where(s => s != null).ToArray();
+            ship.haybaleSprite = null;
+            ship.barnSprite = null;
+            ship.windmillSprite = null;
+
+            ship.robotArt = new Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)>();
+            var drone = StampedeUIArt.Mothership("Drone.png");
+            if (drone != null) { ship.robotArt[RobotType.Drone] = (drone, null, null); }   // one frame, flipped to turn
+            // The tracked harvester and the patrol tank, drawn 2.1 units tall like Frozen Tundra's robots.
+            var harvesterRight = StampedeUIArt.ImportActor("MotherShip/HarvestorRobot_right.png", WorldRobotHeight);
+            var harvesterLeft = StampedeUIArt.ImportActor("MotherShip/HarvestorRobot_left.png", WorldRobotHeight);
+            if (harvesterRight != null && harvesterLeft != null) { ship.robotArt[RobotType.Harvester] = (harvesterRight, harvesterLeft, null); }
+            var tankRight = StampedeUIArt.ImportActor("MotherShip/PatrolRobot_right.png", WorldRobotHeight);
+            var tankLeft = StampedeUIArt.ImportActor("MotherShip/PatrolRobot_left.png", WorldRobotHeight);
+            if (tankRight != null && tankLeft != null) { ship.robotArt[RobotType.Scout] = (tankRight, tankLeft, null); }
+            // The factory machine faces right; FActoryMachine_Left.png is its mirror (a script copy).
+            var overlordRight = ImportBossArt("Assets/_Project/Sprites/UI/MotherShip/FActoryMachine.png");
+            var overlordLeft = ImportBossArt("Assets/_Project/Sprites/UI/MotherShip/FActoryMachine_Left.png");
+            if (overlordRight != null && overlordLeft != null) { ship.robotArt[RobotType.Commander] = (overlordRight, overlordLeft, null); }
+            return ship;
+        }
+
+        // Watermill Village's boss frames (Sprites/UI/WatermillVillage, 500px like the Commander's): MileStoneMauler.png
+        // faces right, MilestoneMaulerLeft.png left (renamed by the user 2026-10-04; it was MilestoneMaulerRight.png).
         private const string WatermillBossRight = "Assets/_Project/Sprites/UI/WatermillVillage/MileStoneMauler.png";
-        private const string WatermillBossLeft = "Assets/_Project/Sprites/UI/WatermillVillage/MilestoneMaulerRight.png";
+        private const string WatermillBossLeft = "Assets/_Project/Sprites/UI/WatermillVillage/MilestoneMaulerLeft.png";
 
         // Imports a boss frame at the Commander's fixed 500px-frame scale, feet on its lowest visible row.
         private static Sprite ImportBossArt(string path)

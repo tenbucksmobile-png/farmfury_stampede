@@ -108,6 +108,48 @@ namespace FarmFuryStampede.EditorTools
         // ---- Sky Islands (World 4): one opaque layer, the sky over a sea of clouds (a copy of the user's
         // Sprites/UI/SkyIsland/SkyIslands.png).
         private static readonly string[] SkyLayers = { "SI_Parallax_Far.png" };
+        // ---- Sunken City (World 5): one opaque layer, the drowned ruins (a copy of UI/SunkenCity/SunkenCity.png).
+        private static readonly string[] SunkenLayers = { "SC_Parallax_Far.png" };
+        // ---- Robot Mothership (World 6): one opaque layer, space over the planet (a copy of UI/MotherShip/RobotMothership.png).
+        private static readonly string[] MothershipLayers = { "RM_Parallax_Far.png" };
+
+        /// <summary>The Mothership's parallax layers, far to near (missing ones left out).</summary>
+        public static Sprite[] MothershipParallax() => MothershipLayers
+            .Select(f => AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/{f}"))
+            .Where(s => s != null)
+            .ToArray();
+
+        // The Mothership's deck: generated like Sunken City's seabed (a script, 2026-10-04): DeckStrip.png is a 768x320
+        // strip, a seamless hull-panel body (bottom 256 rows) under a steel deck plate with a glowing strip that
+        // overhangs the cell by ~0.23. Three one-cell variants.
+        private const string MothershipFloorPath = "Assets/_Project/Sprites/UI/MotherShip/DeckStrip.png";
+        private static readonly RectInt MothershipFloorArea = new(0, 0, 768, 320);   // bottom-up pixel rows
+        private const int MothershipFloorVariants = 3, MothershipFloorDirtPixels = 256;
+
+        /// <summary>The Mothership's deck variants, left to right; empty if the art is missing.</summary>
+        public static Sprite[] MothershipFloorArt() => AssetDatabase.LoadAllAssetsAtPath(MothershipFloorPath)
+            .OfType<Sprite>()
+            .OrderBy(s => s.name)
+            .ToArray();
+
+        /// <summary>Sunken City's parallax layers, far to near (missing ones left out).</summary>
+        public static Sprite[] SunkenParallax() => SunkenLayers
+            .Select(f => AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/{f}"))
+            .Where(s => s != null)
+            .ToArray();
+
+        // Sunken City's seabed: no ground art came with the world, so SeabedStrip.png was generated (a script,
+        // 2026-10-04): a 768x320 strip whose bottom 256 rows are a seamless rock body and whose top is a wavy sand cap
+        // overhanging the cell by ~0.25 (like the grass). Three one-cell variants, consecutive columns join seamlessly.
+        private const string SunkenFloorPath = "Assets/_Project/Sprites/UI/SunkenCity/SeabedStrip.png";
+        private static readonly RectInt SunkenFloorArea = new(0, 0, 768, 320);   // bottom-up pixel rows
+        private const int SunkenFloorVariants = 3, SunkenFloorDirtPixels = 256;
+
+        /// <summary>Sunken City's sand-topped seabed variants, left to right; empty if the art is missing.</summary>
+        public static Sprite[] SunkenFloorArt() => AssetDatabase.LoadAllAssetsAtPath(SunkenFloorPath)
+            .OfType<Sprite>()
+            .OrderBy(s => s.name)
+            .ToArray();
 
         /// <summary>Sky Islands' parallax layers, far to near (missing ones left out).</summary>
         public static Sprite[] SkyParallax() => SkyLayers
@@ -142,7 +184,7 @@ namespace FarmFuryStampede.EditorTools
         /// <summary>Imports every configured layer file as a smooth, opaque sprite. Idempotent; missing files warn and are skipped.</summary>
         public static void ImportBackgroundArt()
         {
-            foreach (string file in Layers.Select(l => l.file).Concat(TundraLayers).Concat(WatermillLayers).Concat(SkyLayers))
+            foreach (string file in Layers.Select(l => l.file).Concat(TundraLayers).Concat(WatermillLayers).Concat(SkyLayers).Concat(SunkenLayers).Concat(MothershipLayers))
             {
                 string path = $"{EnvironmentDir}/{file}";
                 if (!File.Exists(path))
@@ -179,6 +221,8 @@ namespace FarmFuryStampede.EditorTools
             SliceFloorStrip(TundraFloorPath, "FT_Ground", TundraFloorArea, TundraFloorVariants, TundraFloorDirtPixels);
             SliceFloorStrip(WatermillFloorPath, "WV_Ground", WatermillFloorArea, WatermillFloorVariants, WatermillFloorDirtPixels);
             SliceCloudStrip(SkyFloorPath, "SI_Cloud", SkyFloorArea, SkyFloorVariants);
+            SliceFloorStrip(SunkenFloorPath, "SC_Ground", SunkenFloorArea, SunkenFloorVariants, SunkenFloorDirtPixels);
+            SliceFloorStrip(MothershipFloorPath, "RM_Deck", MothershipFloorArea, MothershipFloorVariants, MothershipFloorDirtPixels);
         }
 
         // ---- Sky Islands' ground: there is no grass strip up here. The ground is cloud: CloudTile.png is two copies of

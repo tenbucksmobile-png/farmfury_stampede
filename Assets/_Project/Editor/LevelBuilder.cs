@@ -83,6 +83,19 @@ namespace FarmFuryStampede.EditorTools
         public Sprite balloonSprite;
         /// <summary>Updraft() column art (Sky Islands: UpdraftSpiral.png), stretched over the column; null leaves the wind invisible.</summary>
         public Sprite updraftSprite;
+        /// <summary>Art for every secret-cluster crop (Sunken City: the clam with its pearl); null keeps the pickup's golden cob.</summary>
+        public Sprite secretCropSprite;
+        /// <summary>
+        /// Art for every plain MovingLedge (Sunken City: Submarine.png), its hull top on the deck; null draws them with
+        /// the ledge slabs. Boats and balloons keep their own art.
+        /// </summary>
+        public Sprite moverSprite;
+        /// <summary>Where moverSprite's deck is, as a fraction of the art up from its bottom (Submarine 0.68, Mothership's carrier 0.55).</summary>
+        public float moverDeckFromBottom = 0.68f;
+        /// <summary>How much of moverSprite's width the deck spans (Submarine 0.82, carrier 0.9).</summary>
+        public float moverDeckWidth = 0.82f;
+        /// <summary>Art stood at the foot of every Updraft() (Mothership: GravitySling.png, turned to fire upward); null places none.</summary>
+        public Sprite updraftBaseSprite;
 
         /// <summary>A copy to override per world (the dictionary and arrays are shared until replaced).</summary>
         public LevelAssets Clone() => (LevelAssets)MemberwiseClone();
@@ -177,6 +190,7 @@ namespace FarmFuryStampede.EditorTools
         private readonly List<Vector2> _pyramids = new();
         private readonly List<(Vector2 at, int rows)> _haystacks = new();   // bale stacks: 2 rows = HayStack, 3 = HayPyramid
         private bool _manualScenery;
+        private bool _underwater;
         private bool _pathCorn;
         private int _haybalesAsBarrels;
         private bool _standardFarm;
@@ -317,6 +331,22 @@ namespace FarmFuryStampede.EditorTools
             _movers.Add(new MoverRec { start = start, end = end, period = period, phase = phase });
             return this;
         }
+
+        /// <summary>
+        /// Sunken City: the level is underwater (LevelPrefabRoot.underwater): jumps reach the same height but hang
+        /// CharacterController2D.UnderwaterHangTime times as long, so they carry further. Validation allows gaps
+        /// UnderwaterGapScale times as wide (6.5 instead of 5), still short of the real floaty reach (~7.7).
+        /// </summary>
+        public LevelBuilder Underwater()
+        {
+            _underwater = true;
+            return this;
+        }
+
+        private const float UnderwaterGapScale = 1.3f;
+
+        /// <summary>Robot Mothership's low gravity: the same floaty physics as Underwater() (the level's flag is shared).</summary>
+        public LevelBuilder LowGravity() => Underwater();
 
         /// <summary>
         /// A rowing boat across the last River(): a MovingLedge 'length' wide at the banks' height (deck level with the
@@ -771,8 +801,9 @@ namespace FarmFuryStampede.EditorTools
         /// Can a player standing on 'from' reach 'to' with the shared base jump (no ability)? Rise is capped at
         /// MaxRise; the horizontal gap allowed shrinks as the rise grows.
         /// </summary>
-        private static bool CanReach(Surface from, Surface to)
+        private bool CanReach(Surface from, Surface to)
         {
+            float maxFlatGap = MaxFlatGap * (_underwater ? UnderwaterGapScale : 1f);
             if (ReferenceEquals(from, to))
             {
                 return false;
@@ -782,14 +813,14 @@ namespace FarmFuryStampede.EditorTools
             float rise = to.top - from.top;
             if (to.bonus)
             {
-                return rise <= MaxBonusRise && dx <= MaxFlatGap;
+                return rise <= MaxBonusRise && dx <= maxFlatGap;
             }
             if (rise > MaxRise)
             {
                 return false;
             }
 
-            float maxDx = rise > 0f ? MaxFlatGap - RiseGapPenalty * rise : MaxFlatGap;
+            float maxDx = rise > 0f ? maxFlatGap - RiseGapPenalty * rise : maxFlatGap;
             return dx <= maxDx;
         }
 
@@ -955,6 +986,7 @@ namespace FarmFuryStampede.EditorTools
             rootComponent.cameraMinX = _startX;
             rootComponent.cameraMaxX = endX;
             rootComponent.parallaxLayers = assets.parallaxLayers ?? Array.Empty<Sprite>();
+            rootComponent.underwater = _underwater;
 
             var grid = new GameObject("Grid");
             grid.transform.SetParent(root.transform, false);
@@ -1130,6 +1162,10 @@ namespace FarmFuryStampede.EditorTools
                 else if (!_crops[i].secret && assets.cropSprite != null)
                 {
                     crop.visualOverride = assets.cropSprite;
+                }
+                else if (_crops[i].secret && assets.secretCropSprite != null)
+                {
+                    crop.visualOverride = assets.secretCropSprite;
                 }
             }
 
@@ -1654,7 +1690,7 @@ namespace FarmFuryStampede.EditorTools
                 int a = cx;
                 while (cx < x1 && !HasGround(cx + 0.5f) && PathBridgeAt(cx + 0.5f) == null) { cx++; }
                 int b = cx;
-                if (b - a > MaxFlatGap || !HasGround(a - 0.5f) || !HasGround(b + 0.5f)) { continue; }
+                if (b - a > MaxFlatGap * (_underwater ? UnderwaterGapScale : 1f) || !HasGround(a - 0.5f) || !HasGround(b + 0.5f)) { continue; }
                 float baseTop = Mathf.Max(PathSurface(a - 0.5f, out _), PathSurface(b + 0.5f, out _));
                 pits.Add((a, b, baseTop));
             }
@@ -2288,6 +2324,22 @@ namespace FarmFuryStampede.EditorTools
                 renderer.sprite = sprite;
                 renderer.sortingOrder = 7;
             }
+            else if (!m.boat && !m.balloon && assets.moverSprite != null)
+            {
+                // A vessel (Sunken City's submarine, the Mothership's carrier): its deck (moverDeckFromBottom up the
+                // art) just over the ledge's top, sized so the deck (moverDeckWidth of the art) spans the ledge.
+                var art = new GameObject("Submarine");
+                art.transform.SetParent(go.transform, false);
+                Sprite sprite = assets.moverSprite;
+                float k = (length + 0.4f) / assets.moverDeckWidth / sprite.bounds.size.x;
+                float height = sprite.bounds.size.y * k;
+                float pivotFromBottom = sprite.pivot.y / sprite.rect.height;
+                art.transform.localScale = new Vector3(k, k, 1f);
+                art.transform.localPosition = new Vector3(0f, 0.5f + 0.1f - (assets.moverDeckFromBottom - pivotFromBottom) * height, 0f);
+                var renderer = art.AddComponent<SpriteRenderer>();
+                renderer.sprite = sprite;
+                renderer.sortingOrder = 7;
+            }
             else if (m.boat && assets.boatSprite != null)
             {
                 // The boat a little longer than its deck, gunwale (the art's middle row) just over the deck so the
@@ -2345,6 +2397,21 @@ namespace FarmFuryStampede.EditorTools
                     renderer.color = new Color(1f, 1f, 1f, 0.8f);
                     renderer.sortingOrder = 5;
                     zone.art = art.transform;
+                }
+
+                if (assets.updraftBaseSprite != null)
+                {
+                    // The emitter at the foot, turned a quarter so it fires upward, ~2.4 units across.
+                    var emitter = new GameObject("Emitter");
+                    emitter.transform.SetParent(go.transform, false);
+                    Vector2 native = assets.updraftBaseSprite.bounds.size;
+                    float k = 2.4f / Mathf.Max(native.y, 0.01f);   // turned: its height becomes the width
+                    emitter.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+                    emitter.transform.localScale = new Vector3(k, k, 1f);
+                    emitter.transform.localPosition = new Vector3(0f, native.x * k * 0.5f - 0.15f, 0f);   // centre-pivoted art
+                    var renderer = emitter.AddComponent<SpriteRenderer>();
+                    renderer.sprite = assets.updraftBaseSprite;
+                    renderer.sortingOrder = 6;
                 }
             }
         }

@@ -42,6 +42,11 @@ namespace FarmFuryStampede.EditorTools
         private const string WatermillCropFile = "WatermillVillage/GoldenAcorn.png";
         // ... and Sky Islands' (the cloud plum).
         private const string SkyCropFile = "SkyIsland/FloatingPlum.png";
+        // ... and Sunken City's: pearls, and the clam holding one for the secret-cluster crops.
+        private const string SunkenCropFile = "SunkenCity/pearl.png";
+        private const string SunkenSecretCropFile = "SunkenCity/Clam.png";
+        // ... and the Mothership's: glowing containment pods (energy cells); no art came for a crop, so the pod stands in.
+        private const string MothershipCropFile = "MotherShip/ContainmentPod.png";
 
         // Crops drawn bigger than CropTargetWorldSize. Their pivot is lowered so every crop's bottom edge sits at
         // the same height as a standard one, keeping the big icons clear of the grass too.
@@ -53,7 +58,10 @@ namespace FarmFuryStampede.EditorTools
             { RarePelletFile, 1.3f },            // the rare pellet: bigger than any crop, so it reads as special
             { TundraCropFile, 1.6f },            // the berry fills ~56% of its 500px frame: ~0.9 visible, like the kernel
             { WatermillCropFile, 1f },
-            { SkyCropFile, 1.1f },               // the plum sits on a cloud: drawn a little bigger so the fruit reads           // fills its frame; a touch taller than the kernel, as it is a tall shape
+            { SkyCropFile, 1.1f },
+            { SunkenCropFile, 0.8f },            // a round pearl reads big at the kernel's size
+            { SunkenSecretCropFile, 1.5f },      // the clam fills ~3/4 of its frame: ~1.15 visible, like the cob
+            { MothershipCropFile, 1.1f },        // the pod fills ~85% of its frame height: ~0.95 visible               // the plum sits on a cloud: drawn a little bigger so the fruit reads           // fills its frame; a touch taller than the kernel, as it is a tall shape
         };
         // The rare pellet (RarePelletPickup): a glowing crystal apple at the end of each gated secret.
         private const string RarePelletFile = "RarePellets_apple.png";
@@ -135,6 +143,16 @@ namespace FarmFuryStampede.EditorTools
         private const string SkyFailedSourcePath = EnvironmentDir + "/SI_LevelFailed_Canvas.png";
         private const string SkyNewCharacterSourcePath = EnvironmentDir + "/SI_NewCharacter_Canvas.png";
         private const string SkyCharacterSourcePath = EnvironmentDir + "/SI_Character_Canvas.png";
+        // Sunken City's (2026-10-04): SunkenCity.png made the same way.
+        private const string SunkenCompleteSourcePath = EnvironmentDir + "/SC_LevelComplete_Canvas.png";
+        private const string SunkenFailedSourcePath = EnvironmentDir + "/SC_LevelFailed_Canvas.png";
+        private const string SunkenNewCharacterSourcePath = EnvironmentDir + "/SC_NewCharacter_Canvas.png";
+        private const string SunkenCharacterSourcePath = EnvironmentDir + "/SC_Character_Canvas.png";
+        // The Robot Mothership's (2026-10-04): RobotMothership.png made the same way.
+        private const string MothershipCompleteSourcePath = EnvironmentDir + "/RM_LevelComplete_Canvas.png";
+        private const string MothershipFailedSourcePath = EnvironmentDir + "/RM_LevelFailed_Canvas.png";
+        private const string MothershipNewCharacterSourcePath = EnvironmentDir + "/RM_NewCharacter_Canvas.png";
+        private const string MothershipCharacterSourcePath = EnvironmentDir + "/RM_Character_Canvas.png";
         private static string Wide(string source) => source.Replace(".png", "_Wide.png");
         // Pause (per its mockup): the same kind of backdrop, "Pause" and the logo painted in, widened the same way.
         private const string PauseSourcePath = EnvironmentDir + "/Pause_Canvas.png";
@@ -214,7 +232,9 @@ namespace FarmFuryStampede.EditorTools
             BuildWideResultsArt(CharacterSwapSourcePath, CharacterSwapBackgroundPath);
             BuildWideResultsArt(TundraCharacterSwapSourcePath, TundraCharacterSwapBackgroundPath);
             foreach (string source in new[] { WatermillCompleteSourcePath, WatermillFailedSourcePath, WatermillNewCharacterSourcePath, WatermillCharacterSourcePath,
-                         SkyCompleteSourcePath, SkyFailedSourcePath, SkyNewCharacterSourcePath, SkyCharacterSourcePath })
+                         SkyCompleteSourcePath, SkyFailedSourcePath, SkyNewCharacterSourcePath, SkyCharacterSourcePath,
+                         SunkenCompleteSourcePath, SunkenFailedSourcePath, SunkenNewCharacterSourcePath, SunkenCharacterSourcePath,
+                         MothershipCompleteSourcePath, MothershipFailedSourcePath, MothershipNewCharacterSourcePath, MothershipCharacterSourcePath })
             {
                 BuildWideResultsArt(source, Wide(source));
             }
@@ -229,6 +249,9 @@ namespace FarmFuryStampede.EditorTools
             ImportCropIcon(TundraCropFile);
             ImportCropIcon(WatermillCropFile);
             ImportCropIcon(SkyCropFile);
+            ImportCropIcon(SunkenCropFile);
+            ImportCropIcon(SunkenSecretCropFile);
+            ImportCropIcon(MothershipCropFile);
             foreach (string file in CharacterCardFiles.Values) { ImportCentered(file, CardPixelsPerUnit); }
             foreach (var (file, pivotY, metres) in ObstacleFiles) { ImportToScale(file, pivotY, metres); }
 
@@ -241,6 +264,8 @@ namespace FarmFuryStampede.EditorTools
             ImportTundraArt();
             ImportWatermillArt();
             ImportSkyArt();
+            ImportSunkenArt();
+            ImportMothershipArt();
 
             foreach (string file in MenuSpriteFiles()) { ImportMenuSprite(file); }
         }
@@ -276,6 +301,14 @@ namespace FarmFuryStampede.EditorTools
             yield return Wide(SkyFailedSourcePath);
             yield return Wide(SkyNewCharacterSourcePath);
             yield return Wide(SkyCharacterSourcePath);
+            yield return Wide(SunkenCompleteSourcePath);
+            yield return Wide(SunkenFailedSourcePath);
+            yield return Wide(SunkenNewCharacterSourcePath);
+            yield return Wide(SunkenCharacterSourcePath);
+            yield return Wide(MothershipCompleteSourcePath);
+            yield return Wide(MothershipFailedSourcePath);
+            yield return Wide(MothershipNewCharacterSourcePath);
+            yield return Wide(MothershipCharacterSourcePath);
             yield return $"{UIDir}/{StarEmptyFile}";
             yield return $"{UIDir}/{QuitButtonFile}";
             yield return $"{UIDir}/{ExitButtonFile}";
@@ -339,6 +372,8 @@ namespace FarmFuryStampede.EditorTools
             WorldType.FrozenTundra => AssetDatabase.LoadAssetAtPath<Sprite>(TundraCharacterSwapBackgroundPath),
             WorldType.WatermillVillage => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(WatermillCharacterSourcePath)),
             WorldType.SkyIslands => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(SkyCharacterSourcePath)),
+            WorldType.SunkenCity => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(SunkenCharacterSourcePath)),
+            WorldType.RobotMothership => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(MothershipCharacterSourcePath)),
             _ => null,
         };
         /// <summary>A world's own New Character page backdrop, or null for the shared sunset one.</summary>
@@ -347,6 +382,8 @@ namespace FarmFuryStampede.EditorTools
             WorldType.FrozenTundra => AssetDatabase.LoadAssetAtPath<Sprite>(TundraNewCharacterBackgroundPath),
             WorldType.WatermillVillage => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(WatermillNewCharacterSourcePath)),
             WorldType.SkyIslands => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(SkyNewCharacterSourcePath)),
+            WorldType.SunkenCity => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(SunkenNewCharacterSourcePath)),
+            WorldType.RobotMothership => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(MothershipNewCharacterSourcePath)),
             _ => null,
         };
         /// <summary>A world's own Level Complete / Level Failed backdrop, or null for the shared Meadow Ruins one.</summary>
@@ -355,6 +392,8 @@ namespace FarmFuryStampede.EditorTools
             WorldType.FrozenTundra => AssetDatabase.LoadAssetAtPath<Sprite>(complete ? TundraCompleteBackgroundPath : TundraFailedBackgroundPath),
             WorldType.WatermillVillage => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(complete ? WatermillCompleteSourcePath : WatermillFailedSourcePath)),
             WorldType.SkyIslands => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(complete ? SkyCompleteSourcePath : SkyFailedSourcePath)),
+            WorldType.SunkenCity => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(complete ? SunkenCompleteSourcePath : SunkenFailedSourcePath)),
+            WorldType.RobotMothership => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(complete ? MothershipCompleteSourcePath : MothershipFailedSourcePath)),
             _ => null,
         };
         /// <summary>World Select's backdrop: the sunset farm (Environment/Canvas.png).</summary>
@@ -427,6 +466,22 @@ namespace FarmFuryStampede.EditorTools
             importer.spritePixelsPerUnit = Mathf.Max(opaque, 1) / WorldHeight(metres);
             SetPivot(importer, new Vector2(0.5f, pivotY));
             FinishImport(importer);
+        }
+
+        /// <summary>
+        /// Imports a world robot frame (Sprites/UI/...) so its visible art is 'height' units tall whatever its frame
+        /// size, feet on its lowest visible row, and returns it (null if the file is missing). Used for the robots a
+        /// world swaps in through LevelAssets.robotArt.
+        /// </summary>
+        public static Sprite ImportActor(string file, float height)
+        {
+            var importer = BeginImport(file);
+            if (importer == null) { return null; }
+            string path = $"{UIDir}/{file}";
+            importer.spritePixelsPerUnit = Mathf.Max(OpaqueHeightPixels(path), 1) / height;
+            SetPivot(importer, new Vector2(0.5f, BottomPaddingFraction(path)));
+            FinishImport(importer);
+            return Load(file);
         }
 
         // Rows between the first and last with any pixel over ~8% alpha, read from the source PNG.
@@ -679,6 +734,95 @@ namespace FarmFuryStampede.EditorTools
 
         public static Sprite Sky(string file) => Load(SkyDir + file);
 
+        // ---- Sunken City (World 5) art, in Sprites/UI/SunkenCity (transparent already, except FloatingRock.png, whose
+        // white background a script cut out into FloatingRock_Cut.png). Props to the world scale, pivoted where each
+        // stands on the sand; each stands in for a Meadow farm prop (SunkenBackdrop).
+        private const string SunkenDir = "SunkenCity/";
+        private static readonly (string file, float pivotY, float metres)[] SunkenFiles =
+        {
+            ("SunkenArchway.png", 0.11f, 5.5f),    // ~3.6 units (the barn's place)
+            ("SunkenStatue.png", 0.07f, 5f),       // ~3.3 (the windmill's)
+            ("Kelp.png", 0.02f, 6f),               // ~3.9 (the silo's)
+            ("CoralFormation.png", 0.1f, 4f),      // ~2.6 (the oak's)
+            ("Floral.png", 0.08f, 3f),             // ~2.0 (the gnarled tree's)
+            ("ShipsWheel.png", 0.15f, 3f),         // ~2.0 (the water wheel's), half sunk in the sand
+            ("Anchor.png", 0.09f, 3f),             // ~2.0 (the cart's)
+            ("Submarine.png", 0.5f, 3f),           // not to scale: the drifter in the plane's place (and every moving ledge, rescaled)
+            ("TreasureChest.png", 0.1f, 2.4f),     // ~1.6: random obstacle (its collider follows the art)
+            ("SunkenPillar.png", 0.14f, 2.6f),     // ~1.7: random obstacle, a fallen column
+        };
+        private static readonly (string file, float ppu)[] SunkenBlocks =
+        {
+            ("FloatingRock_Cut.png", 768f),    // StoneBlocks() squares, 1 unit
+            ("JellyFish.png", 222f),           // the jellyfish in the Drone's place, ~1.8 tall
+            ("SeabedFill.png", 256f),          // the rock body under the seabed surface, one cell
+        };
+
+        private static void ImportSunkenArt()
+        {
+            foreach (var (file, pivotY, metres) in SunkenFiles) { ImportToScale(SunkenDir + file, pivotY, metres); }
+            foreach (var (file, ppu) in SunkenBlocks) { ImportCentered(SunkenDir + file, ppu); }
+        }
+
+        public static Sprite Sunken(string file) => Load(SunkenDir + file);
+
+        // ---- Robot Mothership (World 6) art, in Sprites/UI/MotherShip (transparent already). Props to the world scale;
+        // each stands in for a Meadow farm prop (MothershipBackdrop). The carrier (Ship.png) is both the background
+        // drifter and every moving ledge (rescaled by LevelBuilder).
+        private const string MothershipDir = "MotherShip/";
+        private static readonly (string file, float pivotY, float metres)[] MothershipFiles =
+        {
+            ("ControlTower.png", 0.08f, 6f),       // ~3.9 units (the barn's place); its spike in the deck
+            ("SateliteDish.png", 0.07f, 5f),       // ~3.3 (the windmill's)
+            ("WarningBeacon.png", 0.03f, 6.5f),    // ~4.2 (the silo's)
+            ("EnergyShield.png", 0.06f, 4f),       // ~2.6 (the oak's)
+            ("Ship.png", 0.5f, 3.4f),              // not to scale: the drifter in the plane's place (and every moving ledge)
+            ("LaserEmitter.png", 0.2f, 2.4f),      // ~1.6: random obstacle (its collider follows the art)
+            ("PlasmaConduit.png", 0.2f, 2.4f),     // ~1.6: random obstacle
+            ("RocketBooster.png", 0.15f, 3f),      // ~2.0 (the cart's), a spare engine on the deck
+        };
+        private static readonly (string file, float ppu)[] MothershipBlocks =
+        {
+            ("SteelGirder.png", 402f),        // every ledge, 1 unit (square slabs)
+            ("CircuitPanel.png", 343f),       // StoneBlocks() squares, 1 unit
+            ("Drone.png", 246f),              // the purple quadcopter in the Drone's place, ~2 wide
+            ("GravitySling.png", 100f),       // stood at the foot of every gravity lift (LevelBuilder sizes it)
+            ("GravityBeam.png", 100f),        // the lift's beam (a generated glow), stretched over the column
+            ("HullFill.png", 256f),           // the hull body under the deck, one cell
+        };
+
+        private static void ImportMothershipArt()
+        {
+            foreach (var (file, pivotY, metres) in MothershipFiles) { ImportToScale(MothershipDir + file, pivotY, metres); }
+            foreach (var (file, ppu) in MothershipBlocks) { ImportCentered(MothershipDir + file, ppu); }
+        }
+
+        public static Sprite Mothership(string file) => Load(MothershipDir + file);
+
+        /// <summary>The Mothership's scenery in the farm-prop roles; the rest are left empty.</summary>
+        internal static FarmBackdropArt MothershipBackdrop() => new()
+        {
+            barn = Mothership("ControlTower.png"),
+            windmill = Mothership("SateliteDish.png"),
+            silo = Mothership("WarningBeacon.png"),
+            oak = Mothership("EnergyShield.png"),
+            cart = Mothership("RocketBooster.png"),
+            plane = Mothership("Ship.png"),
+        };
+
+        /// <summary>Sunken City's scenery in the farm-prop roles.</summary>
+        internal static FarmBackdropArt SunkenBackdrop() => new()
+        {
+            barn = Sunken("SunkenArchway.png"),
+            windmill = Sunken("SunkenStatue.png"),
+            silo = Sunken("Kelp.png"),
+            oak = Sunken("CoralFormation.png"),
+            gnarledTree = Sunken("Floral.png"),
+            waterWheel = Sunken("ShipsWheel.png"),
+            cart = Sunken("Anchor.png"),
+            plane = Sunken("Submarine.png"),
+        };
+
         /// <summary>Sky Islands' scenery in the farm-prop roles; the gnarled tree and cart have no Sky art and are left out.</summary>
         internal static FarmBackdropArt SkyBackdrop() => new()
         {
@@ -783,6 +927,9 @@ namespace FarmFuryStampede.EditorTools
         public static Sprite TundraCrop() => Load(TundraCropFile);
         public static Sprite WatermillCrop() => Load(WatermillCropFile);
         public static Sprite SkyCrop() => Load(SkyCropFile);
+        public static Sprite SunkenCrop() => Load(SunkenCropFile);
+        public static Sprite SunkenSecretCrop() => Load(SunkenSecretCropFile);
+        public static Sprite MothershipCrop() => Load(MothershipCropFile);
         public static Sprite RarePellet() => Load(RarePelletFile);
 
         /// <summary>The character's Character Select card, or null if it has none.</summary>
