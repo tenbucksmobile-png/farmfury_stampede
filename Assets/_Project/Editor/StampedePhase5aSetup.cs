@@ -282,7 +282,7 @@ namespace FarmFuryStampede.EditorTools
             BuildRobotPrefab<HarvesterRobot>("Harvester", RobotType.Harvester, harvesterSprite, HarvesterPrefabPath,
                 art: RobotArt("Robot_Harvest_right.png", "Robot_Harvest_left.png", null));
             BuildRobotPrefab<DroneRobot>("Drone", RobotType.Drone, droneSprite, DronePrefabPath,
-                art: RobotArt("Drone.png", null, null));
+                art: RobotArt("Drone.png", null, null), visualScale: DroneVisualScale);
             BuildRobotPrefab<ScoutRobot>("Scout", RobotType.Scout, scoutSprite, ScoutPrefabPath,
                 art: RobotArt("ScoutRobot_right.png", "ScoutRobot_left.png", null));
             BuildRobotPrefab<ChaserRobot>("Chaser", RobotType.Chaser, chaserSprite, ChaserPrefabPath,
@@ -664,6 +664,9 @@ namespace FarmFuryStampede.EditorTools
         // The Chaser (DriftRobot art) is drawn this much bigger than the other 1.5-unit robots in every world
         // (2026-10-01: enlarged at the user's request); its colliders stay the standard size.
         private const float ChaserVisualScale = 1.4f;
+        // Every Drone (and each world's flyer drawn in its place: jellyfish, rocket drone) is drawn this much bigger
+        // (2026-10-08, slightly, at the user's request); its colliders stay the standard size.
+        private const float DroneVisualScale = 1.2f;
 
         /// <summary>
         /// Frozen Tundra's level kit: Meadow Ruins' assets with the Tundra art swapped in - frosted-grass surface,
@@ -742,8 +745,7 @@ namespace FarmFuryStampede.EditorTools
             sky.windmillSprite = null;
 
             sky.robotArt = new Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)>();
-            var storm = StampedeUIArt.Sky("AnchorCloud.png");
-            if (storm != null) { sky.robotArt[RobotType.Drone] = (storm, null, null); }   // one frame, flipped to turn
+            sky.stormCloudSprite = StampedeUIArt.Sky("AnchorCloud.png");   // floating scenery (StormCloud), not a robot
             // The Storm Baron (faces left) and its mirror (StormBaron_Right.png, a script copy), feet-pivoted at the
             // Commander's 500px-frame scale like the Millstone Mauler.
             var baronLeft = ImportBossArt("Assets/_Project/Sprites/UI/SkyIsland/StormBaron.png");
@@ -1634,6 +1636,7 @@ namespace FarmFuryStampede.EditorTools
                 data.bossLevelId = $"{spec.type}_Boss";
                 data.blurb = spec.blurb;
                 data.selectCardArt = StampedeUIArt.WorldSelectCard(spec.type);
+                data.selectBadge = StampedeUIArt.WorldSelectBadge(spec.type);
                 data.levelSelectBackground = StampedeUIArt.LevelSelectBackground(spec.type);
                 data.levelCompleteBackground = StampedeUIArt.WorldResultsBackground(spec.type, true);
                 data.levelFailedBackground = StampedeUIArt.WorldResultsBackground(spec.type, false);

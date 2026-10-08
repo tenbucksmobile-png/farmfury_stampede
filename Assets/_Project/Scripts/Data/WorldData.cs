@@ -19,6 +19,8 @@ namespace FarmFuryStampede.Data
         [Header("Menu art")]
         [Tooltip("World Select card (world name baked in, centred). Null = plain coloured card with the name as text.")]
         public Sprite selectCardArt;
+        [Tooltip("World Select carousel badge (wooden shield, world name baked in). Null = the select card art instead.")]
+        public Sprite selectBadge;
         [Tooltip("Full-screen Level Select backdrop (world name baked in along the top). Null = plain dark screen with the name as text.")]
         public Sprite levelSelectBackground;
         [Tooltip("This world's Level Complete backdrop (title, logo and three gold stars painted in where Meadow Ruins' are). Null = the shared MenuArt one.")]

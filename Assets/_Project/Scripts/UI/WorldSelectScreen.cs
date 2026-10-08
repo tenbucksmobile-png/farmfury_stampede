@@ -3,21 +3,24 @@ using System.Collections.Generic;
 using FarmFuryStampede.Core;
 using FarmFuryStampede.Data;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace FarmFuryStampede.UI
 {
     /// <summary>
-    /// World Select: nine world cards in a 3x3 grid - the six free story worlds (GDD Section 7), then the three paid
-    /// post-finale worlds (WorldData.purchaseRequired). A story world unlocks once the previous world's boss level has
-    /// been completed; only Meadow Ruins is open on a fresh save. Each card is just the world's art (name baked in),
-    /// under the wooden banner header, and the whole card is the tap target that opens the world's Level Select; a
-    /// locked story world's card is greyed out and can't be entered. A paid world not yet bought stays in full colour
-    /// with the $3.99 price sign (ShopArt.worldPrice) on its lower edge, and tapping it opens the world shop.
-    /// Without art, a card falls back to a coloured panel with the world name as text. The grid is a 16:9-card board
-    /// fitted between the banner and the bottom of the device safe area, so it scales as one piece and never
-    /// overlaps. The screen sits on the sunset-farm backdrop (Canvas.png), cover-cropped to the device. The round home
-    /// button (Btn_home.png) top-left of the safe area returns to the landing screen.
+    /// World Select: a carousel of world badges, laid out like Arcade's world select (its CardCarouselController,
+    /// already ported for the in-level character swap) - the six free story worlds (GDD Section 7), then the three
+    /// paid post-finale worlds (WorldData.purchaseRequired), always last (OrderPaidLast). Each badge is the world's wooden shield
+    /// (WorldData.selectBadge, name baked in); a world without one yet shows its World Select card art instead, and
+    /// without either a coloured panel with the name as text. Drag, or tap a side badge, to bring it to the centre;
+    /// tapping the centred badge opens the world's Level Select. A story world unlocks once the previous world's boss
+    /// level has been completed (only Meadow Ruins is open on a fresh save); a locked one is greyed and can be browsed
+    /// but not entered. A paid world not yet bought stays in full colour with the $3.99 price sign (ShopArt.worldPrice)
+    /// on its lower edge, and tapping it opens the world shop. The carousel opens centred on the furthest world the
+    /// player has unlocked. Left/Right (A/D) and Enter/Space work on a keyboard. The carousel fills the safe area
+    /// below the wooden banner header; the screen sits on the sunset-farm backdrop (Canvas.png), cover-cropped to the
+    /// device. The round home button (Btn_home.png) top-left of the safe area returns to the landing screen.
     /// </summary>
     public class WorldSelectScreen
     {
@@ -36,17 +39,21 @@ namespace FarmFuryStampede.UI
         public IReadOnlyList<Card> Cards => _cards;
 
         private readonly List<Card> _cards = new();
+        private readonly List<RectTransform> _items = new();
+        private readonly List<Button> _buttons = new();
+        private readonly CardCarouselController _carousel;
         private static readonly Color LockedTint = new(0.4f, 0.4f, 0.42f, 1f);
         // Same size as every other round menu button.
         private const float HomeButtonSize = UIKit.RoundButtonSize;
         private const float EdgeMargin = 40f;
-        // Grid geometry in card units: 3 columns of 16:9 cards with Gap between them.
-        private const int Columns = 3;
-        private const float CardW = 16f, CardH = 9f, Gap = 0.9f;
-        // Space kept for the banner above the grid (from the top of the safe area), and below it.
-        private const float GridTop = 215f, GridBottom = 24f, GridSide = 24f;
-        // The price sign's box on a card, in card fractions: centred low on the card, clear of the baked-in title.
-        private static readonly Rect PriceSignBox = new(0.33f, 0.03f, 0.34f, 0.3f);
+        // Space kept for the banner above the carousel (from the top of the safe area), and below it.
+        private const float CarouselTop = 215f, CarouselBottom = 24f;
+        // Arcade's world carousel proportions: 580-wide badges 430 apart on a 2800 arc, side badges at 72%.
+        private const float BadgeFraction = 0.8f;
+        private const float BadgeSpacing = 430f / 580f;
+        private const float ArcRadiusInSpacings = 2800f / 430f;
+        // The price sign's box on a badge, in badge fractions: low on the shield, under the name ribbon.
+        private static readonly Rect PriceSignBox = new(0.3f, 0.02f, 0.4f, 0.26f);
 
         private readonly Action<WorldType> _onEnter;
         private readonly Action _onBuyWorld;
@@ -78,36 +85,24 @@ namespace FarmFuryStampede.UI
                 UIKit.Place(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -40f), new Vector2(1200f, 90f));
             }
 
-            // The grid area below the banner, and in it a board of the grid's exact aspect (fitted, never cropped).
-            var area = UIKit.NewRect("GridArea", safe);
-            UIKit.Stretch(area, GridSide, GridBottom, GridSide, GridTop);
-            var worlds = (WorldType[])Enum.GetValues(typeof(WorldType));
-            int rows = Mathf.CeilToInt(worlds.Length / (float)Columns);
-            float boardW = Columns * CardW + (Columns - 1) * Gap;
-            float boardH = rows * CardH + (rows - 1) * Gap;
-            var board = UIKit.NewRect("Board", area);
-            UIKit.Stretch(board);
-            var fitter = board.gameObject.AddComponent<AspectRatioFitter>();
-            fitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
-            fitter.aspectRatio = boardW / boardH;
+            // The carousel below the banner, full width so the side badges fan out to the screen edges. Its invisible
+            // raycast Image catches drags that start between badges.
+            var area = UIKit.NewRect("Carousel", safe);
+            UIKit.Stretch(area, 0f, CarouselBottom, 0f, CarouselTop);
+            var dragArea = area.gameObject.AddComponent<Image>();
+            dragArea.color = new Color(0f, 0f, 0f, 0f);
+            _carousel = area.gameObject.AddComponent<CardCarouselController>();
+            _carousel.cardFraction = BadgeFraction;
+            _carousel.spacingFactor = BadgeSpacing;
+            _carousel.arcRadiusInSpacings = ArcRadiusInSpacings;
 
-            foreach (var world in worlds)
+            foreach (WorldType world in Enum.GetValues(typeof(WorldType)))
             {
-                int index = (int)world;
-                int col = index % Columns, row = index / Columns;
-                var captured = world;
-                // The whole card is the button. Refresh() already tints a locked card, so the Button's own disabled
-                // tint stays white rather than darkening it a second time.
-                var button = UIKit.MakeButton(board, $"Card_{world}", "", UIKit.Card, () => Tapped(captured));
-                var colors = button.colors;
-                colors.disabledColor = Color.white;
-                button.colors = colors;
+                // The whole badge is the button. Every badge stays interactable so a locked one can still be tapped
+                // to the centre; Tapped() decides what the centred one does.
+                var button = UIKit.MakeButton(area, $"Card_{world}", "", UIKit.Card, null);
                 var card = button.image;
-                float x0 = col * (CardW + Gap), yTop = row * (CardH + Gap);
-                var rt = card.rectTransform;
-                rt.anchorMin = new Vector2(x0 / boardW, 1f - (yTop + CardH) / boardH);
-                rt.anchorMax = new Vector2((x0 + CardW) / boardW, 1f - yTop / boardH);
-                rt.offsetMin = rt.offsetMax = Vector2.zero;
+                card.preserveAspect = true;
 
                 var name = UIKit.Label(card.transform, "Name", world.ToString(), 40, TextAnchor.MiddleCenter);
                 name.raycastTarget = false;
@@ -116,12 +111,15 @@ namespace FarmFuryStampede.UI
                 UIKit.Stretch(name.rectTransform, 12f, 12f, 12f, 12f);
 
                 var price = UIKit.Picture(card.transform, "PriceSign", shop.worldPrice);
+                price.raycastTarget = false;
                 var priceRt = price.rectTransform;
                 priceRt.anchorMin = PriceSignBox.min;
                 priceRt.anchorMax = PriceSignBox.max;
                 priceRt.offsetMin = priceRt.offsetMax = Vector2.zero;
 
                 _cards.Add(new Card { world = world, root = card.gameObject, button = button, priceSign = price.gameObject });
+                _items.Add(card.rectTransform);
+                _buttons.Add(button);
             }
 
             HomeButton = UIKit.MakeButton(safe, "HomeButton", art.homeButton != null ? "" : "Home",
@@ -138,28 +136,44 @@ namespace FarmFuryStampede.UI
             Root.SetActive(false);
         }
 
-        private void Tapped(WorldType world)
+        private void Tapped(int index)
         {
-            var card = _cards.Find(c => c.world == world);
-            if (card == null) { return; }
-            if (card.unlocked) { _onEnter?.Invoke(world); }
+            if (index < 0 || index >= _cards.Count) { return; }
+            var card = _cards[index];
+            if (card.unlocked) { _onEnter?.Invoke(card.world); }
             else if (card.forSale) { _onBuyWorld?.Invoke(); }
         }
 
-        public void Refresh()
+        /// <summary>Keyboard while showing: Left/Right (or A/D) move the carousel, Enter/Space opens the centred world.</summary>
+        public void HandleKeys(Keyboard keyboard)
+        {
+            if (!Root.activeSelf || keyboard == null || _cards.Count == 0) { return; }
+            if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame) { _carousel.Step(-1); }
+            else if (keyboard.rightArrowKey.wasPressedThisFrame || keyboard.dKey.wasPressedThisFrame) { _carousel.Step(1); }
+            else if (keyboard.enterKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame) { Tapped(_carousel.CenterIndex); }
+        }
+
+        /// <summary>
+        /// Re-reads the save into the badges. Centres the furthest unlocked world, or with keepPosition (the world
+        /// shop closing over this screen) stays on the badge already centred.
+        /// </summary>
+        public void Refresh(bool keepPosition = false)
         {
             var save = SaveManager.Instance;
-            foreach (var card in _cards)
+            OrderPaidLast();
+            int furthest = 0;
+            for (int i = 0; i < _cards.Count; i++)
             {
+                var card = _cards[i];
                 var data = DataManager.Instance.GetWorldData(card.world);
                 card.unlocked = save.IsWorldUnlocked(card.world);
                 card.forSale = !card.unlocked && data != null && data.purchaseRequired;
-                card.button.interactable = card.unlocked || card.forSale;
+                if (card.unlocked && (data == null || !data.purchaseRequired)) { furthest = i; }
 
-                // Card art has the world name baked in; a locked story world's art is greyed out, a paid world on sale
+                // The badge has the world name baked in; a locked story world's is greyed out, a paid world on sale
                 // stays bright under its price sign.
                 var cardImage = card.root.GetComponent<Image>();
-                var art = data != null ? data.selectCardArt : null;
+                var art = data == null ? null : data.selectBadge != null ? data.selectBadge : data.selectCardArt;
                 bool bright = card.unlocked || card.forSale;
                 cardImage.sprite = art;
                 cardImage.color = art != null
@@ -172,6 +186,27 @@ namespace FarmFuryStampede.UI
 
                 var priceImage = card.priceSign.GetComponent<Image>();
                 card.priceSign.SetActive(card.forSale && priceImage.sprite != null);
+            }
+
+            int start = keepPosition ? _carousel.CenterIndex : furthest;
+            _carousel.SetItems(_items, _buttons, start, Tapped);
+        }
+
+        // The free story worlds first, the paid worlds (WorldData.purchaseRequired) last, each group in WorldType
+        // order, whatever order the enum lists them in. _items/_buttons follow _cards: they are the carousel's indices.
+        private void OrderPaidLast()
+        {
+            bool Paid(Card card) => DataManager.Instance.GetWorldData(card.world) is { purchaseRequired: true };
+            var ordered = new List<Card>(_cards);
+            ordered.Sort((a, b) => Paid(a) != Paid(b) ? (Paid(a) ? 1 : -1) : a.world.CompareTo(b.world));
+            _cards.Clear();
+            _cards.AddRange(ordered);
+            _items.Clear();
+            _buttons.Clear();
+            foreach (var card in _cards)
+            {
+                _items.Add((RectTransform)card.root.transform);
+                _buttons.Add(card.button);
             }
         }
     }

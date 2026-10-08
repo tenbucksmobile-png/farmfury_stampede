@@ -197,6 +197,20 @@ namespace FarmFuryStampede.EditorTools
         };
         private static string CardName(WorldType world) =>
             WorldCardNames.TryGetValue(world, out string card) ? card : WorldArtNames[world];
+        // World Select carousel badges (UI/Badge_<name>.png: wooden shield, name baked in, 500x500). A world whose
+        // badge file is missing shows its WS_ card in the carousel instead.
+        private static readonly Dictionary<WorldType, string> WorldBadgeFiles = new()
+        {
+            { WorldType.MeadowRuins, "Badge_Meadowruins.png" },
+            { WorldType.FrozenTundra, "Badge_FrozenTundra.png" },
+            { WorldType.WatermillVillage, "Badge_WatermillVillage.png" },
+            { WorldType.SkyIslands, "Badge_SkyWorld.png" },
+            { WorldType.SunkenCity, "Badge_SunkenCity.png" },
+            { WorldType.RobotMothership, "Badge_Mothership.png" },
+            { WorldType.DustbowlCanyon, "Badge_DustbowlCanyon.png" },
+            { WorldType.HarvestFairground, "Badge_HarvestFairground.png" },
+            { WorldType.CropFactory, "Badge_CropFactory.png" },
+        };
 
         // ---- World scale -------------------------------------------------------------------------------------
         // Every world prop (obstacles, barrels, bales, buildings, trees, crops-in-the-field, fences) is sized from ONE
@@ -318,6 +332,10 @@ namespace FarmFuryStampede.EditorTools
             yield return $"{UIDir}/{NewCharacterSignFile}";
             yield return $"{UIDir}/{NewCharacterTitleFile}";
             yield return $"{UIDir}/{WorldUnlockedSignFile}";
+            foreach (string badge in WorldBadgeFiles.Values)
+            {
+                if (File.Exists($"{UIDir}/{badge}")) { yield return $"{UIDir}/{badge}"; }
+            }
             foreach (var (world, name) in WorldArtNames)
             {
                 yield return $"{EnvironmentDir}/WS_{CardName(world)}.png";
@@ -449,6 +467,10 @@ namespace FarmFuryStampede.EditorTools
         /// <summary>The world's World Select card art (name centred), or null.</summary>
         public static Sprite WorldSelectCard(WorldType world) =>
             WorldArtNames.ContainsKey(world) ? AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/WS_{CardName(world)}.png") : null;
+
+        /// <summary>The world's World Select badge (shield, name baked in), or null when it has none yet.</summary>
+        public static Sprite WorldSelectBadge(WorldType world) =>
+            WorldBadgeFiles.TryGetValue(world, out string file) ? Load(file) : null;
 
         /// <summary>The world's Level Select backdrop (name along the top), or null.</summary>
         public static Sprite LevelSelectBackground(WorldType world) =>
@@ -723,7 +745,7 @@ namespace FarmFuryStampede.EditorTools
             ("Cloud.png", 356f),            // the puffy cloud: StoneBlocks() squares, 1 unit tall
             ("UpdraftSpiral.png", 100f),    // LevelBuilder stretches it over each updraft column
             ("CloudFill.png", 128f),        // the cloud body under the cloud surface (a generated tileable fill), one cell
-            ("AnchorCloud.png", 344f),      // the storm cloud in the Drone's place, ~1.8 wide
+            ("AnchorCloud.png", 344f),      // the floating storm cloud (LevelBuilder.StormCloud), ~1.8 wide before its 2.5x
         };
 
         private static void ImportSkyArt()

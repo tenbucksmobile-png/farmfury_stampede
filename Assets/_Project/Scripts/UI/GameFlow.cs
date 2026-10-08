@@ -100,7 +100,7 @@ namespace FarmFuryStampede.UI
             var worldShop = Add(new ItemPurchaseScreen(c, "WorldPurchase", menuArt, shopArt, Gate, useCoins, null, menuArt.worldUnlockedSign,
                 "NEW WORLDS", WorldItems(), new Vector2(500f, 281f), 30f, shopArt.worldPrice));
             _worldShop = worldShop;
-            worldShop.Closed += () => { if (Worlds.Root.activeSelf) { Worlds.Refresh(); } };   // a bought world opens at once
+            worldShop.Closed += () => { if (Worlds.Root.activeSelf) { Worlds.Refresh(keepPosition: true); } };   // a bought world opens at once
             var leaderboards = Add(new LeaderboardsScreen(c, menuArt, shopArt, leaderboardArt, worldDetail.Show, worldShop.Show));
 
             var itemCell = new Vector2(OverlayScreen.ItemWidth, OverlayScreen.ItemHeight);
@@ -211,6 +211,10 @@ namespace FarmFuryStampede.UI
             else if (Swap.IsOpen)
             {
                 Swap.HandleKeys(Keyboard.current);
+            }
+            else if (Worlds.Root.activeSelf && TopOverlay() == null)
+            {
+                Worlds.HandleKeys(Keyboard.current);
             }
         }
 

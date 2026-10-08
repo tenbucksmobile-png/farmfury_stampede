@@ -7,9 +7,10 @@ namespace FarmFuryStampede.EditorTools
     /// World 4, Sky Islands: eleven levels and the boss, built 2026-10-04 on Watermill Village's validated layouts,
     /// re-dressed for the sky (see StampedePhase5aSetup.SkyAssets): every ledge and moving ledge is a flat-topped
     /// cloud, the lifts are hot-air balloons (Balloon()), lanterns hang under the rope bridges, plums are the crops,
-    /// storm clouds take the Drones' place and the Storm Baron airship is the boss. The world's twist is the wind:
+    /// storm clouds (StormCloud(), scenery only since 2026-10-08) float high over each Drone, and the Storm Baron airship is
+    /// the boss. The world's twist is the wind:
     /// every level has an Updraft() that floats the player up to a bonus cloud (plums and a coin) too high to jump to.
-    ///   1-3   Scouts and Harvesters; a sliding cloud (1), bobbing clouds (2), bridges (1, 3); storm clouds from 2
+    ///   1-3   Scouts and Harvesters; a sliding cloud (1), bobbing clouds (2), bridges (1, 3)
     ///   4-7   Chasers join; two clouds meeting mid-gap (4), a balloon up to a terrace (5), a long slide (6), three bobbers (7)
     ///   8-11  every trick in one level, a cloud relay (10), and the capstone (11) with all of them
     ///   12    the boss: the Storm Baron's sky dock, waves after hits 1 and 2
@@ -99,7 +100,7 @@ namespace FarmFuryStampede.EditorTools
             b.Scout(64, 3);
             b.Harvester(82, 2);
             b.Scout(108, 3);
-            b.Drone(36, 2.8f, 3).Drone(110, 2.8f, 3);
+            b.Drone(36, 2.8f, 3).StormCloud(36).Drone(110, 2.8f, 3).StormCloud(110);
             return b;
         }
 
@@ -131,7 +132,7 @@ namespace FarmFuryStampede.EditorTools
             b.Scout(54, 3);
             b.Harvester(70, 3);
             b.Scout(105, 3).Harvester(111, 2);
-            b.Drone(66, 2.8f, 3);
+            b.Drone(66, 2.8f, 3).StormCloud(66);
             return b;
         }
 
@@ -163,7 +164,7 @@ namespace FarmFuryStampede.EditorTools
             b.Chaser(78, 8);                  // wakes on the terrace before the bridge
             b.Scout(100, 3);
             b.Harvester(116, 3);
-            b.Drone(56, 2.8f, 3).Drone(100, 2.8f, 3);
+            b.Drone(56, 2.8f, 3).StormCloud(56).Drone(100, 2.8f, 3).StormCloud(100);
             return b;
         }
 
@@ -201,7 +202,7 @@ namespace FarmFuryStampede.EditorTools
             b.Scout(83, 3);
             b.Chaser(90, 6);
             b.Harvester(117, 1);
-            b.Drone(62, 2.8f, 3);
+            b.Drone(62, 2.8f, 3).StormCloud(62);
             return b;
         }
 
@@ -232,7 +233,7 @@ namespace FarmFuryStampede.EditorTools
             b.Chaser(54, 6);                  // wakes just before the race
             b.Scout(80, 3).Harvester(88, 2);
             b.Scout(108, 3).Harvester(116, 2);
-            b.Drone(44, 3.2f, 3).Drone(110, 2.8f, 3);
+            b.Drone(44, 3.2f, 3).StormCloud(44).Drone(110, 2.8f, 3).StormCloud(110);
             return b;
         }
 
@@ -265,7 +266,7 @@ namespace FarmFuryStampede.EditorTools
             b.Harvester(74, 3);
             b.Chaser(100, 6);
             b.Scout(116, 3);
-            b.Drone(58, 2.8f, 3).Drone(116, 2.8f, 3);
+            b.Drone(58, 2.8f, 3).StormCloud(58).Drone(116, 2.8f, 3).StormCloud(116);
             return b;
         }
 
@@ -298,7 +299,7 @@ namespace FarmFuryStampede.EditorTools
             b.Chaser(78, 6);
             b.Harvester(100, 2);
             b.Scout(113, 2);
-            b.Drone(44, 2.8f, 3).Drone(96, 2.8f, 3);
+            b.Drone(44, 2.8f, 3).StormCloud(44).Drone(96, 2.8f, 3).StormCloud(96);
             return b;
         }
 
@@ -337,7 +338,7 @@ namespace FarmFuryStampede.EditorTools
             b.Chaser(90, 6);
             b.Scout(106, 2);
             b.Harvester(122, 3);
-            b.Drone(50, 2.8f, 3).Drone(108, 2.8f, 3);
+            b.Drone(50, 2.8f, 3).StormCloud(50).Drone(108, 2.8f, 3).StormCloud(108);
             return b;
         }
 
@@ -369,7 +370,7 @@ namespace FarmFuryStampede.EditorTools
             b.Chaser(90, 6);
             b.Harvester(102, 2);
             b.Scout(124, 3);
-            b.Drone(52, 2.8f, 3).Drone(86, 2.8f, 3).Drone(126, 2.8f, 3);
+            b.Drone(52, 2.8f, 3).StormCloud(52).Drone(86, 2.8f, 3).StormCloud(86).Drone(126, 2.8f, 3).StormCloud(126);
             return b;
         }
 
@@ -411,7 +412,7 @@ namespace FarmFuryStampede.EditorTools
             b.Harvester(125, 2);
             b.Scout(136, 2);
             b.Harvester(152, 3);
-            b.Drone(44, 2.8f, 3).Drone(100, 2.8f, 3).Drone(150, 2.8f, 3);
+            b.Drone(44, 2.8f, 3).StormCloud(44).Drone(100, 2.8f, 3).StormCloud(100).Drone(150, 2.8f, 3).StormCloud(150);
             return b;
         }
 
@@ -435,8 +436,8 @@ namespace FarmFuryStampede.EditorTools
             b.Chaser(26, 8);                                        // wakes at x=18, right before the gap to the gate
             b.Commander(62, 8);                                     // the Storm Baron patrols [54,70]
             b.Harvester(50, 2).Scout(74, 2);                        // arena guards (wave 0)
-            b.Scout(89, 2, wave: 1).Harvester(56, 2, wave: 1).Drone(76, 2.8f, 3, wave: 1);   // after hit 1
-            b.Drone(60, 2.8f, 4, wave: 2).Drone(48, 2.8f, 3, wave: 2).Scout(70, 3, wave: 2); // after hit 2
+            b.Scout(89, 2, wave: 1).Harvester(56, 2, wave: 1).Drone(76, 2.8f, 3, wave: 1).StormCloud(76);   // after hit 1
+            b.Drone(60, 2.8f, 4, wave: 2).StormCloud(60).Drone(48, 2.8f, 3, wave: 2).StormCloud(48).Scout(70, 3, wave: 2); // after hit 2
             b.Crop(41.5f);
             b.Crop(85.5f);
             return b;

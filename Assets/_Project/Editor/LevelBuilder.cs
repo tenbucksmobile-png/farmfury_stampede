@@ -96,6 +96,8 @@ namespace FarmFuryStampede.EditorTools
         public float moverDeckWidth = 0.82f;
         /// <summary>Art stood at the foot of every Updraft() (Mothership: GravitySling.png, turned to fire upward); null places none.</summary>
         public Sprite updraftBaseSprite;
+        /// <summary>StormCloud() art (Sky Islands: AnchorCloud.png); null places none.</summary>
+        public Sprite stormCloudSprite;
 
         /// <summary>A copy to override per world (the dictionary and arrays are shared until replaced).</summary>
         public LevelAssets Clone() => (LevelAssets)MemberwiseClone();
@@ -198,6 +200,7 @@ namespace FarmFuryStampede.EditorTools
         private readonly List<Vector2> _cornFields = new();   // (x0, x1)
         private readonly List<Vector2> _fences = new();
         private float? _biplaneHeight;
+        private readonly List<Vector2> _stormClouds = new();
         private Vector2? _playerStart;
         private Vector2? _goal;
         private readonly List<float> _noPatrolCheck = new();
@@ -646,6 +649,16 @@ namespace FarmFuryStampede.EditorTools
         public LevelBuilder Biplane(float height) { _biplaneHeight = height; return this; }
 
         /// <summary>
+        /// A storm cloud (LevelAssets.stormCloudSprite) floating aboveGround units over the ground at x, bobbing gently.
+        /// Scenery only: no collider, harmless, behind the ground and everything that moves.
+        /// </summary>
+        public LevelBuilder StormCloud(float x, float aboveGround = StormCloudHeight)
+        {
+            _stormClouds.Add(new Vector2(x, GroundTop(x) + aboveGround));
+            return this;
+        }
+
+        /// <summary>
         /// One unbroken line of kernels along the main path from the start to the goal (the boss arena's far wall):
         /// resting on the ground, climbing over hay stacks, barrel pyramids and the random obstacles, and arcing over
         /// every jumpable pit. Hand-placed crops on the path line are replaced by it; crops up on platforms, stone
@@ -1075,6 +1088,7 @@ namespace FarmFuryStampede.EditorTools
             var haybales = _manualScenery ? new List<Vector2>() : PlaceObstacles(root.transform, assets);
             var scenery = _manualScenery || _standardFarm ? new List<(float x, float halfWidth)>() : PlaceScenery(root.transform, assets, haybales);
             PlaceFarmBackdrop(root.transform, assets.farmArt, scenery, endX);
+            BuildStormClouds(root.transform, assets);
             Finish(platforms);
             if (ice != null)
             {
@@ -2159,6 +2173,29 @@ namespace FarmFuryStampede.EditorTools
             {
                 var plane = Spawn("Biplane", art.plane, new Vector2(_startX + 6f, _biplaneHeight.Value), 1f, false, Color.white, -9);
                 plane.AddComponent<SkyDrifter>().Configure(_startX - 12f, endX + 12f, 2.2f);
+            }
+        }
+
+        // StormCloud(): its centre this far over the ground (clear of a jumping player's head), drawn this many times
+        // the imported size (~1.8 wide) so it reads as a cloud, not a pickup.
+        private const float StormCloudHeight = 6f;
+        private const float StormCloudScale = 2.5f;
+
+        private void BuildStormClouds(Transform root, LevelAssets assets)
+        {
+            if (assets.stormCloudSprite == null) { return; }
+            for (int i = 0; i < _stormClouds.Count; i++)
+            {
+                var go = new GameObject($"StormCloud_{i + 1}");
+                go.transform.SetParent(root, false);
+                go.transform.localPosition = _stormClouds[i];
+                go.transform.localScale = new Vector3(StormCloudScale, StormCloudScale, 1f);
+                var renderer = go.AddComponent<SpriteRenderer>();
+                renderer.sprite = assets.stormCloudSprite;
+                renderer.sortingOrder = -6;   // in front of the parallax, behind the ground tiles and the farm scenery
+                // Speed 0: it stays put and only bobs; every other cloud is a little out of step.
+                go.AddComponent<SkyDrifter>().Configure(_stormClouds[i].x, _stormClouds[i].x, 0f);
+                renderer.flipX = i % 2 == 1;
             }
         }
 

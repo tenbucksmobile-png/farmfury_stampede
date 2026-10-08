@@ -25,6 +25,8 @@ namespace FarmFuryStampede.UI
         public Button SettingsButton { get; private set; }
 
         private const float EdgeMargin = 70f;
+        // Play and Exit sit closer to the left edge of the safe area than the cog does to the right.
+        private const float LeftMargin = 30f;
         // Gap between the button row and the bottom of the safe area.
         private const float BottomMargin = 40f;
         // Round buttons share the game-wide size; Exit (552x256 art, same height as the 256px round art) is drawn at
@@ -67,11 +69,11 @@ namespace FarmFuryStampede.UI
             safe.gameObject.AddComponent<SafeAreaFitter>();
 
             PlayButton = ArtButton(safe, "PlayButton", art.playButton, "PLAY", onPlay,
-                new Vector2(0f, 0f), new Vector2(EdgeMargin + 60f, BottomMargin), new Vector2(ButtonSize, ButtonSize));
+                new Vector2(0f, 0f), new Vector2(LeftMargin, BottomMargin), new Vector2(ButtonSize, ButtonSize));
             SettingsButton = ArtButton(safe, "SettingsButton", art.settingsButton, "SET", onSettings,
                 new Vector2(1f, 0f), new Vector2(-EdgeMargin, BottomMargin), new Vector2(ButtonSize, ButtonSize));
             ExitButton = ArtButton(safe, "ExitButton", art.exitButton, "EXIT", onExit,
-                new Vector2(0f, 0f), new Vector2(EdgeMargin + 60f + ButtonSize + ButtonGap, BottomMargin), ExitSize);
+                new Vector2(0f, 0f), new Vector2(LeftMargin + ButtonSize + ButtonGap, BottomMargin), ExitSize);
 
             Root.SetActive(false);
         }
