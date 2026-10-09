@@ -15,7 +15,8 @@ MonoBehaviour:
   characterType: 3
   displayName: Woolly the Sheep
   abilityType: 3
-  abilityDescription: 'Cloud Step: spawns a temporary wool platform underfoot mid-air,
+  abilityDescription: 'Cloud Step: fires a tuft of wool ahead that defeats the first
+    robot it reaches, and mid-air also spawns a temporary wool platform underfoot,
     once per jump.'
   abilityCooldown: 5
   unlockLevelsRequired: 10
@@ -27,5 +28,13 @@ MonoBehaviour:
   selectCard: {fileID: 21300000, guid: 0eff8246bd49eb74ea704b6a2e9b466c, type: 3}
   lifeIcon: {fileID: 21300000, guid: f0f9ff5a6a1724545ba431a63cedc56c, type: 3}
   visualScale: 1
-  hatAnchor: {x: 0.1575, y: 1.4017199}
-  hatWidth: 1.0109999
+  hatPlacements:
+  - frame: {fileID: 21300000, guid: ba88c9ec5fd53364f9c2958e7d4faebc, type: 3}
+    anchor: {x: 0.29999998, y: 1.3199999}
+    width: 0.585
+  - frame: {fileID: 21300000, guid: 6b0db0307fbb4a443b540fc5ebb6a7aa, type: 3}
+    anchor: {x: -0.45, y: 1.314}
+    width: 0.585
+  hatAnchor: {x: 0.29999998, y: 1.3199999}
+  hatAnchorLeft: {x: -0.45, y: 1.314}
+  hatWidth: 0.585

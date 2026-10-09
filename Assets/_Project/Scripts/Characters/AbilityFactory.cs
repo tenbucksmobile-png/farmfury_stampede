@@ -14,9 +14,9 @@ namespace FarmFuryStampede.Characters
                 case AbilityType.GroundPound: return new GroundPoundAbility();
                 case AbilityType.RollDash: return new RollDashAbility();
                 case AbilityType.CloudStep: return new CloudStepAbility();
-                case AbilityType.SkipDash: return new SkipDashAbility();
+                case AbilityType.SkipDash: return new WaterSpoutAbility();
                 case AbilityType.RearVaultThrow: return new RearVaultThrowAbility();
-                case AbilityType.PuffGlide: return new PuffGlideAbility();
+                case AbilityType.PuffGlide: return new FeatherBlowAbility();
                 case AbilityType.ChargeBreak: return new ChargeBreakAbility();
                 default: throw new ArgumentOutOfRangeException(nameof(type), type, "No ability implementation.");
             }

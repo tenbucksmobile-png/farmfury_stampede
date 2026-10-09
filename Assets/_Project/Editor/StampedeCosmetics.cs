@@ -11,8 +11,8 @@ namespace FarmFuryStampede.EditorTools
     /// <summary>
     /// Phase 6 setup (called from StampedePhase5aSetup.RunSetup): imports the cosmetic art copied from Farm Fury:
     /// Arcade (Sprites/Cosmetics/Hats, Trails, Machines), creates one CosmeticData per cosmetic with Arcade's ids
-    /// (ScriptableObjects/Cosmetics), measures each character's head from its idle-right art for hat placement
-    /// (CharacterData.hatAnchor / hatWidth), and adds IAPManager / AdManager / AnalyticsManager under GameManagers
+    /// (ScriptableObjects/Cosmetics), sets each character's hat placement per art frame from hand-measured head
+    /// points (CharacterData.hatPlacements), and adds IAPManager / AdManager / AnalyticsManager under GameManagers
     /// if missing - never overwriting the ad keys typed into AdManager.
     /// </summary>
     public static class StampedeCosmetics
@@ -213,76 +213,95 @@ namespace FarmFuryStampede.EditorTools
 
         // ------------------------------------------------------------ hat placement
 
-        /// <summary>Finds each character's head in its idle-right frame: the top of the art, and the width near the top.</summary>
-        public static void MeasureHatAnchors(IEnumerable<CharacterData> characters)
+        // The top of each head on each character frame, read off the art (Sprites/Characters, all 500x500) on a pixel
+        // grid on 2026-10-09: x, y in source pixels from the frame's top-left, where the hat's brim sits (on the skull,
+        // between the horns / ears, under Cluck's crest - not the art's highest point, which is a tail fan, mane or
+        // horn on half the cast), and the head's width in pixels (what a hat's hatScale multiplies). The automatic
+        // measurement this replaces put hats on Gerald's tail, Horace's back and Woolly's fleece.
+        // A frame not listed (ability poses, Cluck's defeat) uses its side's idle frame's placement.
+        // To tune: edit a row, re-run setup, then Farm Fury Stampede > Debug > Render Cosmetic Preview Sheets.
+        private static readonly Dictionary<string, (int x, int y, int width)> HeadPoints = new()
+        {
+            { "Cluck_right.png", (290, 78, 165) }, { "Cluck_right1.png", (290, 78, 165) }, { "Cluck_right2.png", (295, 78, 165) },
+            { "Cluck_Right_Jump.png", (250, 95, 165) },
+            { "Clucky_Left_Stand.png", (205, 95, 165) }, { "Clucky_Left1.png", (210, 110, 165) }, { "Clucky_Left2.png", (225, 100, 165) },
+            { "Clucky_left_Jump.png", (240, 98, 165) },
+            { "Bessie_right.png", (330, 55, 160) }, { "Bessie_right2.png", (325, 55, 160) },
+            { "Bessie_left3.png", (185, 50, 160) }, { "Bessie_left.png", (150, 50, 160) }, { "Bessie_left2.png", (160, 45, 160) },
+            { "Right1.png", (300, 35, 190) }, { "Right2.png", (305, 35, 190) },
+            { "Flat1.png", (190, 35, 190) }, { "Flat2.png", (175, 30, 190) },
+            { "Wooly_right.png", (350, 60, 195) }, { "Wooly_left.png", (100, 60, 195) },
+            { "Ducky_right.png", (270, 25, 200) }, { "Ducky_left.png", (215, 25, 200) },
+            { "Horace_right.png", (370, 60, 150) }, { "Horace_right1.png", (365, 60, 150) },
+            { "Horace_left.png", (115, 60, 150) }, { "Horace_left1.png", (112, 65, 150) },
+            { "Gerald_right.png", (390, 20, 130) }, { "Gerald_left.png", (105, 35, 125) }, { "Gerald_left1.png", (85, 20, 130) },
+            { "Billy_right.png", (380, 60, 150) }, { "Billy_right1.png", (375, 60, 150) },
+            { "Billy_left.png", (115, 60, 150) }, { "Billy_left1.png", (120, 60, 150) },
+        };
+
+        /// <summary>
+        /// Converts each character frame's hand-measured head point (HeadPoints) into a HatPlacement on its
+        /// CharacterData, in the Visual's local units (from that sprite's own pivot and pixels-per-unit, so jump frames
+        /// imported larger still line up), and sets the per-side fallbacks from the idle frames.
+        /// </summary>
+        public static void ApplyHatPlacements(IEnumerable<CharacterData> characters)
         {
             foreach (var data in characters)
             {
-                var sprite = data.spriteSet != null ? (data.spriteSet.idleRight != null ? data.spriteSet.idleRight : data.spriteSet.idleLeft) : null;
-                if (sprite == null || !Measure(sprite, out var anchor, out float width))
+                var set = data.spriteSet;
+                if (set == null)
                 {
                     continue;
                 }
 
-                data.hatAnchor = anchor;
-                data.hatWidth = width;
+                var frames = new[] { set.idleRight, set.jumpRight, set.abilityRight, set.idleLeft, set.jumpLeft, set.abilityLeft, set.defeat }
+                    .Concat(set.runRight ?? new Sprite[0]).Concat(set.runLeft ?? new Sprite[0])
+                    .Where(f => f != null).Distinct();
+                var placements = new List<HatPlacement>();
+                foreach (var frame in frames)
+                {
+                    if (HeadPoints.TryGetValue(Path.GetFileName(AssetDatabase.GetAssetPath(frame)), out var point))
+                    {
+                        placements.Add(Placement(frame, point));
+                    }
+                }
+                if (placements.Count == 0)
+                {
+                    Debug.LogWarning($"[Cosmetics] No head points for {data.characterType}'s frames; its hats keep the old placement.");
+                    continue;
+                }
+
+                data.hatPlacements = placements.ToArray();
+                var right = placements.FirstOrDefault(p => p.frame == set.idleRight);
+                var left = placements.FirstOrDefault(p => p.frame == set.idleLeft);
+                if (right.frame != null)
+                {
+                    data.hatAnchor = right.anchor;
+                    data.hatWidth = right.width;
+                }
+                if (left.frame != null)
+                {
+                    data.hatAnchorLeft = left.anchor;
+                }
                 EditorUtility.SetDirty(data);
             }
         }
 
-        private static bool Measure(Sprite sprite, out Vector2 anchor, out float width)
+        private static HatPlacement Placement(Sprite frame, (int x, int y, int width) point)
         {
-            anchor = default;
-            width = 0f;
-            string path = AssetDatabase.GetAssetPath(sprite);
-            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            // Source pixels to sprite-local units: the sprite is the whole texture (possibly imported smaller than the
+            // file), pivot in rect pixels from bottom-left.
+            var importer = (TextureImporter)AssetImporter.GetAtPath(AssetDatabase.GetAssetPath(frame));
+            importer.GetSourceTextureWidthAndHeight(out _, out int sourceHeight);
+            float ppu = frame.pixelsPerUnit;
+            float scale = frame.rect.height / sourceHeight;
+            var pivot = frame.pivot;
+            return new HatPlacement
             {
-                return false;
-            }
-
-            var texture = new Texture2D(2, 2);
-            if (!texture.LoadImage(File.ReadAllBytes(path)))
-            {
-                return false;
-            }
-
-            var pixels = texture.GetPixels32();
-            int w = texture.width, h = texture.height;
-            int top = -1, bottom = -1;
-            for (int y = h - 1; y >= 0 && top < 0; y--)
-            {
-                for (int x = 0; x < w; x++) { if (pixels[y * w + x].a > 128) { top = y; break; } }
-            }
-            for (int y = 0; y < h && bottom < 0; y++)
-            {
-                for (int x = 0; x < w; x++) { if (pixels[y * w + x].a > 128) { bottom = y; break; } }
-            }
-            if (top < 0 || bottom < 0)
-            {
-                Object.DestroyImmediate(texture);
-                return false;
-            }
-
-            // The head: the opaque span over the top 18% of the figure.
-            int bandBottom = top - Mathf.RoundToInt((top - bottom) * 0.18f);
-            int minX = w, maxX = -1;
-            for (int y = bandBottom; y <= top; y++)
-            {
-                for (int x = 0; x < w; x++)
-                {
-                    if (pixels[y * w + x].a > 128) { minX = Mathf.Min(minX, x); maxX = Mathf.Max(maxX, x); }
-                }
-            }
-            Object.DestroyImmediate(texture);
-
-            // Texture pixels to sprite-local units (the sprite is the whole texture, scaled to its rect).
-            float scaleX = sprite.rect.width / w, scaleY = sprite.rect.height / h;
-            float ppu = sprite.pixelsPerUnit;
-            var pivot = sprite.pivot;
-            float headTop = top - (top - bottom) * 0.06f;
-            anchor = new Vector2(((minX + maxX) * 0.5f * scaleX - pivot.x) / ppu, (headTop * scaleY - pivot.y) / ppu);
-            width = Mathf.Clamp((maxX - minX) * scaleX / ppu, 0.5f, 1.1f);
-            return true;
+                frame = frame,
+                anchor = new Vector2((point.x * scale - pivot.x) / ppu, ((sourceHeight - point.y) * scale - pivot.y) / ppu),
+                width = point.width * scale / ppu,
+            };
         }
 
         // ------------------------------------------------------------ scene

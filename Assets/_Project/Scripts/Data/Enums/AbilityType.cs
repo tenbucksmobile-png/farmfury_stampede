@@ -7,9 +7,9 @@ namespace FarmFuryStampede.Data
         GroundPound,
         RollDash,
         CloudStep,
-        SkipDash,
-        RearVaultThrow,
-        PuffGlide,
+        SkipDash,        // Ducky: Water Spout since 2026-10-09 (name kept so saved CharacterData keeps its value)
+        RearVaultThrow,  // Horace: Horseshoe Throw
+        PuffGlide,       // Gerald: Feather Blow since 2026-10-09 (same reason)
         ChargeBreak
     }
 }

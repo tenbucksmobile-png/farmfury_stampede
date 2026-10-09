@@ -25,6 +25,7 @@ namespace FarmFuryStampede.Core
         private const string SecretFoundKeyPrefix = "FFS_SecretFound_";
         private const string RarePelletKeyPrefix = "FFS_RarePellet_";
         private const string RarePelletCountKey = "FFS_RarePelletCount";
+        private const string PassageCoinsKeyPrefix = "FFS_PassageCoins_";   // bit i = the level's i-th passage coin taken
         private const string LastCharacterKey = "FFS_LastCharacter";
         private const string MusicOnKey = "FFS_MusicOn";
         private const string CoinBalanceKey = "FFS_Coins";
@@ -258,6 +259,20 @@ namespace FarmFuryStampede.Core
         {
             int best = Mathf.Max(GetLevelStars(levelId), stars);
             PlayerPrefs.SetInt(LevelStarsKeyPrefix + levelId, best);
+        }
+
+        /// <summary>Whether this level's index-th secret-passage coin has been taken (they pay once, then stay gone).</summary>
+        public bool IsPassageCoinCollected(string levelId, int index)
+        {
+            return index >= 0 && index < 31 && (PlayerPrefs.GetInt(PassageCoinsKeyPrefix + levelId, 0) & (1 << index)) != 0;
+        }
+
+        public void MarkPassageCoinCollected(string levelId, int index)
+        {
+            if (index >= 0 && index < 31)
+            {
+                PlayerPrefs.SetInt(PassageCoinsKeyPrefix + levelId, PlayerPrefs.GetInt(PassageCoinsKeyPrefix + levelId, 0) | (1 << index));
+            }
         }
 
         public bool IsLevelCompleted(string levelId)
@@ -549,6 +564,38 @@ namespace FarmFuryStampede.Core
         public void DebugAddCoins(int amount) => AddCoins(amount);
 
         /// <summary>DEBUG: wipes all progress (completions, stars, unlocks) back to a fresh save. Purchases and coins are kept.</summary>
+        /// <summary>DEBUG: grants (or takes back) one cosmetic. Taking it back also unequips it everywhere.</summary>
+        public void DebugSetCosmeticOwned(CosmeticData item, bool owned)
+        {
+            if (item == null || string.IsNullOrEmpty(item.cosmeticId))
+            {
+                return;
+            }
+
+            if (owned)
+            {
+                SetCosmeticOwned(item.cosmeticId);
+                return;
+            }
+
+            PlayerPrefs.DeleteKey(CosmeticOwnedKeyPrefix + item.cosmeticId);
+            PlayerPrefs.DeleteKey(CosmeticOwnedKeyPrefix + item.cosmeticId + "_chk");
+            foreach (CharacterType character in System.Enum.GetValues(typeof(CharacterType)))
+            {
+                foreach (var type in new[] { CosmeticType.Hat, CosmeticType.Skin })
+                {
+                    if (GetEquippedCosmetic(type, character) == item.cosmeticId)
+                    {
+                        PlayerPrefs.SetString(EquippedKeyPrefix(type) + character, string.Empty);
+                    }
+                }
+            }
+            if (GetEquippedTrail() == item.cosmeticId)
+            {
+                SetEquippedTrail(string.Empty);
+            }
+        }
+
         public void DebugResetProgress()
         {
             if (DataManager.Instance != null)
@@ -559,6 +606,7 @@ namespace FarmFuryStampede.Core
                     PlayerPrefs.DeleteKey(LevelStarsKeyPrefix + level.levelId);
                     PlayerPrefs.DeleteKey(SecretFoundKeyPrefix + level.levelId);
                     PlayerPrefs.DeleteKey(RarePelletKeyPrefix + level.levelId);
+                    PlayerPrefs.DeleteKey(PassageCoinsKeyPrefix + level.levelId);
                     PlayerPrefs.DeleteKey(BestScoreKeyPrefix + level.levelId);
                     PlayerPrefs.DeleteKey(BestScoreCharacterKeyPrefix + level.levelId);
                     PlayerPrefs.DeleteKey(FastestTimeKeyPrefix + level.levelId);

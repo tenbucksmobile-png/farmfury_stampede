@@ -103,6 +103,12 @@ namespace FarmFuryStampede.Core
             return !string.IsNullOrEmpty(cosmeticId) && _cosmetics.TryGetValue(cosmeticId, out var data) ? data : null;
         }
 
+        /// <summary>Every loaded cosmetic, ordered by id (the F1 debug panel's cosmetic cycling).</summary>
+        public List<CosmeticData> GetAllCosmetics()
+        {
+            return _cosmetics.Values.OrderBy(c => c.cosmeticId).ToList();
+        }
+
         /// <summary>Returns every loaded character whose unlock condition is currently met.</summary>
         public List<CharacterData> GetAllUnlockedCharacters()
         {

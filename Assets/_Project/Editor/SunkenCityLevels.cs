@@ -18,6 +18,9 @@ namespace FarmFuryStampede.EditorTools
     /// the start across a 17-unit gap (wider than in other worlds, as underwater jumps carry further; Gerald / Woolly).
     /// Secret passages (rare pellet + coins) in 1, 3, 4, 7, 9 and 11 (Steps, Staircase, Pyramid, Ledges, Pillars,
     /// Tunnel). Every level also gets PathCorn and StandardFarm (here the ruins and reef props), applied in CreateAll.
+    /// Since 2026-10-09 every level 1-11 also has an air vent (AirVent: its bubbles carry the player up to a bonus rock
+    /// with two pearls and a coin, at the Robot Mothership's validated gravity-lift spots), every ledge is floating rock
+    /// and the submarine only sails across the background.
     /// </summary>
     internal static class SunkenCityLevels
     {
@@ -32,6 +35,16 @@ namespace FarmFuryStampede.EditorTools
                 level.StandardFarm();
             }
             return levels;
+        }
+
+        // An air vent at x whose bubbles carry the player 'height' up beside a three-wide bonus rock at x0 (top = the
+        // seabed under the vent + height), with two pearls and a coin on it. The spots are the Robot Mothership's
+        // gravity lifts (its levels are these layouts), validated the same way.
+        private static void AirVent(LevelBuilder b, float x, int height, int x0, int top)
+        {
+            b.Updraft(x, height);
+            b.BonusLedge(x0, 3, top);
+            b.CropAt(x0 + 0.5f, top + 0.9f).BonusCoin(x0 + 1.5f, top).CropAt(x0 + 2.5f, top + 0.9f);
         }
 
         // ---------------------------------------------------------------- 1
@@ -58,6 +71,7 @@ namespace FarmFuryStampede.EditorTools
             b.Harvester(42, 3);
             b.Scout(76, 3);
             b.Harvester(108, 2).Scout(117, 2);
+            AirVent(b, 20f, 6, 22, 6);
             return b;
         }
 
@@ -88,6 +102,7 @@ namespace FarmFuryStampede.EditorTools
             b.Harvester(84, 2);
             b.Scout(112, 3);
             b.Drone(38, 2.8f, 3).Drone(112, 2.8f, 3);
+            AirVent(b, 43f, 6, 39, 6);
             return b;
         }
 
@@ -118,6 +133,7 @@ namespace FarmFuryStampede.EditorTools
             b.Harvester(70, 3);
             b.Scout(107, 3).Harvester(113, 2);
             b.Drone(66, 2.8f, 3);
+            AirVent(b, 90f, 6, 92, 6);
             return b;
         }
 
@@ -148,6 +164,7 @@ namespace FarmFuryStampede.EditorTools
             b.Scout(100, 3);
             b.Harvester(116, 3);
             b.Drone(56, 2.8f, 3).Drone(100, 2.8f, 3);
+            AirVent(b, 47f, 7, 49, 7);
             return b;
         }
 
@@ -180,6 +197,7 @@ namespace FarmFuryStampede.EditorTools
             b.Harvester(105, 2);
             b.Scout(119, 1);
             b.Drone(56, 2.8f, 3);
+            AirVent(b, 66f, 6, 68, 6);
             return b;
         }
 
@@ -209,6 +227,7 @@ namespace FarmFuryStampede.EditorTools
             b.Scout(82, 3).Harvester(90, 2);
             b.Scout(112, 3).Harvester(118, 1);
             b.Drone(46, 3.2f, 3).Drone(112, 2.8f, 3);
+            AirVent(b, 33f, 7, 35, 7);
             return b;
         }
 
@@ -243,6 +262,7 @@ namespace FarmFuryStampede.EditorTools
             b.Scout(110, 3);
             b.Harvester(125, 1);
             b.Drone(58, 2.8f, 3).Drone(110, 2.8f, 3);
+            AirVent(b, 61f, 7, 62, 7);
             return b;
         }
 
@@ -273,6 +293,7 @@ namespace FarmFuryStampede.EditorTools
             b.Harvester(100, 2);
             b.Scout(113, 2);
             b.Drone(44, 2.8f, 3).Drone(96, 2.8f, 3);
+            AirVent(b, 65f, 6, 61, 10);
             return b;
         }
 
@@ -308,6 +329,7 @@ namespace FarmFuryStampede.EditorTools
             b.Scout(99, 2);
             b.Harvester(116, 3);
             b.Drone(44, 2.8f, 3).Drone(100, 2.8f, 3);
+            AirVent(b, -10f, 7, -7, 7);
             return b;
         }
 
@@ -341,6 +363,7 @@ namespace FarmFuryStampede.EditorTools
             b.Harvester(102, 2);
             b.Scout(125, 3);
             b.Drone(52, 2.8f, 3).Drone(86, 2.8f, 3).Drone(126, 2.8f, 3);
+            AirVent(b, 78f, 7, 80, 7);
             return b;
         }
 
@@ -382,6 +405,7 @@ namespace FarmFuryStampede.EditorTools
             b.Scout(136, 2);
             b.Harvester(156, 3);
             b.Drone(44, 2.8f, 3).Drone(100, 2.8f, 3).Drone(156, 2.8f, 3);
+            AirVent(b, 151f, 7, 152, 7);
             return b;
         }
 

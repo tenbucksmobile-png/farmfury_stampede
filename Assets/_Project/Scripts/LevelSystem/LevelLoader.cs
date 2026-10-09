@@ -96,8 +96,17 @@ namespace FarmFuryStampede.LevelSystem
             var start = _levelInstance.GetComponentInChildren<PlayerStartPoint>();
 
             var run = GameManager.Instance.RunState;
+            var save = SaveManager.Instance;
+            int passageCoinIndex = 0;
             foreach (var marker in _levelInstance.GetComponentsInChildren<CropSpawnPoint>())
             {
+                // Secret-passage coins pay once: one already taken (in any earlier attempt) isn't put back.
+                int coinIndex = marker.passageCoin ? passageCoinIndex++ : -1;
+                if (marker.passageCoin && save != null && save.IsPassageCoinCollected(data.levelId, coinIndex))
+                {
+                    continue;
+                }
+
                 var crop = Spawn(cropPrefab, marker.transform.position);
                 if (crop != null)
                 {
@@ -106,6 +115,7 @@ namespace FarmFuryStampede.LevelSystem
                     pickup.coinValue = marker.coinValue;
                     pickup.isSecretCluster = marker.secretCluster;
                     pickup.isPassageCoin = marker.passageCoin;
+                    pickup.passageCoinIndex = coinIndex;
                 }
 
                 if (marker.passageCoin) { continue; }   // passage coins pay coins, they aren't crops

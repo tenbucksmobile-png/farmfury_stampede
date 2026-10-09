@@ -11,8 +11,8 @@ namespace FarmFuryStampede.Characters
     /// after it:
     /// - Skin (a machine): replaces the character's sprite with the machine art for the facing, every pose, and
     ///   puffs exhaust smoke while moving. A skin hides the hat (SaveManager clears it on equip).
-    /// - Hat: a child sprite at the character's head (CharacterData.hatAnchor, mirrored facing left), sized to
-    ///   CharacterData.hatWidth x CosmeticData.hatScale; per-character art (caps, cowboy hats) or one hat for all
+    /// - Hat: a child sprite at the top of the character's head on the frame being drawn
+    ///   (CharacterData.GetHatPlacement, hand-measured per frame), sized to that head's width x CosmeticData.hatScale; per-character art (caps, cowboy hats) or one hat for all
     ///   (sombrero - one of four designs per level -, chef hat, crown).
     /// - Trail: Arcade's ghost trail - the trail art stamped behind the moving character, fading out.
     /// Re-reads the save when the character changes and on <see cref="Refresh"/> (purchases, Locker equips).
@@ -120,10 +120,10 @@ namespace FarmFuryStampede.Characters
 
             _hat.sprite = sprite;
             _hat.flipX = _equippedHat.HatNeedsMirror(right);
-            var anchor = data.hatAnchor;
-            _hat.transform.localPosition = new Vector3(right ? anchor.x : -anchor.x, anchor.y, 0f);
+            data.GetHatPlacement(_body.sprite, right, out var anchor, out float headWidth);
+            _hat.transform.localPosition = new Vector3(anchor.x, anchor.y, 0f);
             float width = Mathf.Max(0.01f, sprite.bounds.size.x);
-            _hat.transform.localScale = Vector3.one * (data.hatWidth * _equippedHat.hatScale / width);
+            _hat.transform.localScale = Vector3.one * (headWidth * _equippedHat.hatScale / width);
         }
 
         private static int LevelIndex()

@@ -98,6 +98,14 @@ namespace FarmFuryStampede.EditorTools
         public Sprite updraftBaseSprite;
         /// <summary>StormCloud() art (Sky Islands: AnchorCloud.png); null places none.</summary>
         public Sprite stormCloudSprite;
+        /// <summary>Upright art at the foot of every Updraft() (Sunken City: the air vent, feet on the ground); null places none.</summary>
+        public Sprite ventSprite;
+        /// <summary>
+        /// A bubble (Sunken City): every Updraft() gets a rising BubbleStream as its column art, and with ambientBubbles
+        /// thin decorative trails also rise from the seabed every so often. Null: no bubbles.
+        /// </summary>
+        public Sprite bubbleSprite;
+        public bool ambientBubbles;
 
         /// <summary>A copy to override per world (the dictionary and arrays are shared until replaced).</summary>
         public LevelAssets Clone() => (LevelAssets)MemberwiseClone();
@@ -117,6 +125,16 @@ namespace FarmFuryStampede.EditorTools
         public Sprite fence;
         public Sprite wildflowers;
         public Sprite plane;
+        /// <summary>Sunken City: reef plants scattered a few units apart over every CornField span (instead of corn).</summary>
+        public Sprite[] seabedPlants = Array.Empty<Sprite>();
+        /// <summary>Background swimmers (Sunken City's fish) and the way each one's art faces: a few per level, both ways, at two depths.</summary>
+        public (Sprite art, bool facesRight)[] fish = Array.Empty<(Sprite, bool)>();
+        /// <summary>Colour for the props and fences; null = the standard BackdropTint (Sunken City: a sea blue).</summary>
+        public Color? tint;
+        /// <summary>The plane-role drifter's speed (units/s), size and colour (Sunken City: a slower, bigger, sea-tinted submarine).</summary>
+        public float planeSpeed = 2.2f;
+        public float planeScale = 1f;
+        public Color planeTint = Color.white;
     }
 
     /// <summary>Single background props a level can place with <see cref="LevelBuilder.Backdrop"/>.</summary>
@@ -1099,6 +1117,7 @@ namespace FarmFuryStampede.EditorTools
             PlaceChasmWaterfalls(root.transform, assets);
             BuildRivers(root.transform, assets);
             BuildUpdrafts(root.transform, assets);
+            BuildAmbientBubbles(root.transform, assets);
 
             if (_breakables.Count > 0)
             {
@@ -2059,6 +2078,7 @@ namespace FarmFuryStampede.EditorTools
             float Range(float a, float b) => a + (float)random.NextDouble() * (b - a);
             var parent = new GameObject("FarmBackdrop").transform;
             parent.SetParent(root, false);
+            Color propTint = art.tint ?? BackdropTint;
 
             // Ground top under the whole span [x - half, x + half], or null over a gap or a change of height.
             int? FlatTop(float x, float half)
@@ -2108,7 +2128,7 @@ namespace FarmFuryStampede.EditorTools
                     Debug.LogWarning($"[LevelBuilder] {Id}: skipped backdrop {prop} at x={x} (over a gap/step or covering a barn/windmill).");
                     continue;
                 }
-                Spawn($"{prop}_{x}", sprite, new Vector2(x, top.Value), scale, flip, BackdropTint, order);
+                Spawn($"{prop}_{x}", sprite, new Vector2(x, top.Value), scale, flip, propTint, order);
             }
 
             // Background corn, fences and wildflowers only go on the level's base ground (the height at the start):
@@ -2135,6 +2155,29 @@ namespace FarmFuryStampede.EditorTools
                             Spawn($"CornStalk_{sx:0.00}", stalk, new Vector2(sx, top.Value), Range(row.minScale, row.maxScale),
                                 random.Next(2) == 0, row.tint, row.order);
                         }
+                    }
+                }
+            }
+
+            if (art.seabedPlants.Length > 0)
+            {
+                // Reef plants a couple of units apart, alternating a dimmer back row and a bigger front row, so the
+                // seabed reads as a garden rather than a fence of identical props.
+                foreach (var field in _cornFields)
+                {
+                    bool front = false;
+                    for (float x = field.x + Range(0f, 1f); x < field.y; x += Range(1.6f, 2.8f))
+                    {
+                        Sprite plant = art.seabedPlants[random.Next(art.seabedPlants.Length)];
+                        float scale = front ? Range(1f, 1.3f) : Range(0.75f, 0.95f);
+                        int? top = FlatTop(x, plant.bounds.size.x * scale * 0.3f);
+                        if (top == null || top.Value > baseTop) { continue; }
+                        // Keep the reef off the air vents, so a vent reads clearly as the thing to step into.
+                        if (_updrafts.Any(u => Mathf.Abs(u.x - x) < 1.1f + plant.bounds.size.x * scale * 0.4f)) { continue; }
+                        Color tint = front ? propTint : propTint * CornBackTint;
+                        tint.a = 1f;
+                        Spawn($"Reef_{x:0.00}", plant, new Vector2(x, top.Value), scale, random.Next(2) == 0, tint, front ? -4 : -6);
+                        front = !front;
                     }
                 }
             }
@@ -2171,8 +2214,25 @@ namespace FarmFuryStampede.EditorTools
 
             if (art.plane != null && _biplaneHeight.HasValue)
             {
-                var plane = Spawn("Biplane", art.plane, new Vector2(_startX + 6f, _biplaneHeight.Value), 1f, false, Color.white, -9);
-                plane.AddComponent<SkyDrifter>().Configure(_startX - 12f, endX + 12f, 2.2f);
+                var plane = Spawn("Biplane", art.plane, new Vector2(_startX + 6f, _biplaneHeight.Value), art.planeScale, false, art.planeTint, -9);
+                plane.AddComponent<SkyDrifter>().Configure(_startX - 12f, endX + 12f, art.planeSpeed);
+            }
+
+            if (art.fish.Length > 0)
+            {
+                // A few fish per level at different depths, half swimming each way (each flipped when its art faces
+                // the other way, so they swim nose first), slower and bluer the further back they are.
+                int count = Mathf.Max(art.fish.Length, (endX - _startX) / 22);
+                for (int i = 0; i < count; i++)
+                {
+                    var (fish, facesRight) = art.fish[i % art.fish.Length];   // every design appears before one repeats
+                    bool back = random.Next(2) == 0;
+                    float speed = Range(0.8f, 1.8f) * (back ? 0.7f : 1f) * (i % 2 == 0 ? 1f : -1f);
+                    var at = new Vector2(Range(_startX, endX), baseTop + Range(2.5f, 9f));
+                    Color tint = back ? new Color(0.7f, 0.85f, 0.95f, 0.85f) : Color.white;
+                    var swimmer = Spawn($"Fish_{i + 1}", fish, at, Range(0.8f, 1.2f) * (back ? 0.8f : 1f), (speed < 0f) == facesRight, tint, back ? -9 : -7);
+                    swimmer.AddComponent<SkyDrifter>().Configure(_startX - 12f, endX + 12f, speed);
+                }
             }
         }
 
@@ -2436,6 +2496,39 @@ namespace FarmFuryStampede.EditorTools
                     zone.art = art.transform;
                 }
 
+                if (assets.bubbleSprite != null)
+                {
+                    // The vent's bubbles rise through the whole column and a little past its top.
+                    var bubbles = new GameObject("Bubbles");
+                    bubbles.transform.SetParent(go.transform, false);
+                    // From the vent's mouth (its top, when there is one) through the column and a little past its top.
+                    float mouth = assets.ventSprite != null ? 2.2f / assets.ventSprite.bounds.size.x * assets.ventSprite.bounds.max.y - 0.3f : 0.6f;
+                    bubbles.transform.localPosition = new Vector3(0f, mouth, 0f);
+                    var stream = bubbles.AddComponent<BubbleStream>();
+                    stream.bubble = assets.bubbleSprite;
+                    stream.count = Mathf.RoundToInt(u.height * 2.5f);
+                    stream.height = Mathf.Max(2f, u.height + 1.5f - mouth);
+                    stream.width = 1.6f;
+                    stream.minSpeed = 3f;
+                    stream.maxSpeed = 5.5f;
+                    stream.minSize = 0.2f;
+                    stream.maxSize = 0.5f;
+                    stream.sortingOrder = 5;
+                }
+
+                if (assets.ventSprite != null)
+                {
+                    // The air vent standing upright at the foot, ~2.2 units across, its base a little into the seabed.
+                    var vent = new GameObject("Vent");
+                    vent.transform.SetParent(go.transform, false);
+                    float k = 2.2f / Mathf.Max(assets.ventSprite.bounds.size.x, 0.01f);
+                    vent.transform.localScale = new Vector3(k, k, 1f);
+                    vent.transform.localPosition = new Vector3(0f, -0.15f, 0f);   // feet-pivoted art
+                    var renderer = vent.AddComponent<SpriteRenderer>();
+                    renderer.sprite = assets.ventSprite;
+                    renderer.sortingOrder = 6;
+                }
+
                 if (assets.updraftBaseSprite != null)
                 {
                     // The emitter at the foot, turned a quarter so it fires upward, ~2.4 units across.
@@ -2449,6 +2542,42 @@ namespace FarmFuryStampede.EditorTools
                     var renderer = emitter.AddComponent<SpriteRenderer>();
                     renderer.sprite = assets.updraftBaseSprite;
                     renderer.sortingOrder = 6;
+                }
+            }
+        }
+
+        // Sunken City's ambient bubbles: a thin trail rising from the main-path seabed every 14-22 units (seeded by the
+        // level id), behind everything, clear of the vents. Decorative only.
+        private void BuildAmbientBubbles(Transform root, LevelAssets assets)
+        {
+            if (!assets.ambientBubbles || assets.bubbleSprite == null)
+            {
+                return;
+            }
+
+            var random = new System.Random(StableSeed(Id) ^ 0xB0B1E);
+            var parent = new GameObject("AmbientBubbles").transform;
+            parent.SetParent(root, false);
+            int n = 0;
+            foreach (var s in _surfaces.Where(s => s.kind == Kind.Ground && !s.secret).OrderBy(s => s.x0))
+            {
+                for (float x = s.x0 + 3f + (float)random.NextDouble() * 6f; x < s.x1 - 1f; x += 14f + (float)random.NextDouble() * 8f)
+                {
+                    if (_updrafts.Any(u => Mathf.Abs(u.x - x) < 4f)) { continue; }
+                    var go = new GameObject($"BubbleTrail_{++n}");
+                    go.transform.SetParent(parent, false);
+                    go.transform.position = new Vector3(x, s.top, 0f);
+                    var stream = go.AddComponent<BubbleStream>();
+                    stream.bubble = assets.bubbleSprite;
+                    stream.count = 6;
+                    stream.height = 10f;
+                    stream.width = 0.4f;
+                    stream.minSpeed = 1.2f;
+                    stream.maxSpeed = 2.2f;
+                    stream.minSize = 0.12f;
+                    stream.maxSize = 0.28f;
+                    stream.alpha = 0.6f;
+                    stream.sortingOrder = -6;
                 }
             }
         }

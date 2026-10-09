@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using FarmFuryStampede.Data;
 using FarmFuryStampede.UI;
 using UnityEditor;
@@ -766,25 +767,45 @@ namespace FarmFuryStampede.EditorTools
             ("SunkenStatue.png", 0.07f, 5f),       // ~3.3 (the windmill's)
             ("Kelp.png", 0.02f, 6f),               // ~3.9 (the silo's)
             ("CoralFormation.png", 0.1f, 4f),      // ~2.6 (the oak's)
-            ("Floral.png", 0.08f, 3f),             // ~2.0 (the gnarled tree's)
+            ("Floral.png", 0.08f, 4.5f),           // ~2.9 (the gnarled tree's, and the reef rows); bigger since 2026-10-09
             ("ShipsWheel.png", 0.15f, 3f),         // ~2.0 (the water wheel's), half sunk in the sand
             ("Anchor.png", 0.09f, 3f),             // ~2.0 (the cart's)
             ("Submarine.png", 0.5f, 3f),           // not to scale: the drifter in the plane's place (and every moving ledge, rescaled)
             ("TreasureChest.png", 0.1f, 2.4f),     // ~1.6: random obstacle (its collider follows the art)
             ("SunkenPillar.png", 0.14f, 2.6f),     // ~1.7: random obstacle, a fallen column
+            ("AirVent.png", 0.06f, 3.4f),          // ~2.2: the air vent at every Updraft() (the user's Kling art, 2026-10-09)
         };
         private static readonly (string file, float ppu)[] SunkenBlocks =
         {
             ("FloatingRock_Cut.png", 768f),    // StoneBlocks() squares, 1 unit
             ("JellyFish.png", 222f),           // the jellyfish in the Drone's place, ~1.8 tall
             ("SeabedFill.png", 256f),          // the rock body under the seabed surface, one cell
+            ("Bubble.png", 128f),              // a generated bubble, 1 unit (BubbleStream sizes it)
         };
 
         private static void ImportSunkenArt()
         {
             foreach (var (file, pivotY, metres) in SunkenFiles) { ImportToScale(SunkenDir + file, pivotY, metres); }
             foreach (var (file, ppu) in SunkenBlocks) { ImportCentered(SunkenDir + file, ppu); }
+            // Any Fish*.png dropped in swims in the background (SunkenFishFacingRight says which way each faces).
+            foreach (string fish in SunkenFishFiles()) { ImportToScale(SunkenDir + fish, 0.5f, 1.4f); }
         }
+
+        private static IEnumerable<string> SunkenFishFiles() =>
+            Directory.Exists($"{UIDir}/{SunkenDir}")
+                ? Directory.GetFiles($"{UIDir}/{SunkenDir}", "Fish*.png").Select(Path.GetFileName).OrderBy(f => f)
+                : Enumerable.Empty<string>();
+
+        // The fish art faces left unless listed here (Fish_1-4 and 6 face left, Fish_5 right).
+        private static readonly HashSet<string> SunkenFishFacingRight = new() { "Fish_5.png" };
+
+        /// <summary>Sunken City's background fish (any Sprites/UI/SunkenCity/Fish*.png) and whether each faces right.</summary>
+        public static (Sprite art, bool facesRight)[] SunkenFish() => SunkenFishFiles()
+            .Select(f => (art: Sunken(f), facesRight: SunkenFishFacingRight.Contains(f)))
+            .Where(f => f.art != null).ToArray();
+
+        /// <summary>The air vent at every Sunken City Updraft().</summary>
+        public static Sprite SunkenVent() => Sunken("AirVent.png");
 
         public static Sprite Sunken(string file) => Load(SunkenDir + file);
 

@@ -1,7 +1,17 @@
+using System;
 using UnityEngine;
 
 namespace FarmFuryStampede.Data
 {
+    /// <summary>Where a hat sits on one art frame: the top of the head and its width, in the Visual's local units.</summary>
+    [Serializable]
+    public struct HatPlacement
+    {
+        public Sprite frame;
+        public Vector2 anchor;
+        public float width;
+    }
+
     /// <summary>Defines one playable character: its ability, unlock requirement, and base movement stats.</summary>
     [CreateAssetMenu(fileName = "CharacterData", menuName = "Farm Fury Stampede/Character Data")]
     public class CharacterData : ScriptableObject
@@ -43,9 +53,32 @@ namespace FarmFuryStampede.Data
         public float visualScale = 1f;
 
         [Header("Cosmetics")]
-        [Tooltip("Where a hat sits, relative to the Visual's feet pivot, facing right (x is mirrored facing left). Measured from the idle art by Phase 6 setup.")]
+        [Tooltip("Where a hat sits on each art frame (set by setup from StampedeCosmetics.HeadPoints, hand-measured per frame).")]
+        public HatPlacement[] hatPlacements = new HatPlacement[0];
+        [Tooltip("Fallback for a frame not in hatPlacements: where a hat sits facing right / left, relative to the Visual's feet pivot.")]
         public Vector2 hatAnchor = new(0f, 1.35f);
-        [Tooltip("Head width in world units; a hat's CosmeticData.hatScale is a fraction of this.")]
+        public Vector2 hatAnchorLeft = new(0f, 1.35f);
+        [Tooltip("Fallback head width in world units; a hat's CosmeticData.hatScale is a fraction of the head width.")]
         public float hatWidth = 0.7f;
+
+        /// <summary>The top of the head and its width on this body frame (in the Visual's local units).</summary>
+        public void GetHatPlacement(Sprite body, bool facingRight, out Vector2 anchor, out float width)
+        {
+            if (body != null && hatPlacements != null)
+            {
+                foreach (var placement in hatPlacements)
+                {
+                    if (placement.frame == body)
+                    {
+                        anchor = placement.anchor;
+                        width = placement.width;
+                        return;
+                    }
+                }
+            }
+
+            anchor = facingRight ? hatAnchor : hatAnchorLeft;
+            width = hatWidth;
+        }
     }
 }

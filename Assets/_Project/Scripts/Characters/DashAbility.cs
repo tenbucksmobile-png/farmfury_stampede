@@ -4,7 +4,7 @@ using FarmFuryStampede.Movement;
 namespace FarmFuryStampede.Characters
 {
     /// <summary>
-    /// Shared behaviour of the two horizontal dashes (Percy's Roll Dash, Ducky's Skip Dash): for a short time
+    /// Shared behaviour of the two horizontal dashes (Percy's Roll Dash; Ducky's Skip Dash until 2026-10-09): for a short time
     /// the owner cannot steer and moves at a fixed speed in the facing direction, with gravity scaled down
     /// so a mid-air dash carries across gaps. Subclasses set the numbers.
     /// </summary>
@@ -78,27 +78,5 @@ namespace FarmFuryStampede.Characters
 
         // No squash while rolling: Percy's real art shows the roll itself (Percy_effect.png, the ability pose).
         public override Color Tint => IsActive ? new Color(1f, 0.75f, 0.75f) : Color.white;
-    }
-
-    /// <summary>
-    /// Ducky: skims forward just above the surface. Ducky is also the only character immune to the Water tile
-    /// type's slowdown and drowning, dash or not (GDD: "the only character who doesn't sink or take damage
-    /// from water tiles").
-    /// </summary>
-    public class SkipDashAbility : DashAbility
-    {
-        public override Data.AbilityType Type => Data.AbilityType.SkipDash;
-        protected override float DashSpeed => 11f;
-        protected override float DashSeconds => 0.5f;
-        protected override float DashGravityScale => 0.15f;
-        protected override bool DefeatsRobots => false;
-
-        public override void Tick(CharacterController2D owner, float dt)
-        {
-            owner.WaterImmune = true;
-            base.Tick(owner, dt);
-        }
-
-        public override Color Tint => IsActive ? new Color(0.7f, 0.9f, 1f) : Color.white;
     }
 }

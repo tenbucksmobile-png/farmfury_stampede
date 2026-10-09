@@ -50,7 +50,7 @@ namespace FarmFuryStampede.UI
                 "unlocked, right where you stand. Your next level starts as whoever you finished with."),
             ("Corn & Stars", "Finish a level for 1 star. Collect at least three-quarters of the corn for a second, " +
                 "and find the level's secret for the third (no secret? Finish without losing a life). More stars " +
-                "earn more coins."),
+                "earn more coins - the most the first time you clear a level, and a bonus for every new star after."),
             ("Secrets", "Every level hides a secret only one animal's ability can reach. Swap to the right friend " +
                 "to get to it!"),
             ("New Friends", "Find a glowing crystal apple - a rare pellet - to unlock a new animal on the spot. " +
@@ -70,15 +70,17 @@ namespace FarmFuryStampede.UI
                 "he's the fastest thing in the field. His roll flattens any robot in his path and carries him " +
                 "straight over small gaps.") },
             { CharacterType.Woolly, ("Cloud Step", "Woolly never runs out of places to stand. Mid-jump she fluffs " +
-                "up a puff of wool and bounces off it, climbing to ledges no one else can reach.") },
-            { CharacterType.Ducky, ("Skip Dash", "No pond, stream or flooded ruin has ever slowed Ducky down. She " +
-                "skims across the surface in a flash - the only one of the Squad right at home in the water.") },
+                "up a puff of wool and bounces off it, climbing to ledges no one else can reach - and every puff " +
+                "sends a tuft of wool flying ahead to knock a robot flat.") },
+            { CharacterType.Ducky, ("Water Spout", "No pond, stream or flooded ruin has ever slowed Ducky down - " +
+                "the only one of the Squad right at home in the water. She brings the river with her, too: one " +
+                "flick and a spinning spout of water rolls out along the ground to wash a robot away.") },
             { CharacterType.Horace, ("Horseshoe Throw", "Horace doesn't run from a fight - he throws it. " +
                 "On the ground or in mid-air, he lobs a spinning horseshoe that knocks a robot, " +
                 "even a flying Drone, clean out of the sky.") },
-            { CharacterType.Gerald, ("Puff Glide", "Gerald's temper is legendary, and when he puffs up the whole " +
-                "farm knows it. Swollen to twice his size he floats gently across chasms, bowling over any robot he " +
-                "bumps along the way.") },
+            { CharacterType.Gerald, ("Feather Blow", "Gerald's temper is legendary, and when he puffs up the " +
+                "whole farm knows it. One furious huff sends a storm of feathers flying straight ahead, and any " +
+                "robot in its way - even a Drone - is blown clean off its feet.") },
             { CharacterType.Billy, ("Charge Break", "Billy's never met a wall he'd rather walk around than through. " +
                 "Lower the horns, charge - and cracked walls and even the steel Barrier Units come crashing down.") },
         };

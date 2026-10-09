@@ -200,7 +200,7 @@ namespace FarmFuryStampede.Robots
                 return;
             }
 
-            // Percy's dash, Gerald's inflated glide and Bessie's pound hit whatever they touch.
+            // Percy's dash and Bessie's pound hit whatever they touch.
             if (player.ContactAttacking)
             {
                 TakeHit();

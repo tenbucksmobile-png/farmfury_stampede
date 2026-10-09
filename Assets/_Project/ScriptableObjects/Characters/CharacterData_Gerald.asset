@@ -15,8 +15,8 @@ MonoBehaviour:
   characterType: 6
   displayName: Gerald the Turkey
   abilityType: 6
-  abilityDescription: 'Puff Glide: inflates and slow-falls for a few seconds, crossing
-    chasms; defeats robots on contact while inflated.'
+  abilityDescription: 'Feather Blow: puffs up and blows a flurry of feathers straight
+    ahead, on the ground or in the air, that defeats the first robot it reaches.'
   abilityCooldown: 5
   unlockLevelsRequired: 30
   moveSpeed: 8
@@ -27,5 +27,16 @@ MonoBehaviour:
   selectCard: {fileID: 21300000, guid: 74f266382531ac149b2600121aed5a48, type: 3}
   lifeIcon: {fileID: 21300000, guid: 9fe955ee8d16a5b4c86770a1d3a9f2b2, type: 3}
   visualScale: 1
-  hatAnchor: {x: 0.072, y: 1.40736}
-  hatWidth: 1.1
+  hatPlacements:
+  - frame: {fileID: 21300000, guid: ba3b67ef63ca9a045a737fa1b5980d75, type: 3}
+    anchor: {x: 0.42, y: 1.4399999}
+    width: 0.39
+  - frame: {fileID: 21300000, guid: a22a45c959b221d4ab2120a88b375903, type: 3}
+    anchor: {x: -0.43499997, y: 1.395}
+    width: 0.375
+  - frame: {fileID: 21300000, guid: 5f87958329d6ce94db989dc47ad7de8a, type: 3}
+    anchor: {x: -0.49499997, y: 1.4399999}
+    width: 0.39
+  hatAnchor: {x: 0.42, y: 1.4399999}
+  hatAnchorLeft: {x: -0.43499997, y: 1.395}
+  hatWidth: 0.39

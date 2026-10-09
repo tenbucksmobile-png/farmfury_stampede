@@ -36,6 +36,9 @@ namespace FarmFuryStampede.LevelSystem
         /// <summary>Set by LevelLoader on each spawn: a secret-passage coin, which pays coins but isn't counted as a crop.</summary>
         public bool isPassageCoin { get; set; }
 
+        /// <summary>Set by LevelLoader: which of the level's passage coins this is (remembered once taken), -1 otherwise.</summary>
+        public int passageCoinIndex { get; set; } = -1;
+
         /// <summary>Set by LevelLoader on each spawn: this crop belongs to the level's secret cluster.</summary>
         public bool isSecretCluster
         {
@@ -88,6 +91,10 @@ namespace FarmFuryStampede.LevelSystem
                 if (!isPassageCoin)
                 {
                     gm.RunState.CollectCrop(isSecretCluster);
+                }
+                if (isPassageCoin && gm.CurrentLevel != null && SaveManager.Instance != null)
+                {
+                    SaveManager.Instance.MarkPassageCoinCollected(gm.CurrentLevel.levelId, passageCoinIndex);
                 }
                 if (coinValue > 0 && SaveManager.Instance != null)
                 {

@@ -18,7 +18,7 @@ namespace FarmFuryStampede.Robots
     ///  * The Commander patrols the arena like a big ground robot (GroundPatrolRobot: turns at walls/ledges),
     ///    drawn hovering slightly above the ground (Robot_right / Robot_left art, swapped as it turns). Defeated, it
     ///    drops to the ground as Commander_Defeated.png and the wreck stays there (HoldDefeatPose) until Level Complete.
-    ///  * It needs <see cref="hitsToDefeat"/> hits (stomps, or Percy/Gerald/Bessie ability contact, or a horseshoe).
+    ///  * It needs <see cref="hitsToDefeat"/> hits (stomps, or Percy/Bessie ability contact, or an egg, horseshoe, water spout or feather gust).
     ///  * Each hit that lands staggers it for <see cref="staggerSeconds"/>: it stops, flashes, cannot be hit again
     ///    and cannot hurt the player, so it can't be chain-stomped and the player can safely reposition.
     ///  * After every hit it speeds up (<see cref="speedUpPerHit"/>) and reinforcement waves spawn: every

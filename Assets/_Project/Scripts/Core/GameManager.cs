@@ -17,10 +17,23 @@ namespace FarmFuryStampede.Core
         public const int LivesPerAttempt = 3;
 
         // Phase 6 coin economy, Arcade's numbers: 10 coins for a completed level + 5 per star; a revive after the
-        // last life costs 5 coins (or a rewarded ad).
+        // last life costs 5 coins (or a rewarded ad). Stampede's balance (2026-10-09): Arcade's full payout comes with a
+        // level's first clear; a replay pays ReplayCoins plus 5 for each star it adds to the level's best, so replaying
+        // can't farm coins without end (secret-passage coins likewise pay once, see SaveManager.IsPassageCoinCollected).
         public const int BaseCoinsPerLevel = 10;
         public const int CoinsPerStar = 5;
+        public const int ReplayCoins = 3;
         public const int ReviveCoinsCost = 5;
+
+        /// <summary>Coins a completed attempt pays (see BaseCoinsPerLevel). Call before the result is saved.</summary>
+        public static int LevelPayout(bool firstClear, int previousBestStars, int stars)
+        {
+            if (firstClear)
+            {
+                return BaseCoinsPerLevel + stars * CoinsPerStar;
+            }
+            return ReplayCoins + Mathf.Max(0, stars - previousBestStars) * CoinsPerStar;
+        }
         public GameState CurrentState { get; private set; } = GameState.MainMenu;
 
         public LevelData CurrentLevel { get; private set; }
@@ -306,7 +319,8 @@ namespace FarmFuryStampede.Core
             }
             if (completed && CurrentLevel != null && SaveManager.Instance != null)
             {
-                RunState.coinsEarned = BaseCoinsPerLevel + stars * CoinsPerStar;
+                RunState.coinsEarned = LevelPayout(!SaveManager.Instance.IsLevelCompleted(CurrentLevel.levelId),
+                    SaveManager.Instance.GetLevelStars(CurrentLevel.levelId), stars);
                 SaveManager.Instance.AddCoins(RunState.coinsEarned);
                 AnalyticsManager.Instance?.LogLevelComplete(LevelIndex(CurrentLevel), stars, RunState.cropsCollectedThisRun, Elapsed);
                 SaveManager.Instance.SetLevelStars(CurrentLevel.levelId, stars);

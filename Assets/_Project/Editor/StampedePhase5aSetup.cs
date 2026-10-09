@@ -138,13 +138,13 @@ namespace FarmFuryStampede.EditorTools
             new CharacterSpec { type = CharacterType.Percy, displayName = "Percy the Pig", ability = AbilityType.RollDash, unlockLevels = 5, ui = new Color(1f, 0.65f, 0.75f),
                 description = "Roll Dash: curls up and dashes forward, defeating robots on contact and crossing small gaps." },
             new CharacterSpec { type = CharacterType.Woolly, displayName = "Woolly the Sheep", ability = AbilityType.CloudStep, unlockLevels = 10, ui = new Color(0.98f, 0.95f, 0.85f),
-                description = "Cloud Step: spawns a temporary wool platform underfoot mid-air, once per jump." },
+                description = "Cloud Step: fires a tuft of wool ahead that defeats the first robot it reaches, and mid-air also spawns a temporary wool platform underfoot, once per jump." },
             new CharacterSpec { type = CharacterType.Ducky, displayName = "Ducky the Duck", ability = AbilityType.SkipDash, unlockLevels = 15, ui = new Color(0.4f, 0.8f, 0.75f),
-                description = "Skip Dash: skims forward across the surface; the only character unaffected by Water tiles." },
+                description = "Water Spout: rolls a ring of water along the ground that bursts on the first robot it reaches; the only character unaffected by Water tiles." },
             new CharacterSpec { type = CharacterType.Horace, displayName = "Horace the Horse", ability = AbilityType.RearVaultThrow, unlockLevels = 20, ui = new Color(0.65f, 0.45f, 0.25f),
                 description = "Horseshoe Throw: lobs a horseshoe forward, on the ground or in the air, that defeats one robot at range." },
             new CharacterSpec { type = CharacterType.Gerald, displayName = "Gerald the Turkey", ability = AbilityType.PuffGlide, unlockLevels = 30, ui = new Color(0.55f, 0.35f, 0.25f),
-                description = "Puff Glide: inflates and slow-falls for a few seconds, crossing chasms; defeats robots on contact while inflated." },
+                description = "Feather Blow: puffs up and blows a flurry of feathers straight ahead, on the ground or in the air, that defeats the first robot it reaches." },
             new CharacterSpec { type = CharacterType.Billy, displayName = "Billy the Goat", ability = AbilityType.ChargeBreak, unlockLevels = 40, ui = new Color(0.78f, 0.78f, 0.82f),
                 description = "Charge Break: charges forward, breaking Breakable Walls that nothing else can." },
         };
@@ -271,10 +271,20 @@ namespace FarmFuryStampede.EditorTools
             CreateTile(TundraIceTileName, StampedeUIArt.Tundra("Ice_block.png"), Color.white);
             CreateTile(TundraBreakableTileName, StampedeUIArt.Tundra("WoodBlock.png"), Color.white);
 
-            BuildCloudPrefab(square, groundLayer, ImportCentredArt(CloudArtFile, CloudArtWidth));
+            Sprite woolArt = ImportCentredArt(CloudArtFile, CloudArtWidth);
+            BuildCloudPrefab(square, groundLayer, woolArt);
             BuildHorseshoePrefab(ImportCentredArt(HorseshoeArtFile, HorseshoeHeight) ?? horseshoeSprite);
             BuildEggPrefab(ImportCentredArt(EggArtFile, EggHeight) ?? horseshoeSprite);
             BuildFadeEffectPrefab(ImportCentredArt(PoundArtFile, PoundArtHeight), "PoundEffect", PoundEffectPrefabPath);
+            Sprite spoutArt = ImportCentredArt(WaterSpoutArtFile, WaterSpout.Radius * 2f);
+            Sprite featherArt = ImportCentredArt(FeatherArtFile, FeatherArtHeight);
+            BuildProjectilePrefab<WaterSpout>(spoutArt ?? horseshoeSprite, "WaterSpout", WaterSpout.Radius * 0.85f, WaterSpoutPrefabPath);
+            BuildProjectilePrefab<FeatherGust>(featherArt ?? horseshoeSprite, "FeatherGust", 0.7f, FeatherGustPrefabPath);
+            BuildFadeEffectPrefab(spoutArt, "SplashEffect", SplashEffectPrefabPath);
+            BuildFadeEffectPrefab(featherArt, "FeatherEffect", FeatherEffectPrefabPath);
+            float tuftScale = woolArt != null ? WoolTuftWidth / woolArt.bounds.size.x : 1f;
+            BuildProjectilePrefab<FeatherGust>(woolArt ?? horseshoeSprite, "WoolTuft", 0.5f, WoolTuftPrefabPath, tuftScale);
+            BuildFadeEffectPrefab(woolArt, "WoolEffect", WoolEffectPrefabPath, tuftScale);
             BuildFadeEffectPrefab(ImportCentredArt(VictoryArtFile, VictoryArtHeight, VictoryArtPath), "VictoryEffect", VictoryEffectPrefabPath);
             BuildBreakableWallPrefab(barrierSprite, groundLayer);
             BuildPlayerPrefab(groundLayer, playerLayer);
@@ -420,7 +430,7 @@ namespace FarmFuryStampede.EditorTools
                 SetWorldLevelCount(group.Key, group.Count());
             }
             StampedeCosmetics.CreateAssets();
-            StampedeCosmetics.MeasureHatAnchors(characterDatas);
+            StampedeCosmetics.ApplyHatPlacements(characterDatas);
             AssetDatabase.SaveAssets();
 
             // ---- Stage 4: wire the scene.
@@ -774,7 +784,21 @@ namespace FarmFuryStampede.EditorTools
             sea.groundTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{SunkenGroundTileName}.asset") ?? meadow.groundTile;
             sea.breakableTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{SunkenBreakableTileName}.asset") ?? meadow.breakableTile;
             sea.stoneBlockSprite = StampedeUIArt.Sunken("FloatingRock_Cut.png") ?? meadow.stoneBlockSprite;
-            sea.moverSprite = StampedeUIArt.Sunken("Submarine.png");
+            // Since 2026-10-09 every ledge, moving ones included, is floating rock (was the submarine for movers); the
+            // submarine only sails across the background now, in the biplane's place.
+            sea.ledgeSprite = StampedeUIArt.Sunken("FloatingRock_Cut.png") ?? meadow.ledgeSprite;
+            sea.moverSprite = null;
+            // Air vents: every Updraft() is a vent whose bubbles lift the player; thin bubble trails rise from the seabed.
+            sea.ventSprite = StampedeUIArt.SunkenVent();
+            sea.bubbleSprite = StampedeUIArt.Sunken("Bubble.png");
+            sea.ambientBubbles = true;
+            sea.farmArt.seabedPlants = new[] { StampedeUIArt.Sunken("Floral.png"), StampedeUIArt.Sunken("CoralFormation.png"),
+                StampedeUIArt.Sunken("Floral.png"), StampedeUIArt.Sunken("Kelp.png") }.Where(p => p != null).ToArray();
+            sea.farmArt.fish = StampedeUIArt.SunkenFish();
+            sea.farmArt.tint = new Color(0.78f, 0.9f, 1f);              // the props sit in blue water
+            sea.farmArt.planeSpeed = 1.1f;                               // the submarine cruises slowly...
+            sea.farmArt.planeScale = 1.5f;
+            sea.farmArt.planeTint = new Color(0.62f, 0.8f, 0.92f, 0.9f); // ...far off in the blue
             sea.cropSprite = StampedeUIArt.SunkenCrop();
             sea.secretCropSprite = StampedeUIArt.SunkenSecretCrop();
             var obstacles = new[] { StampedeUIArt.Sunken("TreasureChest.png"), StampedeUIArt.Sunken("SunkenPillar.png") }
@@ -997,6 +1021,12 @@ namespace FarmFuryStampede.EditorTools
             so.FindProperty("abilityPrefabs.horseshoe").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(HorseshoePrefabPath);
             so.FindProperty("abilityPrefabs.egg").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(EggPrefabPath);
             so.FindProperty("abilityPrefabs.poundEffect").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(PoundEffectPrefabPath);
+            so.FindProperty("abilityPrefabs.waterSpout").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(WaterSpoutPrefabPath);
+            so.FindProperty("abilityPrefabs.splashEffect").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(SplashEffectPrefabPath);
+            so.FindProperty("abilityPrefabs.featherGust").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(FeatherGustPrefabPath);
+            so.FindProperty("abilityPrefabs.featherEffect").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(FeatherEffectPrefabPath);
+            so.FindProperty("abilityPrefabs.woolTuft").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(WoolTuftPrefabPath);
+            so.FindProperty("abilityPrefabs.woolEffect").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(WoolEffectPrefabPath);
             so.FindProperty("abilityPrefabs.victoryEffect").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(VictoryEffectPrefabPath);
             so.ApplyModifiedPropertiesWithoutUndo();
 
@@ -1067,6 +1097,34 @@ namespace FarmFuryStampede.EditorTools
             SavePrefab(root, EggPrefabPath);
         }
 
+        // Ducky's water spout, Gerald's feather gust and Woolly's wool tuft: the egg's shape (kinematic trigger circle,
+        // pooled) with their own behaviour, which finds the Visual child itself to roll / sway it. 'artScale' draws
+        // a FeatherGust's art smaller than its import size (the wool art is imported at the cloud platform's size).
+        private static void BuildProjectilePrefab<T>(Sprite sprite, string name, float radius, string prefabPath, float artScale = 1f) where T : Component
+        {
+            var root = new GameObject(name);
+
+            var body = root.AddComponent<Rigidbody2D>();
+            body.bodyType = RigidbodyType2D.Kinematic;
+
+            var circle = root.AddComponent<CircleCollider2D>();
+            circle.isTrigger = true;
+            circle.radius = radius;
+
+            AddVisual(root.transform, "Visual", sprite, Color.white, Vector3.zero, Vector3.one, 9);
+
+            AddPooled(root, name);
+            var projectile = root.AddComponent<T>();
+            if (projectile is FeatherGust)
+            {
+                var so = new SerializedObject(projectile);
+                so.FindProperty("artScale").floatValue = artScale;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            SavePrefab(root, prefabPath);
+        }
+
         // Imports an effect/projectile image from Sprites/Characters as a centred sprite 'units' tall (its source
         // height); null if the file is missing, so the caller can fall back to placeholder art.
         private static Sprite ImportCentredArt(string file, float units, string pathOverride = null)
@@ -1095,7 +1153,7 @@ namespace FarmFuryStampede.EditorTools
 
         // A burst grown and faded out by FadeEffect: Bessie's ground-pound impact (the BessieSlam ring) and the boss
         // victory bursts (ImpactStars). No art = no prefab (the effect is skipped).
-        private static void BuildFadeEffectPrefab(Sprite sprite, string name, string prefabPath)
+        private static void BuildFadeEffectPrefab(Sprite sprite, string name, string prefabPath, float artScale = 1f)
         {
             if (sprite == null)
             {
@@ -1103,7 +1161,7 @@ namespace FarmFuryStampede.EditorTools
             }
 
             var root = new GameObject(name);
-            var visual = AddVisual(root.transform, "Visual", sprite, Color.white, Vector3.zero, Vector3.one, 7);
+            var visual = AddVisual(root.transform, "Visual", sprite, Color.white, Vector3.zero, Vector3.one * artScale, 7);
             AddPooled(root, name);
             var effect = root.AddComponent<FadeEffect>();
             var so = new SerializedObject(effect);
@@ -1461,6 +1519,19 @@ namespace FarmFuryStampede.EditorTools
         private const float CloudArtWidth = 2.2f;      // the cloud platform's collider width
         private const string PoundArtFile = "BessieSlam.png";
         private const float PoundArtHeight = 2.6f;
+        // Ducky's Water Spout ring (drawn WaterSpout.Radius * 2 tall) and Gerald's Feather Blow flurry, each also
+        // used small by a FadeEffect for the ripples / shed feathers and the final burst.
+        private const string WaterSpoutArtFile = "WaterSpout.png";
+        private const string FeatherArtFile = "FeatherBurst.png";
+        private const float FeatherArtHeight = 1.4f;
+        private const string WaterSpoutPrefabPath = PrefabsDir + "/WaterSpout.prefab";
+        private const string FeatherGustPrefabPath = PrefabsDir + "/FeatherGust.prefab";
+        private const string SplashEffectPrefabPath = PrefabsDir + "/SplashEffect.prefab";
+        private const string FeatherEffectPrefabPath = PrefabsDir + "/FeatherEffect.prefab";
+        // Woolly's wool tuft: the cloud art (Wooly_effect.png) drawn WoolTuftWidth wide at full spread.
+        private const float WoolTuftWidth = 1.1f;
+        private const string WoolTuftPrefabPath = PrefabsDir + "/WoolTuft.prefab";
+        private const string WoolEffectPrefabPath = PrefabsDir + "/WoolEffect.prefab";
         private const string PoundEffectPrefabPath = PrefabsDir + "/PoundEffect.prefab";
         // The boss victory bursts over the defeated Commander (GameManager.BossVictory), from Sprites/UI.
         private const string VictoryArtFile = "ImpactStars.png";
