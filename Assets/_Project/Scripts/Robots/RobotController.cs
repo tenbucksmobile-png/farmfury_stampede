@@ -246,6 +246,10 @@ namespace FarmFuryStampede.Robots
         {
             IsDefeated = true;
             GameManager.Instance.RunState.DefeatRobot();
+            if (!GameManager.Instance.BossVictoryPending)
+            {
+                AudioManager.Play(a => a.robotDefeated);   // not for every robot dropped at once by the boss's fall
+            }
 
             foreach (var c in contactColliders)
             {

@@ -1150,6 +1150,7 @@ namespace FarmFuryStampede.EditorTools
             pitBox.size = new Vector2(endX - _startX + 60f, 4f);
             pit.AddComponent<PitDeathZone>();
 
+            RemoveCropsPastGoal();
             RemoveOverlappingCrops();
             PlaceRarePellet(root.transform, assets);
 
@@ -1326,6 +1327,20 @@ namespace FarmFuryStampede.EditorTools
 
         /// <summary>Where this level's rare pellet was placed (after Build), or null when it has none.</summary>
         public Vector2? RarePelletPosition { get; private set; }
+
+        // Nothing to collect past the finish flag: the level ends on touching it, so crops (and coins) there are
+        // unreachable and spoil the 75%-of-crops star. Secret-passage rooms (built past the level end) and gated
+        // secrets are kept.
+        private void RemoveCropsPastGoal()
+        {
+            if (!_goal.HasValue) { return; }
+            float limit = _goal.Value.x + 0.5f;
+            int removed = _crops.RemoveAll(c => !c.passage && !c.secret && c.x > limit);
+            if (removed > 0)
+            {
+                Debug.Log($"[LevelBuilder] {Id}: removed {removed} crop(s) past the goal flag.");
+            }
+        }
 
         private void RemoveOverlappingCrops()
         {

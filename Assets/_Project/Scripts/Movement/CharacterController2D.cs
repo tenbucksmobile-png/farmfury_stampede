@@ -225,6 +225,7 @@ namespace FarmFuryStampede.Movement
             _readyAt.Clear();   // a new attempt: every character's ability starts ready
             ApplyCharacter(type);
             _abilityReadyAt = 0f;
+            _announceReady = false;
         }
 
         /// <summary>
@@ -252,11 +253,13 @@ namespace FarmFuryStampede.Movement
             _ability?.Reset(this);
             ApplyCharacter(type);
             _abilityReadyAt = _readyAt.TryGetValue(type, out float readyAt) ? readyAt : 0f;
+            _announceReady = !AbilityReady;   // the new character's own recharge gets the ready sound
         }
 
         // When each character's ability is next ready this attempt (Time.time; SwitchCharacter).
         private readonly Dictionary<CharacterType, float> _readyAt = new();
         private float _abilityReadyAt;
+        private bool _announceReady;   // the ability is recharging; play the ready sound when it's back
 
         private void ApplyCharacter(CharacterType type)
         {
@@ -366,6 +369,12 @@ namespace FarmFuryStampede.Movement
 
         private void Update()
         {
+            if (_announceReady && AbilityReady)
+            {
+                _announceReady = false;
+                AudioManager.Play(a => a.abilityReady);
+            }
+
             if (visual != null)
             {
                 // Blink while invulnerable.
@@ -561,6 +570,8 @@ namespace FarmFuryStampede.Movement
             }
 
             _abilityReadyAt = Time.time + AbilityCooldown;
+            _announceReady = true;
+            AudioManager.PlayAbility(Character);
             _ability.Activate(this);
             Debug.Log($"[CharacterController2D] {Character} used {_ability.Type} (ready again in {AbilityCooldown:0.#}s).");
         }

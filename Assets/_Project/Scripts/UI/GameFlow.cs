@@ -347,13 +347,18 @@ namespace FarmFuryStampede.UI
         }
 
         /// <summary>
-        /// Level Complete's play button: back to Level Select, where the next level now shows as the question mark
-        /// (the character is picked from there, as for every level). After the world's last level (the boss),
-        /// World Select, where the newly unlocked world is waiting.
+        /// Level Complete's play button: back to Level Select, where the next level now shows as the question mark.
+        /// After the world's last level (the boss), the World Unlocked page when the clear opened the next world, then
+        /// World Select, which opens centred on that world.
         /// </summary>
         public void PlayNextLevel()
         {
             var level = _gm.CurrentLevel;
+            if (level != null && level.isBossLevel && WorldCleared != null
+                && WorldCleared.ShowFor(level.worldType, _gm.RunState.worldUnlocked, EnterWorldSelect))
+            {
+                return;
+            }
             if (level == null || level.isBossLevel)
             {
                 EnterWorldSelect();
@@ -396,6 +401,7 @@ namespace FarmFuryStampede.UI
                 || state == GameState.LevelComplete || state == GameState.LevelFailed;
 
             CloseOverlays();
+            if (!inLevel) { AudioManager.PlayMenuMusic(); }   // the world's track starts with the level (LevelLoader)
             if (state != GameState.Playing) { PelletCelebration.Close(); Swap.Hide(); }
             Landing.Root.SetActive(state == GameState.MainMenu);
             Hud.Root.SetActive(inLevel);
@@ -424,11 +430,6 @@ namespace FarmFuryStampede.UI
                 if (_gm.RunState.newlyUnlockedCharacters.Count > 0)
                 {
                     NewCharacter.ShowUnlocks(_gm.RunState.newlyUnlockedCharacters);
-                }
-                // A boss clear that opened the next world shows the World Unlocked page, drawn over everything else (shown last).
-                if (_gm.RunState.bossCleared && _gm.CurrentLevel != null)
-                {
-                    WorldCleared?.ShowFor(_gm.CurrentLevel.worldType, _gm.RunState.worldUnlocked);
                 }
             }
             else if (state == GameState.LevelFailed)

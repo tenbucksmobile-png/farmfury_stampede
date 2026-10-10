@@ -14,8 +14,9 @@ namespace FarmFuryStampede.UI
     /// world without its own), fitted whole like the results art, and the eight framed cards sit in a carousel ported
     /// from Arcade's Choose Character (CardCarouselController): drag or tap a side card to bring it to the centre, tap
     /// the centred card to become that character on the spot (GameManager.SwapCharacter). It opens centred on the
-    /// character being played, which has a gold frame; locked cards are dark silhouettes (they can be browsed, not
-    /// chosen). The X, Esc or Tab closes it without a change; Left/Right and Enter work on a keyboard. The next level
+    /// character being played; locked cards are dark silhouettes (they can be browsed, not chosen). Choosing a card
+    /// swaps at once, then the card pops and confetti rains for CelebrateSeconds before the screen closes. The X, Esc
+    /// or Tab closes it without a change; Left/Right and Enter work on a keyboard. The next level
     /// starts as whoever was played last (SaveManager.LastCharacter). Cards are built lazily on first open, when
     /// DataManager has the characters.
     /// </summary>
@@ -25,7 +26,8 @@ namespace FarmFuryStampede.UI
 
         // In the backdrop's 1280x720 art pixels: the lettering is painted at y 72..200, the cards sit below it.
         private static readonly Rect CarouselBox = new(0f, 235f, 1280f, 350f);
-        private const float FramePad = 0.05f;   // gold frame margin, as a fraction of the card
+        private const float CelebrateSeconds = 1.1f;   // real time: the level stays frozen meanwhile
+        private const float PopScale = 0.15f;          // the chosen card swells this much and settles back
         private static readonly Color Gold = new(1f, 0.84f, 0.25f, 1f);
         private static readonly Color Silhouette = new(0.08f, 0.07f, 0.12f, 1f);
 
@@ -37,7 +39,10 @@ namespace FarmFuryStampede.UI
         private readonly List<CharacterType> _order = new();
         private readonly List<RectTransform> _items = new();
         private readonly List<Button> _buttons = new();
-        private readonly Dictionary<CharacterType, Image> _frames = new();
+        private readonly ConfettiBurst _confetti;
+        private RectTransform _chosenItem;
+        private float _celebrateStart = -1f;
+        private bool Celebrating => _celebrateStart >= 0f;
 
         public SwapCharacterScreen(Transform canvas, MenuArt art)
         {
@@ -87,6 +92,12 @@ namespace FarmFuryStampede.UI
             }
             UIKit.Place(close.image.rectTransform, Vector2.one, Vector2.one, new Vector2(-40f, -40f), Vector2.one * UIKit.RoundButtonSize);
 
+            var particles = UIKit.NewRect("Confetti", root);
+            UIKit.Stretch(particles);
+            _confetti = particles.gameObject.AddComponent<ConfettiBurst>();
+            _confetti.particlesRoot = particles;
+            _root.AddComponent<Driver>().Screen = this;
+
             _root.SetActive(false);
         }
 
@@ -101,10 +112,9 @@ namespace FarmFuryStampede.UI
             {
                 var type = _order[i];
                 bool unlocked = save == null || save.IsCharacterUnlocked(type);
-                bool current = gm != null && gm.CurrentCharacter == type;
                 _buttons[i].image.color = unlocked ? Color.white : Silhouette;
-                _frames[type].gameObject.SetActive(current);
-                if (current) { start = i; }
+                _items[i].localScale = Vector3.one;
+                if (gm != null && gm.CurrentCharacter == type) { start = i; }
             }
             UseWorldBackdrop();
 
@@ -132,27 +142,65 @@ namespace FarmFuryStampede.UI
         }
 
         /// <summary>Hides it without touching the time scale (the game left the level; the new state owns it).</summary>
-        public void Hide() => _root.SetActive(false);
+        public void Hide()
+        {
+            EndCelebration();
+            _root.SetActive(false);
+        }
 
         /// <summary>
-        /// Becomes that character (if unlocked) and closes; what tapping the centred card does. A locked character
-        /// stays open, so the player can keep browsing.
+        /// Becomes that character (if unlocked), celebrates with a card pop and confetti, then closes; what tapping the
+        /// centred card does. A locked character stays open, so the player can keep browsing. A refused swap closes
+        /// straight away.
         /// </summary>
         public bool Choose(CharacterType type)
         {
-            if (SaveManager.Instance != null && !SaveManager.Instance.IsCharacterUnlocked(type))
+            if (Celebrating || (SaveManager.Instance != null && !SaveManager.Instance.IsCharacterUnlocked(type)))
             {
                 return false;
             }
             bool swapped = GameManager.Instance != null && GameManager.Instance.SwapCharacter(type);
-            Close();
-            return swapped;
+            if (!swapped)
+            {
+                Close();
+                return false;
+            }
+
+            int index = _order.IndexOf(type);
+            _chosenItem = index >= 0 ? _items[index] : null;
+            _celebrateStart = Time.unscaledTime;
+            _confetti.transform.SetAsLastSibling();
+            _confetti.Burst(90, 1.6f);
+            return true;
+        }
+
+        private void UpdateCelebration()
+        {
+            if (!Celebrating) { return; }
+            float t = (Time.unscaledTime - _celebrateStart) / CelebrateSeconds;
+            if (_chosenItem != null)
+            {
+                // Swell quickly, settle back over the rest of the beat.
+                float pop = t < 0.25f ? Mathf.SmoothStep(0f, 1f, t / 0.25f) : Mathf.SmoothStep(1f, 0f, (t - 0.25f) / 0.75f);
+                _chosenItem.localScale = Vector3.one * (1f + PopScale * pop);
+            }
+            if (t >= 1f)
+            {
+                Close();
+            }
+        }
+
+        private void EndCelebration()
+        {
+            if (_chosenItem != null) { _chosenItem.localScale = Vector3.one; }
+            _chosenItem = null;
+            _celebrateStart = -1f;
         }
 
         /// <summary>Keyboard while open: Left/Right (or A/D) move the carousel, Enter/Space picks the centred card.</summary>
         public void HandleKeys(Keyboard keyboard)
         {
-            if (!IsOpen || keyboard == null || _order.Count == 0) { return; }
+            if (!IsOpen || Celebrating || keyboard == null || _order.Count == 0) { return; }
             if (keyboard.leftArrowKey.wasPressedThisFrame || keyboard.aKey.wasPressedThisFrame) { _carousel.Step(-1); }
             else if (keyboard.rightArrowKey.wasPressedThisFrame || keyboard.dKey.wasPressedThisFrame) { _carousel.Step(1); }
             else if (keyboard.enterKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame) { Choose(_order[_carousel.CenterIndex]); }
@@ -181,13 +229,6 @@ namespace FarmFuryStampede.UI
                 var type = data.characterType;
                 var item = UIKit.NewRect($"Item_{type}", _carouselRect);
 
-                // Gold frame behind the card being played.
-                var frame = UIKit.Panel(item, "Frame", Gold);
-                frame.raycastTarget = false;
-                UIKit.Stretch(frame.rectTransform);
-                frame.rectTransform.anchorMin = new Vector2(-FramePad, -FramePad);
-                frame.rectTransform.anchorMax = new Vector2(1f + FramePad, 1f + FramePad);
-
                 var sprite = data.selectCard != null ? data.selectCard : data.placeholderSprite;
                 // No direct onClick here: the carousel adds the listener and calls Choose only for the centred card.
                 var button = UIKit.MakeButton(item, "Card", sprite != null ? "" : data.displayName, data.uiColor, null, 30);
@@ -203,8 +244,14 @@ namespace FarmFuryStampede.UI
                 _order.Add(type);
                 _items.Add(item);
                 _buttons.Add(button);
-                _frames[type] = frame;
             }
+        }
+
+        // Runs the choose celebration on unscaled time while the level is frozen.
+        private sealed class Driver : MonoBehaviour
+        {
+            [System.NonSerialized] public SwapCharacterScreen Screen;
+            private void Update() => Screen?.UpdateCelebration();
         }
     }
 }

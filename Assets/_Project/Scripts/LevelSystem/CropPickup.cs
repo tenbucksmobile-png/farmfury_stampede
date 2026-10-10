@@ -84,6 +84,7 @@ namespace FarmFuryStampede.LevelSystem
             }
 
             _collected = true;
+            AudioManager.Play(a => coinValue > 0 || isPassageCoin ? a.coinPickup : a.cropPickup);
 
             var gm = GameManager.Instance;
             if (gm != null)

@@ -13,6 +13,9 @@ namespace FarmFuryStampede.EditorTools
     ///   8-11  the Chaser (DriftRobot art) and Drones join: 1/2 Chasers, 2-4 Drones, 3-4 Harvesters, 6-8 Scouts
     ///   12    the boss: a long approach (every ordinary type, a Chaser on the fortress wall), then the Commander with
     ///         Drones in the reinforcement waves
+    /// Moving ledges (added 2026-10-10, so Frozen Tundra isn't the first place they appear): 6 = one sliding across an
+    /// 8-wide pit, 10 = two meeting mid-chasm, 11 = one bobbing in a 5-wide pit up to a bonus perch with a coin. Every
+    /// ledge is over a pit, so missing it costs a life.
     /// Props to climb recur: hay pyramids (2, 3, 4), stone-block stairs with the coin on top (1, 2, 3), Level 10's
     /// barrel pyramid and hay stack. (Level 5's Barrier-sealed chamber was removed 2026-09-29 and level 11's Breakable Wall chamber 2026-10-03; no
     /// level has a chamber or a Barrier Unit.)
@@ -290,8 +293,9 @@ namespace FarmFuryStampede.EditorTools
             b.Flat(30);                       // [-4,26)
             b.Gap(4);                         // [26,30)
             b.Flat(32);                       // [30,62)
-            b.Gap(3);                         // [62,65)
-            b.Flat(40);                       // [65,105)
+            b.Gap(8);                         // [62,70) too wide to jump: the first moving ledge carries the player over
+            b.Flat(35, 0);                    // [70,105)
+            b.MovingLedge(62, 3, 0, 5, 0, 5f);   // [62,65) <-> [67,70), flush with both banks
 
             b.Mound(40, 3, 2);                // raised platforms mid-level
             b.Floating(45, 4, 4);
@@ -300,12 +304,12 @@ namespace FarmFuryStampede.EditorTools
             b.Floating(82, 4, 4);
             b.Floating(87, 4, 6);
 
-            b.Start(0).Goal(103).Checkpoint(33).Checkpoint(68);
+            b.Start(0).Goal(103).Checkpoint(33).Checkpoint(71);
             // 3 Harvesters, 7 Scouts: Harvesters under both platform stairs and on the opening run, Scouts at every
             // take-off, the checkpoint approaches and the finish.
             b.Scout(9, 3).Harvester(17, 3).Scout(23, 2);
             b.Scout(37.5f, 1.5f).Harvester(47, 3).Scout(57, 3);
-            b.Scout(73, 3).Harvester(86, 3);
+            b.Scout(76, 1.5f).Harvester(86, 3);
             b.Scout(95, 2.5f).Scout(101, 1.5f);
             b.CropRow(4, 8, 2);
             b.CropRow(15, 24, 3);
@@ -314,8 +318,7 @@ namespace FarmFuryStampede.EditorTools
             b.Crop(41.5f);
             b.CropAt(46, 4.5f).CropAt(47, 4.5f).CropAt(51, 5.5f).CropAt(52, 5.5f);
             b.CropRow(58, 60, 2);
-            GapArc(b, 62, 3, 0);
-            b.CropRow(70, 72, 2);
+            b.CropRow(72, 74, 2);
             b.CropRow(79, 80, 1);
             b.CropAt(83, 4.5f).CropAt(84, 4.5f);
             b.CropRow(92, 100, 4);
@@ -475,8 +478,10 @@ namespace FarmFuryStampede.EditorTools
             b.Flat(45);                       // [-19,26) top 0
             b.Gap(4);                         // [26,30)
             b.Flat(40);                       // [30,70) top 0
-            b.Gap(4);                         // [70,74)
-            b.Flat(24, 1);                    // [74,98) top 1
+            b.Gap(12);                        // [70,82) too wide to jump: two ledges meet mid-chasm
+            b.Flat(16, 1);                    // [82,98) top 1
+            b.MovingLedge(70, 3, 1, 3, 0, 4f);    // [70,73) <-> [73,76)
+            b.MovingLedge(79, 3, 1, -3, 0, 4f);   // [79,82) <-> [76,79): they meet at x=76
             b.Gap(3);                         // [98,101)
             b.Flat(20, 3);                    // [101,121) top 3
             b.Flat(16, 0);                    // [121,137) top 0
@@ -489,12 +494,12 @@ namespace FarmFuryStampede.EditorTools
             b.StoneBlocks(3, 3, 4);
             b.SecretPassage(4.5f, 4, PassageLayout.Tunnel);
             b.Gate(CharacterType.Gerald, "Island across a 15-unit chasm behind the start: too wide for the base jump; Puff Glide crosses it.", CharacterType.Woolly);
-            b.Start(0).Goal(133).Checkpoint(32).Checkpoint(76).Checkpoint(103);
-            // 2 Chasers, 3 Drones, 3 Harvesters, 7 Scouts.
+            b.Start(0).Goal(133).Checkpoint(32).Checkpoint(84).Checkpoint(103);
+            // 2 Chasers, 3 Drones, 3 Harvesters, 6 Scouts (the chasm's ledges replace the seventh).
             b.Scout(10, 3).Scout(24.5f, 1);   // the second guards the first pit's take-off
             b.Harvester(48, 3).Scout(54, 2).Harvester(60, 2);
             b.Chaser(66, 12);                 // wakes as the player crosses the hay stack; stompable, and outrunnable
-            b.Scout(81, 2.5f).Harvester(88, 3).Scout(94.5f, 2.5f);
+            b.Harvester(89, 2.5f).Scout(94.5f, 2.5f);
             b.Scout(108, 3);
             b.Chaser(118, 10);                // wakes on the top-3 terrace
             b.Scout(126, 3);
@@ -506,8 +511,7 @@ namespace FarmFuryStampede.EditorTools
             b.CropRow(44, 50, 3);
             b.CropAt(52.4f, 4.9f).CropAt(53.65f, 4.9f).CropAt(54.9f, 4.9f);
             b.CropRow(58, 68, 4);
-            GapArc(b, 70, 4, 0);
-            b.CropRow(78, 96, 4);
+            b.CropRow(86, 96, 4);
             GapArc(b, 98, 3, 1);
             b.CropRow(104, 119, 5);
             b.CropRow(124, 131, 3);
@@ -543,6 +547,9 @@ namespace FarmFuryStampede.EditorTools
             // The Breakable Wall chamber that stood on the high platform was removed (2026-10-03, as level 5's was);
             // its roof is now a stone-block top level, a double jump up from the platform, carrying the passage sign.
             b.StoneBlocks(106, 6, 13);
+            b.MovingLedge(46, 2, 2, 0, 5, 4.5f); // in the first wide gap: bobs top 2 (level with the banks) <-> 7
+            b.StoneBlocks(43, 2, 8);             // bonus perch over the gap's edge: a hop off the ledge at the top
+            b.BonusCoin(44f, 8);
 
             b.SecretPassage(109f, 13, PassageLayout.Zigzag);   // secret passage (rare pellet + coins): sign on the top level (back up on the same spot)
             b.Start(0).Goal(158).Checkpoint(26).Checkpoint(51).Checkpoint(91).Checkpoint(114).Checkpoint(141);
@@ -581,7 +588,9 @@ namespace FarmFuryStampede.EditorTools
 
         // The Robot Commander's fortress. A long approach first (lengthened 2026-10-01, the level was over too
         // quickly): terraces up to the fortress wall and back down, four gaps, a hay stack, a Chaser on the top
-        // terrace and every ordinary robot type, with a checkpoint after each stretch. Then the arena behind the gate
+        // terrace and every ordinary robot type, with a checkpoint after each stretch. Then (2026-10-10, harder, the
+        // boss pushed 42 further back) a moving-ledge gauntlet over three pits: two ledges sliding together, a bobbing
+        // pair after a checkpoint island, and one long slide straight into the arena. Then the arena behind the gate
         // (a checkpoint, two cover mounds). The Commander needs three hits; reinforcement waves arrive after hits 1
         // and 2. No goal marker: defeating the Commander completes the level. (See CommanderBoss for the pattern.)
         private static LevelBuilder LevelBoss()
@@ -595,14 +604,23 @@ namespace FarmFuryStampede.EditorTools
             b.Flat(14, 4);                    // [71,85) top 4: the fortress wall
             b.Gap(4);                         // [85,89)
             b.Flat(18, 2);                    // [89,107) top 2
-            b.Gap(3);                         // [107,110)
-            b.Flat(60, 0);                    // [110,170) arena
+            b.Gap(12);                        // [107,119) two ledges sliding together
+            b.Flat(6, 2);                     // [119,125) checkpoint island
+            b.Gap(10);                        // [125,135) two ledges bobbing in turn
+            b.Flat(5, 2);                     // [135,140)
+            b.Gap(12);                        // [140,152) one long slide
+            b.Flat(60, 0);                    // [152,212) arena
+            b.MovingLedge(107, 3, 2, 3, 0, 3.5f);       // [107,110) <-> [110,113)
+            b.MovingLedge(116, 3, 2, -3, 0, 3.5f);      // [116,119) <-> [113,116): they meet at x=113
+            b.MovingLedge(127, 2, 1, 0, 3, 3f);         // top 1 <-> 4
+            b.MovingLedge(131, 2, 1, 0, 3, 3f, 0.5f);   // up while the first is down
+            b.MovingLedge(140, 3, 2, 9, 0, 4.5f);       // [140,143) <-> [149,152), docks at each bank
             b.HayStack(39);
-            b.Mound(121, 3, 2);               // cover / stomp platforms
-            b.Mound(157, 3, 2);
+            b.Mound(163, 3, 2);               // cover / stomp platforms
+            b.Mound(199, 3, 2);
 
             b.Boss();
-            b.Start(0).Checkpoint(27).Checkpoint(53).Checkpoint(91).Checkpoint(115);
+            b.Start(0).Checkpoint(27).Checkpoint(53).Checkpoint(91).Checkpoint(121).Checkpoint(157);
             // The approach: 1 Chaser, 2 Drones, 3 Harvesters, 4 Scouts.
             b.Scout(10, 3).Harvester(17, 2);
             b.Scout(33, 2.5f).Harvester(43.5f, 1.5f);
@@ -611,10 +629,10 @@ namespace FarmFuryStampede.EditorTools
             b.Scout(98, 3).Harvester(103, 2);
             b.Drone(58, 3.2f, 3).Drone(96, 2.8f, 3);
             // The arena.
-            b.Commander(139, 8);                                       // patrols [131,147]
-            b.Harvester(127, 3).Scout(151, 3);                         // arena guards (wave 0)
-            b.Scout(163, 3, wave: 1).Harvester(133, 2, wave: 1).Drone(153, 2.8f, 3, wave: 1);   // after hit 1
-            b.Drone(137, 2.8f, 4, wave: 2).Drone(125, 2.8f, 3, wave: 2).Scout(149, 3, wave: 2); // after hit 2
+            b.Commander(181, 8);                                       // patrols [173,189]
+            b.Harvester(169, 3).Scout(193, 3);                         // arena guards (wave 0)
+            b.Scout(205, 3, wave: 1).Harvester(175, 2, wave: 1).Drone(195, 2.8f, 3, wave: 1);   // after hit 1
+            b.Drone(179, 2.8f, 4, wave: 2).Drone(167, 2.8f, 3, wave: 2).Scout(191, 3, wave: 2); // after hit 2
 
             b.CropRow(4, 20, 3);
             GapArc(b, 22, 3, 0);
@@ -624,12 +642,11 @@ namespace FarmFuryStampede.EditorTools
             b.CropRow(73, 83, 3);
             GapArc(b, 85, 4, 4);
             b.CropRow(92, 105, 3);
-            GapArc(b, 107, 3, 2);
-            b.CropRow(112, 119, 3);
-            b.Crop(122.5f);
-            b.CropRow(127, 153, 6);
-            b.Crop(158.5f);
-            b.CropRow(163, 168, 3);
+            b.CropRow(154, 161, 3);
+            b.Crop(164.5f);
+            b.CropRow(169, 195, 6);
+            b.Crop(200.5f);
+            b.CropRow(205, 210, 3);
             return b;
         }
     }

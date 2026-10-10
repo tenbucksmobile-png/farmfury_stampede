@@ -139,6 +139,7 @@ namespace FarmFuryStampede.Core
                 return;   // not playing, already in the defeat pose (repeat contacts must not cost extra lives), or the boss is beaten
             }
 
+            AudioManager.Play(a => a.playerDeath);
             RunState.deathsThisRun++;
             RunState.livesRemaining = Mathf.Max(0, RunState.livesRemaining - 1);
 

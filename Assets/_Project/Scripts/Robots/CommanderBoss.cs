@@ -125,6 +125,7 @@ namespace FarmFuryStampede.Robots
                 return true;
             }
 
+            AudioManager.Play(a => a.bossHit);
             _staggerLeft = staggerSeconds;
             SpeedScale = 1f + speedUpPerHit * Hits;
             if (LevelLoader.Instance != null)

@@ -280,7 +280,7 @@ namespace FarmFuryStampede.UI
                     _emptyStars[i].gameObject.SetActive(_art.levelCompleteStarEmpty != null && i >= run.starsEarned);
                 }
                 _newCharacterSign.gameObject.SetActive(false);   // the New Character page announces unlocks
-                _worldUnlockedSign.gameObject.SetActive(run.worldUnlocked && _art.worldUnlockedSign != null);
+                _worldUnlockedSign.gameObject.SetActive(false);   // the World Unlocked page follows the play button
                 _scoreText.text = $"{run.cropsCollectedThisRun} / {run.totalNormalCrops + run.totalSecretCrops}";
                 _score.SetActive(true);
                 LayoutButtons(complete: true);
@@ -297,7 +297,7 @@ namespace FarmFuryStampede.UI
             // Over the board art, the body text moves down below it.
             UIKit.Place(Body.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, board != null ? -435f : -240f), new Vector2(820f, 200f));
             ShowSign(_panelNewCharacterSign, _art.newCharacterSign, false);   // the New Character page announces unlocks
-            ShowSign(_panelWorldUnlockedSign, _art.worldUnlockedSign, run.worldUnlocked);
+            ShowSign(_panelWorldUnlockedSign, _art.worldUnlockedSign, false);
 
             string body = $"Crops: {run.cropsCollectedThisRun}/{run.totalNormalCrops + run.totalSecretCrops}    Deaths: {run.deathsThisRun}";
             if (newCharacter)

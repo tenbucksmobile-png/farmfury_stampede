@@ -367,6 +367,12 @@ namespace FarmFuryStampede.Core
             return unlocked;
         }
 
+        /// <summary>
+        /// True once every character is unlocked: rare pellets have nothing left to give, so they stop appearing and
+        /// the secret passages are only for their coins.
+        /// </summary>
+        public bool AllCharactersUnlocked => DataManager.Instance != null && NextLockedCharacter() == null;
+
         /// <summary>The next character still locked, in the unlock ladder's order; null when all are unlocked.</summary>
         public CharacterData NextLockedCharacter()
         {

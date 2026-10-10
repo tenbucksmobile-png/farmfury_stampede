@@ -6,12 +6,13 @@ using UnityEngine.UI;
 namespace FarmFuryStampede.UI
 {
     /// <summary>
-    /// The World Unlocked page after a world's boss falls, when the clear opened the next world; shown over Level
-    /// Complete (and over any New Character page, so it comes first). In the New Character page's look: the beaten
-    /// world's backdrop (WorldData.newCharacterBackground, else MenuArt's sunset) fitted like the results art, the
-    /// World Unlocked sign, the next world's card revealed from a silhouette with a flash over turning golden rays,
-    /// confetti, and "Next stop: [world]!". A tap closes it (taps in the first MinShowSeconds are ignored, so the
-    /// moment isn't skipped by accident). Unscaled time throughout. (Until 2026-10-03 a "WORLD CLEARED!" page with the
+    /// The World Unlocked page after a world's boss falls, when the clear opened the next world. Since 2026-10-10 it
+    /// comes after Level Complete (its play button opens it) and a tap goes on to World Select, which opens centred on
+    /// the new world. In the New Character page's look: the beaten world's backdrop (WorldData.newCharacterBackground,
+    /// else MenuArt's sunset) fitted like the results art, the World Unlocked sign, the next world's badge
+    /// (WorldData.selectBadge, the World Select shield; its WS_ card without one) revealed from a silhouette with a
+    /// flash over turning golden rays, confetti, and "Next stop: [world]!". Taps in the first MinShowSeconds are
+    /// ignored, so the moment isn't skipped by accident. Unscaled time throughout. (Until 2026-10-03 a "WORLD CLEARED!" page with the
     /// beaten world's card came first; it was removed. A clear that opens no world - the finale, or a paid next
     /// world - shows nothing here.)
     /// </summary>
@@ -19,8 +20,8 @@ namespace FarmFuryStampede.UI
     {
         private static readonly Rect TitleBox = new(240f, 40f, 800f, 170f);
         private static readonly Rect SignBox = new(440f, 30f, 400f, 200f);
-        private static readonly Rect CardBox = new(420f, 240f, 440f, 248f);    // 16:9 world card
-        private static readonly Rect RaysBox = new(265f, -10f, 750f, 750f);    // centred on the card
+        private static readonly Rect CardBox = new(490f, 215f, 300f, 300f);    // square world badge
+        private static readonly Rect RaysBox = new(265f, -10f, 750f, 750f);    // centred on the badge
         private static readonly Rect MessageBox = new(140f, 520f, 1000f, 80f);
         private static readonly Color Gold = new(1f, 0.84f, 0.25f, 1f);
         private static readonly Color OutlineColor = new(0.24f, 0.11f, 0.03f, 1f);
@@ -33,6 +34,7 @@ namespace FarmFuryStampede.UI
         private readonly ConfettiBurst _confetti;
         private readonly Driver _anim;
         private readonly Image _backdrop;
+        private System.Action _onClosed;
 
         public WorldClearedScreen(Transform canvas, MenuArt art, ShopArt shop) : base(canvas, "WorldCleared", art, shop, posterBackdrop: false)
         {
@@ -82,12 +84,16 @@ namespace FarmFuryStampede.UI
             _anim.Screen = this;
         }
 
-        /// <summary>Shows the world this boss clear opened; does nothing when it opened none.</summary>
-        public void ShowFor(WorldType cleared, bool nextUnlocked)
+        /// <summary>
+        /// Shows the world this boss clear opened and calls onClosed when it is tapped away; returns false (showing
+        /// nothing) when the clear opened no world.
+        /// </summary>
+        public bool ShowFor(WorldType cleared, bool nextUnlocked, System.Action onClosed = null)
         {
             var data = DataManager.Instance;
             var next = nextUnlocked && data != null ? data.GetWorldData(cleared + 1) : null;
-            if (next == null) { return; }
+            if (next == null) { return false; }
+            _onClosed = onClosed;
             var world = data.GetWorldData(cleared);
             if (_backdrop != null)   // the beaten world's own backdrop (Frozen Tundra's aurora), else the shared sunset
             {
@@ -99,20 +105,25 @@ namespace FarmFuryStampede.UI
             _sign.gameObject.SetActive(sign);
             _title.gameObject.SetActive(!sign);
             _message.text = $"Next stop: {next.displayName}!";
-            SetCard(next.selectCardArt, next.displayName);
+            SetCard(next.selectBadge != null ? next.selectBadge : next.selectCardArt, next.displayName);
             _anim.Play(silhouette: true);
+            return true;
         }
 
         private void OnTap()
         {
             if (Time.unscaledTime - _anim.ShownAt < MinShowSeconds) { return; }
+            var then = _onClosed;
+            _onClosed = null;
             Hide();
+            then?.Invoke();
         }
 
         // The world's card art (or, without art, its name in the card's place).
         private void SetCard(Sprite sprite, string worldName)
         {
             _card.sprite = sprite;
+            _card.preserveAspect = true;
             _card.gameObject.SetActive(true);
             _card.color = sprite != null ? Color.white : new Color(0f, 0f, 0f, 0f);
             _flash.sprite = sprite;

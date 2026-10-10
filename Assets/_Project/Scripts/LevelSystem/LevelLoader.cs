@@ -90,6 +90,7 @@ namespace FarmFuryStampede.LevelSystem
             _levelInstance = Instantiate(data.levelPrefab, levelContainer);
             _levelInstance.name = data.levelId;
             LoadedLevel = data;
+            AudioManager.PlayWorldMusic(data.worldType);
             Physics2D.SyncTransforms();
 
             var root = _levelInstance.GetComponent<LevelPrefabRoot>();

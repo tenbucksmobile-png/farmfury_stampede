@@ -46,7 +46,9 @@ namespace FarmFuryStampede.LevelSystem
 
             string levelId = GameManager.Instance != null && GameManager.Instance.CurrentLevel != null
                 ? GameManager.Instance.CurrentLevel.levelId : null;
-            if (levelId != null && SaveManager.Instance != null && SaveManager.Instance.IsRarePelletFound(levelId))
+            // Hidden once found, and once every character is unlocked (the passage is then just for its coins).
+            var save = SaveManager.Instance;
+            if (save != null && ((levelId != null && save.IsRarePelletFound(levelId)) || save.AllCharactersUnlocked))
             {
                 gameObject.SetActive(false);
                 return;
@@ -97,6 +99,7 @@ namespace FarmFuryStampede.LevelSystem
             }
 
             _collected = true;
+            AudioManager.Play(a => a.rarePelletPickup);
             var unlocked = SaveManager.Instance.CollectRarePellet(gm.CurrentLevel.levelId);
             Collected?.Invoke(visual.transform.position, unlocked);
             StartCoroutine(Pop());

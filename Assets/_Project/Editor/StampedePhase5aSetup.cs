@@ -1846,6 +1846,7 @@ namespace FarmFuryStampede.EditorTools
 
             WireDataManager(characters, levels, robots, worlds);
             StampedeCosmetics.WireScene();
+            StampedeAudio.WireScene();
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
