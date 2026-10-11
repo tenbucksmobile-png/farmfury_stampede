@@ -17,6 +17,6 @@ namespace FarmFuryStampede.Characters
         public GameObject featherEffect; // shed feathers and the scatter: FeatherBurst.png (FadeEffect)
         public GameObject woolTuft;      // Woolly's tuft of wool (FeatherGust with the Wooly_effect art)
         public GameObject woolEffect;    // its shed wisps and the scatter: Wooly_effect.png (FadeEffect)
-        public GameObject victoryEffect; // the boss victory bursts: ImpactStars.png (FadeEffect)
+        public GameObject victoryEffect; // the beaten boss's dazed stars: DazedStar.png (DazedStars)
     }
 }

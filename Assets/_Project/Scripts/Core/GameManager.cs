@@ -55,10 +55,9 @@ namespace FarmFuryStampede.Core
         /// </summary>
         public bool BossVictoryPending { get; private set; }
 
-        // The boss victory moment: bursts of stars (ImpactStars.png) over the Commander in slow motion, then a beat at
-        // normal speed.
-        private const int BossBursts = 7;
-        private const float BossBurstSeconds = 1.4f;
+        // The boss victory moment: dazed stars start circling the Commander's head (DazedStars) in slow motion, then
+        // a beat at normal speed.
+        private const float BossSlowMotionSeconds = 1.4f;
         private const float BossSlowMotion = 0.4f;
         private const float BossAfterglowSeconds = 1.2f;
         private Coroutine _bossVictory;
@@ -242,11 +241,11 @@ namespace FarmFuryStampede.Core
 
         /// <summary>
         /// The boss took its last hit. Instead of cutting straight to Level Complete, the level plays a victory moment:
-        /// every other robot falls, the Commander goes up in a chain of explosions in slow motion, the player (who
+        /// every other robot falls, the Commander lands as a wreck with dazed stars circling its head in slow motion, the player (who
         /// can no longer be hurt) gets a beat to take it in, and only then does the level complete (whose Level
         /// Complete opens with the World Cleared celebration, see GameFlow).
         /// </summary>
-        public void BossDefeated(Vector3 bossPosition)
+        public void BossDefeated(Vector3 bossPosition, SpriteRenderer bossArt = null)
         {
             if (CurrentState != GameState.Playing || BossVictoryPending)
             {
@@ -254,29 +253,23 @@ namespace FarmFuryStampede.Core
             }
 
             BossVictoryPending = true;
+            AudioManager.Play(a => a.bossDefeated);
             LevelLoader.Instance?.DefeatAllRobots();
-            _bossVictory = StartCoroutine(BossVictory(bossPosition));
+            _bossVictory = StartCoroutine(BossVictory(bossPosition, bossArt));
         }
 
-        private System.Collections.IEnumerator BossVictory(Vector3 at)
+        private System.Collections.IEnumerator BossVictory(Vector3 at, SpriteRenderer bossArt)
         {
             var player = LevelLoader.Instance != null ? LevelLoader.Instance.Player : null;
-            var burst = player != null ? player.Prefabs.victoryEffect : null;   // ImpactStars (was Bessie's slam art)
+            var stars = player != null ? player.Prefabs.victoryEffect : null;   // DazedStars (was big ImpactStars bursts)
+            if (stars != null && ObjectPool.Instance != null
+                && ObjectPool.Instance.Get(stars, at).TryGetComponent(out DazedStars dazed))
+            {
+                dazed.Play(bossArt, at);
+            }
 
             Time.timeScale = BossSlowMotion;
-            for (int i = 0; i < BossBursts; i++)
-            {
-                if (burst != null && ObjectPool.Instance != null)
-                {
-                    var offset = new Vector3(UnityEngine.Random.Range(-1.2f, 1.2f), UnityEngine.Random.Range(-0.2f, 1.6f), 0f);
-                    var go = ObjectPool.Instance.Get(burst, at + offset);
-                    if (go.TryGetComponent(out FadeEffect effect))
-                    {
-                        effect.Play(i == BossBursts - 1 ? 3.5f : UnityEngine.Random.Range(1.4f, 2.4f));
-                    }
-                }
-                yield return new WaitForSecondsRealtime(BossBurstSeconds / BossBursts);
-            }
+            yield return new WaitForSecondsRealtime(BossSlowMotionSeconds);
 
             Time.timeScale = 1f;
             yield return new WaitForSecondsRealtime(BossAfterglowSeconds);

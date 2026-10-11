@@ -45,6 +45,8 @@ namespace FarmFuryStampede.Core
         public AudioClip robotDefeated;
         [Tooltip("The boss takes a hit that doesn't finish it.")]
         public AudioClip bossHit;
+        [Tooltip("Any world's boss is defeated (its last hit).")]
+        public AudioClip bossDefeated;
         public AudioClip playerDeath;
         [Tooltip("The ability has finished recharging.")]
         public AudioClip abilityReady;

@@ -29,6 +29,8 @@ namespace FarmFuryStampede.UI
         private readonly Button _yes, _watchAd;
         private readonly Text _coins;
         private readonly RectTransform _coin;
+        private readonly ConfettiBurst _confetti;
+        private readonly OverPlayer _overPlayer;
         private bool _deciding;
 
         public RevivePromptScreen(Transform canvas, MenuArt art, ShopArt shop) : base(canvas, "RevivePrompt", art, shop, posterBackdrop: false)
@@ -69,6 +71,69 @@ namespace FarmFuryStampede.UI
             outline.effectColor = CountOutline;
             outline.effectDistance = new Vector2(3f, -3f);
             UIKit.Place(_coins.rectTransform, Vector2.one, Vector2.one, new Vector2(-CornerMargin, -CornerMargin), new Vector2(300f, CoinSize));
+
+            // Confetti over the character once they are revived. Its own child of the canvas, not of the prompt, so it
+            // keeps going after the prompt closes; it follows the character on screen (OverPlayer).
+            var particles = UIKit.NewRect("ReviveConfetti", canvas);
+            particles.anchorMin = particles.anchorMax = particles.pivot = new Vector2(0.5f, 0.5f);
+            particles.sizeDelta = Vector2.zero;
+            _confetti = particles.gameObject.AddComponent<ConfettiBurst>();
+            _confetti.particlesRoot = particles;
+            _overPlayer = particles.gameObject.AddComponent<OverPlayer>();
+            _overPlayer.Confetti = _confetti;
+        }
+
+        /// <summary>
+        /// Keeps the revive confetti over the character: waits for the respawn (the defeat pose, then the move to the
+        /// checkpoint) to finish, pops the confetti there, and tracks the character's screen position while it falls.
+        /// </summary>
+        private class OverPlayer : MonoBehaviour
+        {
+            private const float HeadHeight = 1.2f;   // world units above the player's origin (collider centre): just over the head
+            private const float FollowSeconds = 2f;
+
+            public ConfettiBurst Confetti;
+            private bool _waiting;
+            private float _until;
+
+            public void Begin()
+            {
+                _waiting = true;
+                _until = 0f;
+            }
+
+            private void LateUpdate()
+            {
+                var loader = FarmFuryStampede.LevelSystem.LevelLoader.Instance;
+                if (loader == null || loader.Player == null || Camera.main == null)
+                {
+                    return;
+                }
+                if (_waiting)
+                {
+                    if (loader.IsRespawning)
+                    {
+                        return;
+                    }
+                    _waiting = false;
+                    _until = Time.unscaledTime + FollowSeconds;
+                    Follow(loader);
+                    transform.SetAsLastSibling();   // over the HUD
+                    Confetti.Pop();
+                    return;
+                }
+                if (Time.unscaledTime < _until)
+                {
+                    Follow(loader);
+                }
+            }
+
+            // Screen Space Overlay: a RectTransform's position is in screen pixels.
+            private void Follow(FarmFuryStampede.LevelSystem.LevelLoader loader)
+            {
+                Vector3 head = loader.Player.transform.position + Vector3.up * HeadHeight;
+                transform.position = Camera.main.WorldToScreenPoint(head);
+            }
         }
 
         private Button StackedButton(string name, Sprite sprite, string fallback, int row, float width, System.Action onClick)
@@ -117,11 +182,12 @@ namespace FarmFuryStampede.UI
             });
         }
 
-        // Closed after a revive: no decline.
+        // Closed after a revive: no decline, and confetti celebrates the player coming back.
         private void Close()
         {
             _deciding = false;
             base.Hide();
+            _overPlayer.Begin();   // pops once the character is back at the checkpoint
         }
 
         /// <summary>No / Esc: the attempt ends.</summary>

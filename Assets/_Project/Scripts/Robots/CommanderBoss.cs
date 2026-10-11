@@ -50,12 +50,48 @@ namespace FarmFuryStampede.Robots
         private float _staggerLeft;
         private Vector3 _visualRest;
 
+        private Vector2[] _zoneSize, _zoneOffset;
+
         protected override void Awake()
         {
             base.Awake();
             if (visual != null)
             {
                 _visualRest = visual.transform.localPosition;
+            }
+        }
+
+        // A world boss drawn bigger (Frozen Tundra's Glacier Harvester) gets stomp/hurt zones grown to match, from the
+        // feet up, so a stomp lands on top of the art rather than somewhere inside it. Scale 1 restores the prefab's.
+        protected override void OnWorldArtScale(float scale)
+        {
+            var zones = ContactColliders;
+            if (zones == null)
+            {
+                return;
+            }
+            if (_zoneSize == null)
+            {
+                _zoneSize = new Vector2[zones.Length];
+                _zoneOffset = new Vector2[zones.Length];
+                for (int i = 0; i < zones.Length; i++)
+                {
+                    if (zones[i] is BoxCollider2D box)
+                    {
+                        _zoneSize[i] = box.size;
+                        _zoneOffset[i] = box.offset;
+                    }
+                }
+            }
+
+            float feet = _visualRest.y;   // the art's feet, in the body's space
+            for (int i = 0; i < zones.Length; i++)
+            {
+                if (zones[i] is BoxCollider2D box)
+                {
+                    box.size = new Vector2(_zoneSize[i].x * scale, _zoneSize[i].y * scale);
+                    box.offset = new Vector2(_zoneOffset[i].x * scale, feet + (_zoneOffset[i].y - feet) * scale);
+                }
             }
         }
 
@@ -121,7 +157,7 @@ namespace FarmFuryStampede.Robots
             if (Hits >= hitsToDefeat)
             {
                 Defeat();
-                GameManager.Instance.BossDefeated(transform.position);   // the victory moment, then Level Complete
+                GameManager.Instance.BossDefeated(transform.position, visual);   // the victory moment, then Level Complete
                 return true;
             }
 

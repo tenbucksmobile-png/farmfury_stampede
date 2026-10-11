@@ -66,8 +66,9 @@ namespace FarmFuryStampede.EditorTools
             so.FindProperty("cropPickup").objectReferenceValue = Sfx("CornPickup.mp3");
             so.FindProperty("coinPickup").objectReferenceValue = Sfx("CoinPickup.mp3");
             so.FindProperty("rarePelletPickup").objectReferenceValue = Sfx("RarePellet_pickup.mp3");
-            so.FindProperty("robotDefeated").objectReferenceValue = Sfx("EatRobot.mp3");
+            so.FindProperty("robotDefeated").objectReferenceValue = Sfx("Robot_damage.mp3");   // EatRobot.mp3 was too overpowering
             so.FindProperty("bossHit").objectReferenceValue = Sfx("Robot_damage.mp3");
+            so.FindProperty("bossDefeated").objectReferenceValue = Sfx("Boss_Death.mp3");
             so.FindProperty("playerDeath").objectReferenceValue = Sfx("Animal_death.mp3");
             so.FindProperty("abilityReady").objectReferenceValue = Sfx("PowerReady.mp3");
 

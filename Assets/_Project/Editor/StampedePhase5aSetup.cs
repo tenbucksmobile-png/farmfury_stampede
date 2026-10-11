@@ -285,7 +285,7 @@ namespace FarmFuryStampede.EditorTools
             float tuftScale = woolArt != null ? WoolTuftWidth / woolArt.bounds.size.x : 1f;
             BuildProjectilePrefab<FeatherGust>(woolArt ?? horseshoeSprite, "WoolTuft", 0.5f, WoolTuftPrefabPath, tuftScale);
             BuildFadeEffectPrefab(woolArt, "WoolEffect", WoolEffectPrefabPath, tuftScale);
-            BuildFadeEffectPrefab(ImportCentredArt(VictoryArtFile, VictoryArtHeight, VictoryArtPath), "VictoryEffect", VictoryEffectPrefabPath);
+            BuildDazedStarsPrefab(ImportCentredArt(VictoryArtFile, VictoryArtHeight, VictoryArtPath));
             BuildBreakableWallPrefab(barrierSprite, groundLayer);
             BuildPlayerPrefab(groundLayer, playerLayer);
             BuildCropPrefab(cropSprite);
@@ -656,13 +656,16 @@ namespace FarmFuryStampede.EditorTools
         private static readonly Color BreakableFloorTint = new Color(1f, 0.7f, 0.5f);
 
         // Frozen Tundra's robot art (Sprites/Robots): the tracked Ice Harvester takes the Harvester's place and the
-        // walking Glacier Harvester the Scout's. The Chaser, Drone and Commander have no Tundra art yet and keep
-        // Meadow Ruins' look.
-        private static readonly (RobotType type, string right, string left)[] TundraRobotArt =
+        // walking Glacier Harvester is the boss (2026-10-11; it was the Scout, and the boss was Meadow's Commander).
+        // The Scout, Chaser and Drone keep Meadow Ruins' look.
+        private static readonly (RobotType type, string right, string left, string defeat)[] TundraRobotArt =
         {
-            (RobotType.Harvester, "Iceharvestor_right.png", "IceHarvestor_left.png"),
-            (RobotType.Scout, "GlacierHarvestor_Right.png", "GlacierHarvestor_left.png"),
+            (RobotType.Harvester, "Iceharvestor_right.png", "IceHarvestor_left.png", null),
+            (RobotType.Commander, "GlacierHarvestor_Right.png", "GlacierHarvestor_left.png", "GlacierHarvestorDefeat.png"),
         };
+        // The Glacier Harvester boss is drawn this much bigger than the Commander prefab (3 units -> 4.5), and its
+        // stomp/hurt zones grow with it (CommanderBoss.OnWorldArtScale).
+        private const float TundraBossScale = 1.5f;
 
         // The Tundra robots are drawn this much bigger than the 1.5-unit Meadow ones (2.1 units tall), from the feet
         // up; their colliders stay the prefab's. (2026-10-01: at 1.5 they read as very small next to the Tundra props.)
@@ -919,6 +922,7 @@ namespace FarmFuryStampede.EditorTools
             tundra.checkpointSprite = StampedeUIArt.Tundra("IceSign.png");
             tundra.iceSignSprite = null;
             tundra.cropSprite = StampedeUIArt.TundraCrop();   // blueberries instead of corn kernels
+            tundra.secretCropSprite = tundra.cropSprite;      // and instead of the secret-cluster cobs (2026-10-11)
             tundra.ledgeSprite = StampedeUIArt.Tundra("Snow_block.png") ?? meadow.ledgeSprite;
             tundra.stoneBlockSprite = StampedeUIArt.Tundra("Ice_block.png") ?? meadow.stoneBlockSprite;
             tundra.brickBlockSprite = StampedeUIArt.Tundra("WoodBlock.png");            // BrickBlocks() steps
@@ -933,12 +937,13 @@ namespace FarmFuryStampede.EditorTools
             tundra.parallaxLayers = StampedeEnvironmentArt.TundraParallax();
 
             tundra.robotArt = new Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)>();
-            foreach (var (type, right, left) in TundraRobotArt)
+            foreach (var (type, right, left, defeat) in TundraRobotArt)
             {
-                var art = RobotArt(right, left, null);
+                var art = RobotArt(right, left, defeat);
                 if (art.right != null) { tundra.robotArt[type] = art; }
             }
             tundra.robotArtScale = TundraRobotScale;
+            tundra.bossArtScale = TundraBossScale;
             return tundra;
         }
 
@@ -1151,8 +1156,8 @@ namespace FarmFuryStampede.EditorTools
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);
         }
 
-        // A burst grown and faded out by FadeEffect: Bessie's ground-pound impact (the BessieSlam ring) and the boss
-        // victory bursts (ImpactStars). No art = no prefab (the effect is skipped).
+        // A burst grown and faded out by FadeEffect: Bessie's ground-pound impact (the BessieSlam ring), the splash,
+        // feather and wool effects. No art = no prefab (the effect is skipped).
         private static void BuildFadeEffectPrefab(Sprite sprite, string name, string prefabPath, float artScale = 1f)
         {
             if (sprite == null)
@@ -1168,6 +1173,25 @@ namespace FarmFuryStampede.EditorTools
             so.FindProperty("visual").objectReferenceValue = visual;
             so.ApplyModifiedPropertiesWithoutUndo();
             SavePrefab(root, prefabPath);
+        }
+
+        // The beaten boss's dazed stars (DazedStars, one star here, copied at runtime). Keeps the VictoryEffect name and
+        // path so the scene's AbilityPrefabs.victoryEffect reference carries over.
+        private static void BuildDazedStarsPrefab(Sprite sprite)
+        {
+            if (sprite == null)
+            {
+                return;
+            }
+
+            var root = new GameObject("VictoryEffect");
+            var star = AddVisual(root.transform, "Star", sprite, Color.white, Vector3.zero, Vector3.one, 10);
+            AddPooled(root, "VictoryEffect");
+            var effect = root.AddComponent<DazedStars>();
+            var so = new SerializedObject(effect);
+            so.FindProperty("star").objectReferenceValue = star;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            SavePrefab(root, VictoryEffectPrefabPath);
         }
 
         private static void BuildBreakableWallPrefab(Sprite barrier, int groundLayer)
@@ -1534,9 +1558,10 @@ namespace FarmFuryStampede.EditorTools
         private const string WoolEffectPrefabPath = PrefabsDir + "/WoolEffect.prefab";
         private const string PoundEffectPrefabPath = PrefabsDir + "/PoundEffect.prefab";
         // The boss victory bursts over the defeated Commander (GameManager.BossVictory), from Sprites/UI.
-        private const string VictoryArtFile = "ImpactStars.png";
+        // One star cut from ImpactStars.png (2026-10-11; the whole cluster drawn up to 3.5x was far too big).
+        private const string VictoryArtFile = "DazedStar.png";
         private const string VictoryArtPath = "Assets/_Project/Sprites/UI/" + VictoryArtFile;
-        private const float VictoryArtHeight = 2.6f;
+        private const float VictoryArtHeight = 0.45f;
         private const string VictoryEffectPrefabPath = PrefabsDir + "/VictoryEffect.prefab";
 
         private static string ArtPath(string file) => $"{ArtDir}/{file}";

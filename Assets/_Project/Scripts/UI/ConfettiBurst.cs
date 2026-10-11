@@ -42,9 +42,60 @@ namespace FarmFuryStampede.UI
         };
 
         private const float Gravity = 900f; // canvas px/sec^2 (unscaled)
+        private const float PopGravity = 420f;
 
         private readonly List<Particle> _particles = new List<Particle>();
         private Coroutine _routine;
+        private float _gravity = Gravity;
+
+        /// <summary>A small party-popper burst from the centre of particlesRoot instead of a screen-wide rain:
+        /// pieces fly up and outward within a spread of halfWidth either side, then drift back down past the
+        /// centre under a lighter gravity, so the whole burst stays around whatever particlesRoot sits over.</summary>
+        public void Pop(float halfWidth = 90f, int count = 40, float durationSeconds = 1.6f)
+        {
+            if (particlesRoot == null)
+            {
+                return;
+            }
+
+            ClearParticles();
+            _gravity = PopGravity;
+
+            for (int i = 0; i < count; i++)
+            {
+                var go = new GameObject("Confetti", typeof(RectTransform), typeof(Image));
+                go.transform.SetParent(particlesRoot, false);
+                var rect = (RectTransform)go.transform;
+                float size = Random.Range(10f, 18f);
+                rect.sizeDelta = new Vector2(size, size * Random.Range(0.4f, 1f));
+                rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+                rect.pivot = new Vector2(0.5f, 0.5f);
+                rect.anchoredPosition = new Vector2(Random.Range(-halfWidth, halfWidth) * 0.4f, Random.Range(-20f, 20f));
+                rect.localRotation = Quaternion.Euler(0f, 0f, Random.Range(0f, 360f));
+
+                var image = go.GetComponent<Image>();
+                image.raycastTarget = false;
+                image.color = Palette[Random.Range(0, Palette.Length)];
+
+                // Upward fan (50-130 degrees), sideways speed capped so the pieces stay within halfWidth.
+                float speed = Random.Range(220f, 420f);
+                float angle = Random.Range(50f, 130f) * Mathf.Deg2Rad;
+                var velocity = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * speed;
+                velocity.x = Mathf.Clamp(velocity.x, -halfWidth / durationSeconds, halfWidth / durationSeconds);
+
+                _particles.Add(new Particle
+                {
+                    rect = rect,
+                    image = image,
+                    velocity = velocity,
+                    angularVelocity = Random.Range(-360f, 360f),
+                    life = 0f,
+                    maxLife = durationSeconds * Random.Range(0.75f, 1.1f),
+                });
+            }
+
+            _routine = StartCoroutine(RunParticles());
+        }
 
         /// <summary>Spawns count confetti pieces from a spread of origin points across the top of
         /// the screen (not a single point — reads as "raining down" rather than one firework), each
@@ -60,6 +111,7 @@ namespace FarmFuryStampede.UI
             }
 
             ClearParticles();
+            _gravity = Gravity;
 
             float halfWidth = particlesRoot.rect.width * 0.5f;
             float topY = particlesRoot.rect.height * 0.5f;
@@ -125,7 +177,7 @@ namespace FarmFuryStampede.UI
                         continue;
                     }
 
-                    p.velocity += Vector2.down * Gravity * dt;
+                    p.velocity += Vector2.down * _gravity * dt;
                     p.rect.anchoredPosition += p.velocity * dt;
                     p.rect.Rotate(0f, 0f, p.angularVelocity * dt);
 

@@ -59,7 +59,14 @@ namespace FarmFuryStampede.Robots
                 visual.transform.localScale = _visualScale;
                 if (spriteRight != null) { visual.sprite = spriteRight; }
             }
+            OnWorldArtScale(scale > 0f ? scale : 1f);
         }
+
+        /// <summary>After SetWorldArt: the world's drawing scale for this robot (1 = the prefab's). Colliders don't
+        /// follow it unless a robot says so (the boss does).</summary>
+        protected virtual void OnWorldArtScale(float scale) { }
+
+        protected Collider2D[] ContactColliders => contactColliders;
 
         /// <summary>
         /// Points the visual left or right. Robots with separate left/right art swap sprites (the art is not a
@@ -246,9 +253,10 @@ namespace FarmFuryStampede.Robots
         {
             IsDefeated = true;
             GameManager.Instance.RunState.DefeatRobot();
-            if (!GameManager.Instance.BossVictoryPending)
+            // Not for every robot dropped at once by the boss's fall, nor the boss itself (it gets bossDefeated).
+            if (!GameManager.Instance.BossVictoryPending && this is not CommanderBoss)
             {
-                AudioManager.Play(a => a.robotDefeated);   // not for every robot dropped at once by the boss's fall
+                AudioManager.Play(a => a.robotDefeated);
             }
 
             foreach (var c in contactColliders)

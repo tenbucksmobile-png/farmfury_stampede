@@ -69,6 +69,8 @@ namespace FarmFuryStampede.EditorTools
         public Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)> robotArt = new();
         /// <summary>How much bigger than the prefab the robotArt robots are drawn (feet on the ground, colliders unchanged).</summary>
         public float robotArtScale = 1f;
+        /// <summary>The boss's (Commander's) robotArt scale instead of robotArtScale when above 0; its contact zones grow with it (CommanderBoss).</summary>
+        public float bossArtScale = 0f;
         /// <summary>This world's checkpoint art (one frame, feet-pivoted), written onto every checkpoint marker; null keeps the signpost.</summary>
         public Sprite checkpointSprite;
         /// <summary>River() water (Watermill: Props/River.png, top-pivoted, full-rect mesh so it tiles sideways); null draws no water.</summary>
@@ -1214,7 +1216,8 @@ namespace FarmFuryStampede.EditorTools
                     robot.artRight = look.right;
                     robot.artLeft = look.left;
                     robot.artDefeat = look.defeat;
-                    robot.artScale = assets.robotArtScale;
+                    robot.artScale = _robots[i].type == RobotType.Commander && assets.bossArtScale > 0f
+                        ? assets.bossArtScale : assets.robotArtScale;
                 }
             }
 
