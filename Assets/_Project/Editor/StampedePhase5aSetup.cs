@@ -95,6 +95,8 @@ namespace FarmFuryStampede.EditorTools
         // Jump frames are spread-wing poses: the canvas is full but the body is much narrower, so at the shared
         // scale the character looks like it shrinks mid-air. Frames named "*jump*" are drawn this much bigger.
         private const float JumpFrameScale = 1.25f;
+        // Jump frames whose body fills the canvas like the walk frames (no spread wings), so they keep the shared scale.
+        private static readonly HashSet<string> FullSizeJumpFrames = new() { "Gerald_Jump.png", "Gerald_Jump_Left.png" };
 
         private const int ObstaclesPerLevel = 2;   // rock / haybale, placed at random (seeded) spots
         private static readonly Vector2 FeetPivot = new Vector2(0.5f, 0f);
@@ -944,6 +946,7 @@ namespace FarmFuryStampede.EditorTools
             }
             tundra.robotArtScale = TundraRobotScale;
             tundra.bossArtScale = TundraBossScale;
+            tundra.bossGrounded = true;   // the Glacier Harvester walks on its tracks; the Commander hovers
             return tundra;
         }
 
@@ -1521,15 +1524,18 @@ namespace FarmFuryStampede.EditorTools
             { CharacterType.Woolly, new ArtFrames {
                 idleRight = "Wooly_right.png", runRight = new[] { "Wooly_right.png" },
                 idleLeft = "Wooly_left.png", runLeft = new[] { "Wooly_left.png" } } },
+            // Ducky (2026-10-11): standing idle, a two-frame walk and the wings-up InFLight pose in the air. The user's
+            // frames face right; the _Left files are script mirrors of them.
             { CharacterType.Ducky, new ArtFrames {
-                idleRight = "Ducky_right.png", runRight = new[] { "Ducky_right.png" },
-                idleLeft = "Ducky_left.png", runLeft = new[] { "Ducky_left.png" } } },
+                idleRight = "Ducky_StillStanding.png", runRight = new[] { "Ducky_right.png", "Walk_2_Right.png" }, jumpRight = "InFLight.png",
+                idleLeft = "Ducky_StillStanding_Left.png", runLeft = new[] { "Ducky_left.png", "Walk_2_Left.png" }, jumpLeft = "InFlight_Left.png" } },
             { CharacterType.Horace, new ArtFrames {
                 idleRight = "Horace_right.png", runRight = new[] { "Horace_right.png", "Horace_right1.png" },
                 idleLeft = "Horace_left.png", runLeft = new[] { "Horace_left.png", "Horace_left1.png" } } },
+            // Gerald (2026-10-11): a second right walk frame and a wing-up jump; Gerald_Jump_Left is a script mirror.
             { CharacterType.Gerald, new ArtFrames {
-                idleRight = "Gerald_right.png", runRight = new[] { "Gerald_right.png" },
-                idleLeft = "Gerald_left.png", runLeft = new[] { "Gerald_left.png", "Gerald_left1.png" } } },
+                idleRight = "Gerald_right.png", runRight = new[] { "Gerald_right.png", "Gerald_Right1.png" }, jumpRight = "Gerald_Jump.png",
+                idleLeft = "Gerald_left.png", runLeft = new[] { "Gerald_left.png", "Gerald_left1.png" }, jumpLeft = "Gerald_Jump_Left.png" } },
             { CharacterType.Billy, new ArtFrames {
                 idleRight = "Billy_right.png", runRight = new[] { "Billy_right.png", "Billy_right1.png" },
                 idleLeft = "Billy_left.png", runLeft = new[] { "Billy_left.png", "Billy_left1.png" },
@@ -1584,7 +1590,7 @@ namespace FarmFuryStampede.EditorTools
                     var importer = (TextureImporter)AssetImporter.GetAtPath(path);
                     importer.textureType = TextureImporterType.Sprite;
                     importer.spriteImportMode = SpriteImportMode.Single;
-                    bool jumpFrame = file.IndexOf("jump", StringComparison.OrdinalIgnoreCase) >= 0;
+                    bool jumpFrame = file.IndexOf("jump", StringComparison.OrdinalIgnoreCase) >= 0 && !FullSizeJumpFrames.Contains(file);
                     importer.spritePixelsPerUnit = jumpFrame ? ArtPixelsPerUnit / JumpFrameScale : ArtPixelsPerUnit;
                     // Feet on the lowest opaque row, not the frame's bottom edge: some frames (Horace_right 40px,
                     // Clucky_Left1 35px, Bessie_right 15px) have empty space under the feet, which floated the character.
@@ -1615,7 +1621,8 @@ namespace FarmFuryStampede.EditorTools
                 bool drone = fileName == DroneArtFile;
                 bool fixedScale = drone || fileName == BossArtRight || fileName == BossArtLeft || fileName == BossArtDefeated;
                 importer.spritePixelsPerUnit = fixedScale ? ArtPixelsPerUnit : Mathf.Max(1, frameHeight) / ActorVisualHeight;
-                StampedeUIArt.SetPivot(importer, drone ? CentrePivot : FeetPivot);
+                StampedeUIArt.SetPivot(importer, drone ? CentrePivot
+                    : RobotArtPivotY.TryGetValue(fileName, out float pivotY) ? new Vector2(FeetPivot.x, pivotY) : FeetPivot);
                 importer.filterMode = FilterMode.Bilinear;
                 importer.mipmapEnabled = false;
                 importer.alphaIsTransparency = true;
@@ -1623,6 +1630,14 @@ namespace FarmFuryStampede.EditorTools
                 importer.SaveAndReimport();
             }
         }
+
+        // Robot frames whose feet don't sit on the bottom edge: the pivot height (fraction of the frame from the
+        // bottom) that goes on the ground line. The Glacier Harvester's wreck lies on its back in a 3/4 view with loose
+        // rocks along the bottom edge; pivoting it 12% up sets the body down on the ice instead of above it.
+        private static readonly Dictionary<string, float> RobotArtPivotY = new()
+        {
+            { "GlacierHarvestorDefeat.png", 0.12f },
+        };
 
         // Right-facing, left-facing (null = flip the right frame) and defeat sprites; missing files come back null.
         private static (Sprite right, Sprite left, Sprite defeat) RobotArt(string right, string left, string defeat)

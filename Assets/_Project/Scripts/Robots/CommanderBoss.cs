@@ -50,6 +50,9 @@ namespace FarmFuryStampede.Robots
         private float _staggerLeft;
         private Vector3 _visualRest;
 
+        /// <summary>False for a boss that walks on the ground (set per spawn by LevelLoader from the marker).</summary>
+        public bool Hovers { get; set; } = true;
+
         private Vector2[] _zoneSize, _zoneOffset;
 
         protected override void Awake()
@@ -101,10 +104,13 @@ namespace FarmFuryStampede.Robots
         // Floats just above the ground, bobbing gently, as it patrols left and right; the wreck lies on the ground.
         private void Update()
         {
-            if (visual != null && IsDefeated)
+            if (visual != null && (IsDefeated || !Hovers))
             {
                 visual.transform.localPosition = _visualRest;
-                visual.color = Color.white;
+                if (IsDefeated)
+                {
+                    visual.color = Color.white;
+                }
             }
             else if (visual != null)
             {

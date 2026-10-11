@@ -423,6 +423,10 @@ namespace FarmFuryStampede.LevelSystem
 
             var robot = instance.GetComponent<RobotController>();
             robot.SetWorldArt(marker.artRight, marker.artLeft, marker.artDefeat, marker.artScale);   // this world's look (or the prefab's)
+            if (robot is CommanderBoss boss)
+            {
+                boss.Hovers = !marker.grounded;
+            }
             robot.Initialize(marker.patrolDistance);
             return true;
         }

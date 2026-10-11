@@ -71,6 +71,8 @@ namespace FarmFuryStampede.EditorTools
         public float robotArtScale = 1f;
         /// <summary>The boss's (Commander's) robotArt scale instead of robotArtScale when above 0; its contact zones grow with it (CommanderBoss).</summary>
         public float bossArtScale = 0f;
+        /// <summary>The boss walks on the ground instead of hovering (RobotSpawnPoint.grounded).</summary>
+        public bool bossGrounded;
         /// <summary>This world's checkpoint art (one frame, feet-pivoted), written onto every checkpoint marker; null keeps the signpost.</summary>
         public Sprite checkpointSprite;
         /// <summary>River() water (Watermill: Props/River.png, top-pivoted, full-rect mesh so it tiles sideways); null draws no water.</summary>
@@ -1218,6 +1220,7 @@ namespace FarmFuryStampede.EditorTools
                     robot.artDefeat = look.defeat;
                     robot.artScale = _robots[i].type == RobotType.Commander && assets.bossArtScale > 0f
                         ? assets.bossArtScale : assets.robotArtScale;
+                    robot.grounded = _robots[i].type == RobotType.Commander && assets.bossGrounded;
                 }
             }
 

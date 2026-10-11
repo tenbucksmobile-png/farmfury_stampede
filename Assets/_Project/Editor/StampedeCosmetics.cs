@@ -232,9 +232,14 @@ namespace FarmFuryStampede.EditorTools
             { "Flat1.png", (190, 35, 190) }, { "Flat2.png", (175, 30, 190) },
             { "Wooly_right.png", (350, 60, 195) }, { "Wooly_left.png", (100, 60, 195) },
             { "Ducky_right.png", (270, 25, 200) }, { "Ducky_left.png", (215, 25, 200) },
+            // 2026-10-11 frames (the _Left ones are mirrors, so x = width - x):
+            { "Ducky_StillStanding.png", (273, 15, 185) }, { "Ducky_StillStanding_Left.png", (227, 15, 185) },
+            { "Walk_2_Right.png", (240, 30, 190) }, { "Walk_2_Left.png", (246, 30, 190) },
+            { "InFLight.png", (265, 12, 190) }, { "InFlight_Left.png", (235, 12, 190) },
             { "Horace_right.png", (370, 60, 150) }, { "Horace_right1.png", (365, 60, 150) },
             { "Horace_left.png", (115, 60, 150) }, { "Horace_left1.png", (112, 65, 150) },
             { "Gerald_right.png", (390, 20, 130) }, { "Gerald_left.png", (105, 35, 125) }, { "Gerald_left1.png", (85, 20, 130) },
+            { "Gerald_Right1.png", (400, 35, 110) }, { "Gerald_Jump.png", (322, 24, 110) }, { "Gerald_Jump_Left.png", (178, 24, 110) },   // 2026-10-11
             { "Billy_right.png", (380, 60, 150) }, { "Billy_right1.png", (375, 60, 150) },
             { "Billy_left.png", (115, 60, 150) }, { "Billy_left1.png", (120, 60, 150) },
         };

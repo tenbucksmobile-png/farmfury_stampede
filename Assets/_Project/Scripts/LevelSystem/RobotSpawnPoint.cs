@@ -21,6 +21,8 @@ namespace FarmFuryStampede.LevelSystem
         public Sprite artDefeat;
         [Tooltip("The world art drawn this many times the prefab's size (feet stay on the ground; colliders unchanged).")]
         public float artScale = 1f;
+        [Tooltip("Boss only: walks on the ground instead of hovering (Frozen Tundra's Glacier Harvester).")]
+        public bool grounded;
 
         private void OnDrawGizmos()
         {
