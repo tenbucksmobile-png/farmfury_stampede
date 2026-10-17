@@ -98,7 +98,7 @@ namespace FarmFuryStampede.UI
             var story = Add(new CharacterStoryScreen(c, menuArt, shopArt));
             var worldDetail = Add(new WorldDetailScreen(c, menuArt, shopArt, leaderboardArt));
             var worldShop = Add(new ItemPurchaseScreen(c, "WorldPurchase", menuArt, shopArt, Gate, useCoins, null, menuArt.worldUnlockedSign,
-                "NEW WORLDS", WorldItems(), new Vector2(500f, 281f), 30f, shopArt.worldPrice));
+                "NEW WORLDS", WorldItems(), new Vector2(380f, 380f), 40f, shopArt.worldPrice));   // square cells for the badges
             _worldShop = worldShop;
             worldShop.Closed += () => { if (Worlds.Root.activeSelf) { Worlds.Refresh(keepPosition: true); } };   // a bought world opens at once
             var leaderboards = Add(new LeaderboardsScreen(c, menuArt, shopArt, leaderboardArt, worldDetail.Show, worldShop.Show));
@@ -142,13 +142,14 @@ namespace FarmFuryStampede.UI
             productIds.Select((id, i) => new ItemPurchaseScreen.Item(id, ShopArt.At(sprites, i),
                 StoreProducts.Cosmetics[firstNameIndex + i].name)).ToArray();
 
-        /// <summary>The Worlds page: IAPManager.PurchasableWorlds (purchaseRequired worlds; none yet, so it says "coming soon").</summary>
+        /// <summary>The Worlds page: IAPManager.PurchasableWorlds (the purchaseRequired worlds), each shown as its badge.</summary>
         private static ItemPurchaseScreen.Item[] WorldItems()
         {
             return IAPManager.PurchasableWorlds()
                 .Select(w => DataManager.Instance.GetWorldData(w))
                 .Where(w => w != null)
-                .Select(w => new ItemPurchaseScreen.Item(StoreProducts.World(w.worldType), w.selectCardArt, w.displayName))
+                // The world's badge (the World Select shield, name baked in); its WS_ card only if it has none.
+                .Select(w => new ItemPurchaseScreen.Item(StoreProducts.World(w.worldType), w.selectBadge != null ? w.selectBadge : w.selectCardArt, w.displayName))
                 .ToArray();
         }
 

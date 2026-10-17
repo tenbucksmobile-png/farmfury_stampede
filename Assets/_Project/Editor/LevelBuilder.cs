@@ -110,6 +110,24 @@ namespace FarmFuryStampede.EditorTools
         /// </summary>
         public Sprite bubbleSprite;
         public bool ambientBubbles;
+        /// <summary>Crop Factory: Conveyor() belt art (Conveyor.png, tiled along the belt and scrolled); null draws a belt with the ledge slabs.</summary>
+        public Sprite conveyorSprite;
+        /// <summary>Crop Factory: Crusher() press art (Crusher.png, feet-pivoted: the head's bottom face at the bottom); null leaves the press invisible.</summary>
+        public Sprite crusherSprite;
+        /// <summary>Crop Factory: LaserGate() emitter post (LaserPost.png, feet-pivoted) and beam (LaserBeam.png, vertical, centred).</summary>
+        public Sprite laserPostSprite;
+        public Sprite laserBeamSprite;
+        /// <summary>Dustbowl Canyon: Quicksand() strip art (tiled sideways, full-rect sprite), Tumbleweeds() art, and the Sandstorm() dust (tiled, full-rect).</summary>
+        public Sprite quicksandSprite;
+        public Sprite tumbleweedSprite;
+        public Sprite sandstormSprite;
+        /// <summary>Harvest Fairground: Trampoline() bale art (feet-pivoted), FerrisWheel() seat (gondola) and wheel art (feet-pivoted, the ring its full width).</summary>
+        public Sprite trampolineSprite;
+        public Sprite wheelSeatSprite;
+        public Sprite ferrisWheelSprite;
+        /// <summary>Where wheelSeatSprite's floor is, as a fraction of the art up from its bottom, and how much of its width the floor spans.</summary>
+        public float wheelSeatFloorFromBottom = 0.12f;
+        public float wheelSeatFloorWidth = 0.9f;
 
         /// <summary>A copy to override per world (the dictionary and arrays are shared until replaced).</summary>
         public LevelAssets Clone() => (LevelAssets)MemberwiseClone();
@@ -171,6 +189,7 @@ namespace FarmFuryStampede.EditorTools
             public bool bridge;  // Bridge(): a rope bridge, drawn with LevelAssets.bridgeSprite over invisible collision tiles
             public bool brick;   // BrickBlocks(): StoneBlocks drawn with LevelAssets.brickBlockSprite
             public Surface partner;   // MovingLedge(): the same ledge at the other end of its trip (validation only)
+            public float? conveyor;   // Conveyor(): a belt moving at this speed, built as its own object (also a bridge for the path)
             public override string ToString() => $"{(secret ? "Secret" : "")}{kind}[{x0},{x1}) top={top}";
         }
 
@@ -178,9 +197,10 @@ namespace FarmFuryStampede.EditorTools
         private struct RobotRec { public RobotType type; public float x, y, patrol; public int wave; }
         private struct BreakableRec { public int x, length, top; }
         private struct ChamberRec { public int x0, floorTop, interiorWidth; public bool barrierSeal; }
-        private sealed class MoverRec { public Surface start, end; public float period, phase; public bool boat, balloon; }
-        private struct UpdraftRec { public float x; public int baseTop; public float height; }
+        private sealed class MoverRec { public Surface start, end; public float period, phase; public bool boat, balloon; public float orbit; public Vector2 hub; }
+        private struct UpdraftRec { public float x; public int baseTop; public float height; public bool trampoline; public float launch; }
         private struct RiverRec { public int x0, x1; public float surface; }
+        private struct HazardRec { public float x, period, phase, size; public int floorTop; }
 
         private const float MaxRise = 2.5f;
         // Rise a bonus (StoneBlocks) platform may need: every character has a full-height double jump (3.5 + 3.5).
@@ -211,6 +231,12 @@ namespace FarmFuryStampede.EditorTools
         private readonly List<RectInt> _water = new();
         private readonly List<RiverRec> _rivers = new();
         private readonly List<UpdraftRec> _updrafts = new();
+        private readonly List<HazardRec> _crushers = new();
+        private readonly List<HazardRec> _lasers = new();
+        private readonly List<(int x0, int x1, int top)> _quicksand = new();
+        private readonly List<(int x0, int x1, int top, float period, float phase)> _tumbleweeds = new();
+        private bool _sandstorm;
+        private readonly List<(int cx, int hubTop, int radius)> _wheels = new();
         private readonly List<Vector2> _pyramids = new();
         private readonly List<(Vector2 at, int rows)> _haystacks = new();   // bale stacks: 2 rows = HayStack, 3 = HayPyramid
         private bool _manualScenery;
@@ -460,6 +486,138 @@ namespace FarmFuryStampede.EditorTools
             float wait = river.surface - 1.2f;   // fully under the surface art
             _robots.Add(new RobotRec { type = RobotType.Piranha, x = x, y = wait, patrol = river.surface + RiverSurfaceDrop + leapAbove - wait, wave = wave });
             _noPatrolCheck.Add(x);
+            return this;
+        }
+
+        /// <summary>
+        /// Crop Factory's conveyor belt (ConveyorBelt at runtime): a walkable one-tile-thick span [x, x+length) with its
+        /// top at 'top', carrying whoever stands on it at 'speed' units/s (positive = right, with the player; negative =
+        /// against them; keep it well under the player's 8). Laid across a Gap() at the ground's height it carries the
+        /// main path like a Bridge() (path corn runs along it); validated as a plain floating span.
+        /// </summary>
+        public LevelBuilder Conveyor(int x, int length, int top, float speed)
+        {
+            _surfaces.Add(new Surface { x0 = x, x1 = x + length, top = top, baseTop = top - 1, kind = Kind.Floating, bridge = true, conveyor = speed });
+            return this;
+        }
+
+        /// <summary>
+        /// Crop Factory's rhythm crusher (Crusher at runtime): a 2-wide press over the ground at x that waits
+        /// CrusherRaise up, shudders, slams onto the floor and winds back up, once per 'period' seconds (phase 0-1 of the
+        /// way round). Under it during a slam costs a life; it is solid, so it also blocks the way while it is down.
+        /// A timing hazard only: the geometry validation ignores it, so keep it on open main-path ground.
+        /// </summary>
+        public LevelBuilder Crusher(float x, float period = 3.2f, float phase = 0f)
+        {
+            int floorTop = GroundTopAt(x, out bool found);
+            if (!found || GroundTopAt(x - CrusherWidth * 0.5f, out _) != floorTop || GroundTopAt(x + CrusherWidth * 0.5f, out _) != floorTop)
+            {
+                Error($"Crusher at x={x} needs flat ground under its full width.");
+                return this;
+            }
+            _crushers.Add(new HazardRec { x = x, floorTop = floorTop, period = period, phase = phase });
+            return this;
+        }
+
+        /// <summary>
+        /// Crop Factory's laser gate (LaserGate at runtime): an emitter post on the ground at x firing a beam 'height'
+        /// units straight up, on for half of every 'period' seconds (phase 0-1). Touching the beam while it is on costs a
+        /// life; it flickers just before it fires. A timing hazard only (not validated), so keep it on open ground.
+        /// </summary>
+        public LevelBuilder LaserGate(float x, float period = 3f, float phase = 0f, float height = 7f)
+        {
+            int floorTop = GroundTopAt(x, out bool found);
+            if (!found)
+            {
+                Error($"Laser gate at x={x} needs ground under it.");
+                return this;
+            }
+            _lasers.Add(new HazardRec { x = x, floorTop = floorTop, period = period, phase = phase, size = height });
+            return this;
+        }
+
+        private const float CrusherWidth = 2f, CrusherRaise = 5f;
+
+        /// <summary>
+        /// Dustbowl Canyon's quicksand (QuicksandZone at runtime) over the main-path ground [x0, x1), which must be one
+        /// height: anyone in it wades at under half speed. Jumping is unaffected, so it never traps the player.
+        /// </summary>
+        public LevelBuilder Quicksand(int x0, int x1)
+        {
+            int top = GroundTopAt(x0 + 0.5f, out bool found);
+            if (!found || Enumerable.Range(x0, x1 - x0).Any(cx => GroundTopAt(cx + 0.5f, out bool f) != top || !f))
+            {
+                Error($"Quicksand [{x0},{x1}) needs flat ground of one height under it.");
+                return this;
+            }
+            _quicksand.Add((x0, x1, top));
+            return this;
+        }
+
+        /// <summary>
+        /// Dustbowl Canyon's tumbleweeds (TumbleweedLane at runtime): along the flat ground [x0, x1) one rolls in from the
+        /// right end to the left end, bouncing, once every 'period' seconds (phase 0-1). Touching one costs a life: jump
+        /// it. A timing hazard only (not in the reach validation); the lane keeps clear of the start and checkpoints.
+        /// </summary>
+        public LevelBuilder Tumbleweeds(int x0, int x1, float period = 4f, float phase = 0f)
+        {
+            int top = GroundTopAt(x0 + 0.5f, out bool found);
+            if (!found || Enumerable.Range(x0, x1 - x0).Any(cx => GroundTopAt(cx + 0.5f, out bool f) != top || !f))
+            {
+                Error($"Tumbleweed lane [{x0},{x1}) needs flat ground of one height under it.");
+                return this;
+            }
+            _tumbleweeds.Add((x0, x1, top, period, phase));
+            return this;
+        }
+
+        /// <summary>
+        /// Harvest Fairground's hay-bale trampoline (Trampoline at runtime): a 2-wide, 1-high bale on the ground at x that
+        /// bounces whoever lands on it until their feet peak 'height' above the ground. Validated as an Updraft() column
+        /// (a ride from the ground to a surface beside it) a unit lower than the peak, so a target ledge must sit at most
+        /// height - 0.5 up. Keep gated secrets out of its reach.
+        /// </summary>
+        public LevelBuilder Trampoline(float x, float height)
+        {
+            int baseTop = GroundTopAt(x, out bool found);
+            if (!found || GroundTopAt(x - 1f, out _) != baseTop || GroundTopAt(x + 1f, out _) != baseTop)
+            {
+                Error($"Trampoline at x={x} needs flat ground under its full width.");
+                return this;
+            }
+            _updrafts.Add(new UpdraftRec { x = x, baseTop = baseTop, height = height - 1f, trampoline = true, launch = height - TrampolineHeight });
+            return this;
+        }
+
+        private const float TrampolineWidth = 2f, TrampolineHeight = 1f;
+
+        /// <summary>
+        /// Harvest Fairground's ferris wheel: 'seats' 2-wide gondolas going round a hub at (cx, hubTop) at 'radius', once
+        /// per 'period' seconds (MovingPlatform.orbitRadius), each a level ride. A seat's deck tops are hubTop - radius at
+        /// the bottom and hubTop + radius at the top; each seat is validated as a lift between the two (so put the
+        /// bottom within a jump of where the player boards and the top within a jump of where they get off). Stand it
+        /// over a pit: the wheel art goes behind.
+        /// </summary>
+        public LevelBuilder FerrisWheel(int cx, int hubTop, int radius, int seats = 4, float period = 9f)
+        {
+            for (int k = 0; k < seats; k++)
+            {
+                var start = new Surface { x0 = cx - 1, x1 = cx + 1, top = hubTop - radius, baseTop = hubTop - radius - 1, kind = Kind.Floating };
+                var end = new Surface { x0 = cx - 1, x1 = cx + 1, top = hubTop + radius, baseTop = hubTop + radius - 1, kind = Kind.Floating };
+                start.partner = end;
+                end.partner = start;
+                _surfaces.Add(start);
+                _surfaces.Add(end);
+                _movers.Add(new MoverRec { start = start, end = end, period = period, phase = (float)k / seats, orbit = radius, hub = new Vector2(cx, hubTop - 0.5f) });
+            }
+            _wheels.Add((cx, hubTop, radius));
+            return this;
+        }
+
+        /// <summary>Dustbowl Canyon: a sandstorm blows through the level (SandstormOverlay): a light haze with regular thick gusts.</summary>
+        public LevelBuilder Sandstorm()
+        {
+            _sandstorm = true;
             return this;
         }
 
@@ -931,6 +1089,25 @@ namespace FarmFuryStampede.EditorTools
                 }
             }
 
+            // Never respawn in a tumbleweed's path either.
+            foreach (var t in _tumbleweeds)
+            {
+                bool In(float x) => x > t.x0 - 1.5f && x < t.x1 + 1.5f;
+                if ((_playerStart.HasValue && In(_playerStart.Value.x)) || _checkpoints.Any(c => In(c.x)))
+                {
+                    Error($"Tumbleweed lane [{t.x0},{t.x1}) covers the start or a checkpoint.");
+                }
+            }
+
+            // Never respawn under a crusher or in a laser: hazards keep clear of the start and every checkpoint.
+            foreach (var h in _crushers.Concat(_lasers))
+            {
+                if ((_playerStart.HasValue && Mathf.Abs(_playerStart.Value.x - h.x) < 5f) || _checkpoints.Any(c => Mathf.Abs(c.x - h.x) < 4f))
+                {
+                    Error($"Crusher / laser gate at x={h.x} is too close to the start or a checkpoint.");
+                }
+            }
+
             foreach (var r in _robots.Where(r => (r.type == RobotType.Harvester || r.type == RobotType.Scout || r.type == RobotType.Commander)))
             {
                 float baseTop = GroundTopAt(r.x, out _);
@@ -955,6 +1132,14 @@ namespace FarmFuryStampede.EditorTools
                 foreach (var b in _breakables.Where(b => r.x + r.patrol > b.x - 1 && r.x - r.patrol < b.x + b.length + 1))
                 {
                     Error($"Harvester at x={r.x} patrols over the breakable floor at x={b.x}.");
+                }
+                foreach (var u in _updrafts.Where(u => u.trampoline && Mathf.Abs(u.x - r.x) < r.patrol + 2f))
+                {
+                    Error($"Robot at x={r.x} patrols over the trampoline at x={u.x}.");
+                }
+                foreach (var h in _crushers.Concat(_lasers).Where(h => Mathf.Abs(h.x - r.x) < r.patrol + 2f))
+                {
+                    Error($"Robot at x={r.x} patrols through the crusher / laser gate at x={h.x}.");
                 }
             }
 
@@ -1051,6 +1236,8 @@ namespace FarmFuryStampede.EditorTools
                         break;
                     case Kind.Floating when s.partner != null:
                         break;   // a moving ledge: built as its own object below
+                    case Kind.Floating when s.conveyor.HasValue:
+                        break;   // a conveyor belt: built as its own object below
                     case Kind.Floating:
                         // Every floating platform (ordinary ones too, not just secret ledges) is drawn with the
                         // Stone_Block.png slabs; StoneBlocks() bonus platforms keep their square blocks.
@@ -1075,6 +1262,13 @@ namespace FarmFuryStampede.EditorTools
             {
                 BuildMovingLedge(root.transform, assets, _movers[i], i);
             }
+            BuildConveyors(root.transform, assets);
+            BuildCrushers(root.transform, assets);
+            BuildLaserGates(root.transform, assets);
+            BuildQuicksand(root.transform, assets);
+            BuildFerrisWheels(root.transform, assets);
+            BuildTumbleweeds(root.transform, assets);
+            if (_sandstorm) { BuildSandstorm(root.transform, assets); }
 
             foreach (var c in _chambers)
             {
@@ -2425,6 +2619,27 @@ namespace FarmFuryStampede.EditorTools
             mover.travel = new Vector2(m.end.x0 - s.x0, m.end.top - s.top);
             mover.period = m.period;
             mover.phase = m.phase;
+            if (m.orbit > 0f)
+            {
+                go.transform.position = new Vector3(m.hub.x, m.hub.y, 0f);   // the hub: MovingPlatform takes it round
+                mover.orbitRadius = m.orbit;
+                if (assets.wheelSeatSprite != null)
+                {
+                    // The gondola, its floor just over the seat's deck, sized so the floor spans the deck.
+                    var seat = new GameObject("Gondola");
+                    seat.transform.SetParent(go.transform, false);
+                    Sprite sprite = assets.wheelSeatSprite;
+                    float k = (length + 0.4f) / assets.wheelSeatFloorWidth / sprite.bounds.size.x;
+                    float height = sprite.bounds.size.y * k;
+                    float pivotFromBottom = sprite.pivot.y / sprite.rect.height;
+                    seat.transform.localScale = new Vector3(k, k, 1f);
+                    seat.transform.localPosition = new Vector3(0f, 0.5f + 0.05f - (assets.wheelSeatFloorFromBottom - pivotFromBottom) * height, 0f);
+                    var seatRenderer = seat.AddComponent<SpriteRenderer>();
+                    seatRenderer.sprite = sprite;
+                    seatRenderer.sortingOrder = 7;
+                    return;
+                }
+            }
 
             if (m.balloon && assets.balloonSprite != null)
             {
@@ -2488,12 +2703,285 @@ namespace FarmFuryStampede.EditorTools
             }
         }
 
+        // Conveyor belts: each its own static solid on the Ground layer (a BoxCollider2D carrying ConveyorBelt), the belt
+        // art tiled along it one repeat longer than the span and scrolled inside a sprite mask the size of the belt.
+        private void BuildConveyors(Transform root, LevelAssets assets)
+        {
+            int index = 0;
+            foreach (var s in _surfaces.Where(s => s.conveyor.HasValue))
+            {
+                int length = s.x1 - s.x0;
+                var go = new GameObject($"Conveyor_{++index}") { layer = assets.groundLayer };
+                go.transform.SetParent(root, false);
+                go.transform.position = new Vector3(s.x0 + length * 0.5f, s.top - 0.5f, 0f);
+                var box = go.AddComponent<BoxCollider2D>();
+                box.size = new Vector2(length, 1f);
+                var belt = go.AddComponent<ConveyorBelt>();
+                belt.speed = s.conveyor.Value;
+
+                Sprite art = assets.conveyorSprite;
+                if (art == null)
+                {
+                    if (assets.ledgeSprite != null) { AddStoneSlabs(go.transform, assets.ledgeSprite, s); }
+                    continue;
+                }
+                // One repeat of the art is ConveyorArtHeight tall at its own aspect; the tiled strip is one repeat
+                // longer than the belt so the scroll never shows an end.
+                Vector2 native = art.bounds.size;
+                float k = ConveyorArtHeight / native.y;
+                float repeat = native.x * k;
+                var strip = new GameObject("Belt");
+                strip.transform.SetParent(go.transform, false);
+                strip.transform.localPosition = new Vector3(0f, 0.5f - ConveyorArtHeight * 0.5f + 0.05f, 0f);
+                strip.transform.localScale = new Vector3(k, k, 1f);
+                var renderer = strip.AddComponent<SpriteRenderer>();
+                renderer.sprite = art;
+                renderer.drawMode = SpriteDrawMode.Tiled;
+                renderer.size = new Vector2((length + repeat) / k, native.y);
+                renderer.sortingOrder = 1;
+                renderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+                belt.belt = renderer;
+                belt.repeat = repeat;
+
+                var maskObject = new GameObject("BeltMask");
+                maskObject.transform.SetParent(go.transform, false);
+                maskObject.transform.localPosition = strip.transform.localPosition;
+                maskObject.transform.localScale = new Vector3(length / native.x, ConveyorArtHeight * 1.2f / native.y, 1f);
+                var mask = maskObject.AddComponent<SpriteMask>();
+                mask.sprite = art;
+                mask.alphaCutoff = 0f;
+                mask.isCustomRangeActive = true;   // only the belts (sorting 1) are masked
+                mask.frontSortingOrder = 1;
+                mask.backSortingOrder = 0;
+            }
+        }
+
+        private const float ConveyorArtHeight = 1f;
+
+        // Crushers: the press head is a kinematic solid on the Ground layer (CrusherWidth x CrusherHeadHeight) driven by
+        // the Crusher component; the art (its bottom face at the pivot) rides on it, the piston rising off the top.
+        private void BuildCrushers(Transform root, LevelAssets assets)
+        {
+            for (int i = 0; i < _crushers.Count; i++)
+            {
+                var c = _crushers[i];
+                var go = new GameObject($"Crusher_{i + 1}");
+                go.transform.SetParent(root, false);
+                go.transform.position = new Vector3(c.x, c.floorTop, 0f);
+                var head = new GameObject("Head") { layer = assets.groundLayer };
+                head.transform.SetParent(go.transform, false);
+                var body = head.AddComponent<Rigidbody2D>();
+                body.bodyType = RigidbodyType2D.Kinematic;
+                body.interpolation = RigidbodyInterpolation2D.Interpolate;
+                var box = head.AddComponent<BoxCollider2D>();
+                box.size = new Vector2(CrusherWidth, CrusherHeadHeight);
+                box.offset = new Vector2(0f, CrusherHeadHeight * 0.5f);
+                var crusher = go.AddComponent<Crusher>();
+                crusher.head = body;
+                crusher.raise = CrusherRaise;
+                crusher.period = c.period;
+                crusher.phase = c.phase;
+
+                if (assets.crusherSprite != null)
+                {
+                    var art = new GameObject("Press");
+                    art.transform.SetParent(head.transform, false);
+                    float k = (CrusherWidth + 0.3f) / assets.crusherSprite.bounds.size.x;
+                    art.transform.localScale = new Vector3(k, k, 1f);
+                    var renderer = art.AddComponent<SpriteRenderer>();
+                    renderer.sprite = assets.crusherSprite;
+                    renderer.sortingOrder = 8;   // in front of the player: the press comes down over them
+                    crusher.art = art.transform;
+                }
+            }
+        }
+
+        private const float CrusherHeadHeight = 1.2f;
+
+        // Laser gates: the emitter post standing on the ground and the beam stretched up from it.
+        private void BuildLaserGates(Transform root, LevelAssets assets)
+        {
+            for (int i = 0; i < _lasers.Count; i++)
+            {
+                var l = _lasers[i];
+                var go = new GameObject($"LaserGate_{i + 1}");
+                go.transform.SetParent(root, false);
+                go.transform.position = new Vector3(l.x, l.floorTop, 0f);
+                var gate = go.AddComponent<LaserGate>();
+                gate.height = l.size;
+                gate.period = l.period;
+                gate.phase = l.phase;
+
+                if (assets.laserBeamSprite != null)
+                {
+                    var beam = new GameObject("Beam");
+                    beam.transform.SetParent(go.transform, false);
+                    Vector2 native = assets.laserBeamSprite.bounds.size;
+                    beam.transform.localPosition = new Vector3(0f, l.size * 0.5f, 0f);   // centred art
+                    beam.transform.localScale = new Vector3(LaserBeamWidth / native.x, l.size / native.y, 1f);
+                    var renderer = beam.AddComponent<SpriteRenderer>();
+                    renderer.sprite = assets.laserBeamSprite;
+                    renderer.sortingOrder = 7;
+                    gate.beam = renderer;
+                }
+                if (assets.laserPostSprite != null)
+                {
+                    var post = new GameObject("Post");
+                    post.transform.SetParent(go.transform, false);
+                    float k = LaserPostHeight / assets.laserPostSprite.bounds.size.y;
+                    post.transform.localScale = new Vector3(k, k, 1f);   // feet-pivoted art
+                    var renderer = post.AddComponent<SpriteRenderer>();
+                    renderer.sprite = assets.laserPostSprite;
+                    renderer.sortingOrder = 8;
+                }
+            }
+        }
+
+        private const float LaserBeamWidth = 1.1f, LaserPostHeight = 1.3f;
+
+        // Quicksand: a trigger box over the stretch, the tiled sand strip drawn over the ground's surface (in front of
+        // the ground and its grass cap, behind the player).
+        private void BuildQuicksand(Transform root, LevelAssets assets)
+        {
+            for (int i = 0; i < _quicksand.Count; i++)
+            {
+                var (x0, x1, top) = _quicksand[i];
+                var go = new GameObject($"Quicksand_{i + 1}");
+                go.transform.SetParent(root, false);
+                go.transform.position = new Vector3((x0 + x1) * 0.5f, top, 0f);
+                var box = go.AddComponent<BoxCollider2D>();
+                box.isTrigger = true;
+                box.size = new Vector2(x1 - x0, 1.2f);
+                box.offset = new Vector2(0f, 0.4f);
+                var zone = go.AddComponent<QuicksandZone>();
+                if (assets.quicksandSprite == null) { continue; }
+
+                var art = new GameObject("Sand");
+                art.transform.SetParent(go.transform, false);
+                Vector2 native = assets.quicksandSprite.bounds.size;
+                float k = QuicksandArtHeight / native.y;
+                art.transform.localScale = new Vector3(k, k, 1f);
+                art.transform.localPosition = new Vector3(0f, 0.15f - QuicksandArtHeight * 0.5f, 0f);   // centred art, its top just over the surface
+                var renderer = art.AddComponent<SpriteRenderer>();
+                renderer.sprite = assets.quicksandSprite;
+                renderer.drawMode = SpriteDrawMode.Tiled;
+                renderer.size = new Vector2((x1 - x0 + 0.2f) / k, native.y);
+                renderer.sortingOrder = 2;
+                zone.art = renderer;
+            }
+        }
+
+        private const float QuicksandArtHeight = 0.9f;
+
+        // Tumbleweed lanes: the lane object at the right end on the ground, its tumbleweed a child it rolls leftwards.
+        private void BuildTumbleweeds(Transform root, LevelAssets assets)
+        {
+            for (int i = 0; i < _tumbleweeds.Count; i++)
+            {
+                var t = _tumbleweeds[i];
+                var go = new GameObject($"Tumbleweeds_{i + 1}");
+                go.transform.SetParent(root, false);
+                go.transform.position = new Vector3(t.x1, t.top, 0f);
+                var lane = go.AddComponent<TumbleweedLane>();
+                lane.length = t.x1 - t.x0;
+                lane.period = Mathf.Max(t.period, lane.length / lane.speed + 0.5f);
+                lane.phase = t.phase;
+
+                var weed = new GameObject("Tumbleweed");
+                weed.transform.SetParent(go.transform, false);
+                var renderer = weed.AddComponent<SpriteRenderer>();
+                renderer.sortingOrder = 8;
+                if (assets.tumbleweedSprite != null)
+                {
+                    renderer.sprite = assets.tumbleweedSprite;
+                    float k = lane.radius * 2.1f / Mathf.Max(assets.tumbleweedSprite.bounds.size.x, assets.tumbleweedSprite.bounds.size.y);
+                    weed.transform.localScale = new Vector3(k, k, 1f);   // centred art
+                }
+                lane.weed = weed.transform;
+            }
+        }
+
+        // The sandstorm: one tiled dust sprite in front of everything, kept over the camera by SandstormOverlay.
+        private static void BuildSandstorm(Transform root, LevelAssets assets)
+        {
+            if (assets.sandstormSprite == null) { return; }
+            var go = new GameObject("Sandstorm");
+            go.transform.SetParent(root, false);
+            var overlay = go.AddComponent<SandstormOverlay>();
+            var art = new GameObject("Dust");
+            art.transform.SetParent(go.transform, false);
+            Vector2 native = assets.sandstormSprite.bounds.size;
+            float k = SandstormRepeat / native.x;
+            art.transform.localScale = new Vector3(k, k, 1f);
+            var renderer = art.AddComponent<SpriteRenderer>();
+            renderer.sprite = assets.sandstormSprite;
+            renderer.drawMode = SpriteDrawMode.Tiled;
+            renderer.size = native;
+            renderer.sortingOrder = 60;   // over the actors and props (the UI is a separate canvas)
+            overlay.dust = renderer;
+            overlay.repeat = SandstormRepeat;
+        }
+
+        private const float SandstormRepeat = 10f;
+
+        // A hay-bale trampoline: a solid 2x1 box on the Ground layer carrying Trampoline, the bale art standing on it.
+        private static void BuildTrampoline(Transform root, LevelAssets assets, UpdraftRec u, int index)
+        {
+            var go = new GameObject($"Trampoline_{index + 1}") { layer = assets.groundLayer };
+            go.transform.SetParent(root, false);
+            go.transform.position = new Vector3(u.x, u.baseTop, 0f);
+            var box = go.AddComponent<BoxCollider2D>();
+            box.size = new Vector2(TrampolineWidth, TrampolineHeight);
+            box.offset = new Vector2(0f, TrampolineHeight * 0.5f);
+            var trampoline = go.AddComponent<Trampoline>();
+            trampoline.launchHeight = u.launch;
+            if (assets.trampolineSprite == null) { return; }
+            var art = new GameObject("Bale");
+            art.transform.SetParent(go.transform, false);
+            float k = (TrampolineWidth + 0.2f) / assets.trampolineSprite.bounds.size.x;
+            art.transform.localScale = new Vector3(k, k, 1f);   // feet-pivoted art
+            var renderer = art.AddComponent<SpriteRenderer>();
+            renderer.sprite = assets.trampolineSprite;
+            renderer.sortingOrder = 3;
+            trampoline.art = art.transform;
+        }
+
+        // Ferris wheels: the wheel art behind each wheel's seats, its ring (the art's full width, a little wider than the
+        // seats' circle) centred on the hub, its frame standing down into the pit.
+        private void BuildFerrisWheels(Transform root, LevelAssets assets)
+        {
+            if (assets.ferrisWheelSprite == null) { return; }
+            for (int i = 0; i < _wheels.Count; i++)
+            {
+                var (cx, hubTop, radius) = _wheels[i];
+                var go = new GameObject($"FerrisWheel_{i + 1}");
+                go.transform.SetParent(root, false);
+                Vector2 native = assets.ferrisWheelSprite.bounds.size;
+                float k = (2f * radius + 1.6f) / native.x;
+                float width = native.x * k, height = native.y * k;
+                float pivotFromBottom = assets.ferrisWheelSprite.pivot.y / assets.ferrisWheelSprite.rect.height;
+                // The ring's centre is half a width below the art's top.
+                float hubY = hubTop - 0.5f;
+                go.transform.position = new Vector3(cx, hubY + width * 0.5f - height * (1f - pivotFromBottom), 0f);
+                go.transform.localScale = new Vector3(k, k, 1f);
+                var renderer = go.AddComponent<SpriteRenderer>();
+                renderer.sprite = assets.ferrisWheelSprite;
+                renderer.sortingOrder = -2;   // behind the tilemaps and seats, in front of the parallax
+                renderer.color = new Color(0.9f, 0.9f, 0.9f);
+            }
+        }
+
         // Updrafts: a trigger column (UpdraftZone) with the spiral art stretched over it, behind the player.
         private void BuildUpdrafts(Transform root, LevelAssets assets)
         {
             for (int i = 0; i < _updrafts.Count; i++)
             {
                 var u = _updrafts[i];
+                if (u.trampoline)
+                {
+                    BuildTrampoline(root, assets, u, i);
+                    continue;
+                }
                 var go = new GameObject($"Updraft_{i + 1}");
                 go.transform.SetParent(root, false);
                 go.transform.position = new Vector3(u.x, u.baseTop, 0f);
@@ -2722,6 +3210,10 @@ namespace FarmFuryStampede.EditorTools
             if (_breakables.Any(b => x > b.x - 2f && x < b.x + b.length + 2f)) { return false; }
             if (_water.Any(w => x > w.xMin - 2f && x < w.xMax + 2f)) { return false; }
             if (_chambers.Any(c => x > c.x0 - 3f && x < c.x0 + c.interiorWidth + 5f)) { return false; }
+            if (_crushers.Concat(_lasers).Any(h => Mathf.Abs(h.x - x) < ObstacleWidth * 0.5f + 4f)) { return false; }   // room to wait out a hazard
+            if (_quicksand.Any(q => x > q.x0 - 2f && x < q.x1 + 2f)) { return false; }
+            if (_updrafts.Any(u => u.trampoline && Mathf.Abs(u.x - x) < ObstacleWidth * 0.5f + 3f)) { return false; }
+            if (_tumbleweeds.Any(t => x > t.x0 - 2f && x < t.x1 + 2f)) { return false; }   // the lane must stay clear to roll
             // Keep off anything overhead (low platforms, secret ledges): an extra step up must not open a secret.
             if (_surfaces.Any(s => s.kind == Kind.Floating && x > s.x0 - 3f && x < s.x1 + 3f)) { return false; }
             if (_surfaces.Any(s => s.secret && x > s.x0 - 3f && x < s.x1 + 3f)) { return false; }

@@ -48,6 +48,15 @@ namespace FarmFuryStampede.EditorTools
         private const string SunkenSecretCropFile = "SunkenCity/Clam.png";
         // ... and the Mothership's: glowing containment pods (energy cells); no art came for a crop, so the pod stands in.
         private const string MothershipCropFile = "MotherShip/ContainmentPod.png";
+        // ... and the Crop Factory's: tins of corn, and the golden cob in a jar for the secret-cluster crops.
+        private const string CropFactoryCropFile = "CropFactory/CornCan.png";
+        private const string CropFactorySecretCropFile = "CropFactory/GoldenJar.png";
+        // ... and Dustbowl Canyon's: prickly pears, and a golden one for the secret-cluster crops.
+        private const string DustbowlCropFile = "DustbowlCanyon/PricklyPear.png";
+        private const string DustbowlSecretCropFile = "DustbowlCanyon/GoldenPear.png";
+        // ... and Harvest Fairground's: toffee apples, and a golden one for the secret-cluster crops.
+        private const string FairgroundCropFile = "HarvestFairground/CandyApple.png";
+        private const string FairgroundSecretCropFile = "HarvestFairground/GoldenApple.png";
 
         // Crops drawn bigger than CropTargetWorldSize. Their pivot is lowered so every crop's bottom edge sits at
         // the same height as a standard one, keeping the big icons clear of the grass too.
@@ -62,6 +71,12 @@ namespace FarmFuryStampede.EditorTools
             { SkyCropFile, 1.1f },
             { SunkenCropFile, 0.8f },            // a round pearl reads big at the kernel's size
             { SunkenSecretCropFile, 1.5f },      // the clam fills ~3/4 of its frame: ~1.15 visible, like the cob
+            { CropFactoryCropFile, 1f },          // a tall tin: ~1.0 tall, ~0.7 wide
+            { CropFactorySecretCropFile, 1.25f }, // the jar, a little bigger, like the golden cob
+            { DustbowlCropFile, 0.9f },           // the pear: ~0.9 tall, like the kernel
+            { DustbowlSecretCropFile, 1.35f },    // the golden pear with its glow
+            { FairgroundCropFile, 1f },           // the apple on its stick: ~1.0 tall
+            { FairgroundSecretCropFile, 1.4f },   // the golden apple with its sparkles
             { MothershipCropFile, 1.1f },        // the pod fills ~85% of its frame height: ~0.95 visible               // the plum sits on a cloud: drawn a little bigger so the fruit reads           // fills its frame; a touch taller than the kernel, as it is a tall shape
         };
         // The rare pellet (RarePelletPickup): a glowing crystal apple at the end of each gated secret.
@@ -154,6 +169,25 @@ namespace FarmFuryStampede.EditorTools
         private const string MothershipFailedSourcePath = EnvironmentDir + "/RM_LevelFailed_Canvas.png";
         private const string MothershipNewCharacterSourcePath = EnvironmentDir + "/RM_NewCharacter_Canvas.png";
         private const string MothershipCharacterSourcePath = EnvironmentDir + "/RM_Character_Canvas.png";
+        // The Crop Factory's (2026-10-17): its far parallax (UI/CropFactory/FarParallax.png) at 1280x720 with the
+        // Mothership canvases' logo, lettering and stars lifted off them by a diff against RobotMothership.png (an exact
+        // resize, so the overlay comes out clean; a script, not in the repo). Widened the same way.
+        private const string CropFactoryCompleteSourcePath = EnvironmentDir + "/CF_LevelComplete_Canvas.png";
+        private const string CropFactoryFailedSourcePath = EnvironmentDir + "/CF_LevelFailed_Canvas.png";
+        private const string CropFactoryNewCharacterSourcePath = EnvironmentDir + "/CF_NewCharacter_Canvas.png";
+        private const string CropFactoryCharacterSourcePath = EnvironmentDir + "/CF_Character_Canvas.png";
+        // Dustbowl Canyon's (2026-10-17): its Level Select painting (Environment/DustbowlCanyon.png, no title on it) made
+        // the same way.
+        private const string DustbowlCompleteSourcePath = EnvironmentDir + "/DC_LevelComplete_Canvas.png";
+        private const string DustbowlFailedSourcePath = EnvironmentDir + "/DC_LevelFailed_Canvas.png";
+        private const string DustbowlNewCharacterSourcePath = EnvironmentDir + "/DC_NewCharacter_Canvas.png";
+        private const string DustbowlCharacterSourcePath = EnvironmentDir + "/DC_Character_Canvas.png";
+        // Harvest Fairground's (2026-10-17): its Level Select painting (Environment/HarvestFairground.png, the fair at
+        // night, no title on it) made the same way.
+        private const string FairgroundCompleteSourcePath = EnvironmentDir + "/HF_LevelComplete_Canvas.png";
+        private const string FairgroundFailedSourcePath = EnvironmentDir + "/HF_LevelFailed_Canvas.png";
+        private const string FairgroundNewCharacterSourcePath = EnvironmentDir + "/HF_NewCharacter_Canvas.png";
+        private const string FairgroundCharacterSourcePath = EnvironmentDir + "/HF_Character_Canvas.png";
         private static string Wide(string source) => source.Replace(".png", "_Wide.png");
         // Pause (per its mockup): the same kind of backdrop, "Pause" and the logo painted in, widened the same way.
         private const string PauseSourcePath = EnvironmentDir + "/Pause_Canvas.png";
@@ -249,7 +283,10 @@ namespace FarmFuryStampede.EditorTools
             foreach (string source in new[] { WatermillCompleteSourcePath, WatermillFailedSourcePath, WatermillNewCharacterSourcePath, WatermillCharacterSourcePath,
                          SkyCompleteSourcePath, SkyFailedSourcePath, SkyNewCharacterSourcePath, SkyCharacterSourcePath,
                          SunkenCompleteSourcePath, SunkenFailedSourcePath, SunkenNewCharacterSourcePath, SunkenCharacterSourcePath,
-                         MothershipCompleteSourcePath, MothershipFailedSourcePath, MothershipNewCharacterSourcePath, MothershipCharacterSourcePath })
+                         MothershipCompleteSourcePath, MothershipFailedSourcePath, MothershipNewCharacterSourcePath, MothershipCharacterSourcePath,
+                         CropFactoryCompleteSourcePath, CropFactoryFailedSourcePath, CropFactoryNewCharacterSourcePath, CropFactoryCharacterSourcePath,
+                         DustbowlCompleteSourcePath, DustbowlFailedSourcePath, DustbowlNewCharacterSourcePath, DustbowlCharacterSourcePath,
+                         FairgroundCompleteSourcePath, FairgroundFailedSourcePath, FairgroundNewCharacterSourcePath, FairgroundCharacterSourcePath })
             {
                 BuildWideResultsArt(source, Wide(source));
             }
@@ -267,6 +304,12 @@ namespace FarmFuryStampede.EditorTools
             ImportCropIcon(SunkenCropFile);
             ImportCropIcon(SunkenSecretCropFile);
             ImportCropIcon(MothershipCropFile);
+            ImportCropIcon(CropFactoryCropFile);
+            ImportCropIcon(CropFactorySecretCropFile);
+            ImportCropIcon(DustbowlCropFile);
+            ImportCropIcon(DustbowlSecretCropFile);
+            ImportCropIcon(FairgroundCropFile);
+            ImportCropIcon(FairgroundSecretCropFile);
             foreach (string file in CharacterCardFiles.Values) { ImportCentered(file, CardPixelsPerUnit); }
             foreach (var (file, pivotY, metres) in ObstacleFiles) { ImportToScale(file, pivotY, metres); }
 
@@ -281,6 +324,9 @@ namespace FarmFuryStampede.EditorTools
             ImportSkyArt();
             ImportSunkenArt();
             ImportMothershipArt();
+            ImportCropFactoryArt();
+            ImportDustbowlArt();
+            ImportFairgroundArt();
 
             foreach (string file in MenuSpriteFiles()) { ImportMenuSprite(file); }
         }
@@ -324,6 +370,18 @@ namespace FarmFuryStampede.EditorTools
             yield return Wide(MothershipFailedSourcePath);
             yield return Wide(MothershipNewCharacterSourcePath);
             yield return Wide(MothershipCharacterSourcePath);
+            yield return Wide(CropFactoryCompleteSourcePath);
+            yield return Wide(CropFactoryFailedSourcePath);
+            yield return Wide(CropFactoryNewCharacterSourcePath);
+            yield return Wide(CropFactoryCharacterSourcePath);
+            yield return Wide(DustbowlCompleteSourcePath);
+            yield return Wide(DustbowlFailedSourcePath);
+            yield return Wide(DustbowlNewCharacterSourcePath);
+            yield return Wide(DustbowlCharacterSourcePath);
+            yield return Wide(FairgroundCompleteSourcePath);
+            yield return Wide(FairgroundFailedSourcePath);
+            yield return Wide(FairgroundNewCharacterSourcePath);
+            yield return Wide(FairgroundCharacterSourcePath);
             yield return $"{UIDir}/{StarEmptyFile}";
             yield return $"{UIDir}/{QuitButtonFile}";
             yield return $"{UIDir}/{ExitButtonFile}";
@@ -393,6 +451,9 @@ namespace FarmFuryStampede.EditorTools
             WorldType.SkyIslands => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(SkyCharacterSourcePath)),
             WorldType.SunkenCity => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(SunkenCharacterSourcePath)),
             WorldType.RobotMothership => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(MothershipCharacterSourcePath)),
+            WorldType.CropFactory => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(CropFactoryCharacterSourcePath)),
+            WorldType.DustbowlCanyon => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(DustbowlCharacterSourcePath)),
+            WorldType.HarvestFairground => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(FairgroundCharacterSourcePath)),
             _ => null,
         };
         /// <summary>A world's own New Character page backdrop, or null for the shared sunset one.</summary>
@@ -403,6 +464,9 @@ namespace FarmFuryStampede.EditorTools
             WorldType.SkyIslands => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(SkyNewCharacterSourcePath)),
             WorldType.SunkenCity => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(SunkenNewCharacterSourcePath)),
             WorldType.RobotMothership => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(MothershipNewCharacterSourcePath)),
+            WorldType.CropFactory => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(CropFactoryNewCharacterSourcePath)),
+            WorldType.DustbowlCanyon => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(DustbowlNewCharacterSourcePath)),
+            WorldType.HarvestFairground => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(FairgroundNewCharacterSourcePath)),
             _ => null,
         };
         /// <summary>A world's own Level Complete / Level Failed backdrop, or null for the shared Meadow Ruins one.</summary>
@@ -413,6 +477,9 @@ namespace FarmFuryStampede.EditorTools
             WorldType.SkyIslands => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(complete ? SkyCompleteSourcePath : SkyFailedSourcePath)),
             WorldType.SunkenCity => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(complete ? SunkenCompleteSourcePath : SunkenFailedSourcePath)),
             WorldType.RobotMothership => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(complete ? MothershipCompleteSourcePath : MothershipFailedSourcePath)),
+            WorldType.CropFactory => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(complete ? CropFactoryCompleteSourcePath : CropFactoryFailedSourcePath)),
+            WorldType.DustbowlCanyon => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(complete ? DustbowlCompleteSourcePath : DustbowlFailedSourcePath)),
+            WorldType.HarvestFairground => AssetDatabase.LoadAssetAtPath<Sprite>(Wide(complete ? FairgroundCompleteSourcePath : FairgroundFailedSourcePath)),
             _ => null,
         };
         /// <summary>World Select's backdrop: the sunset farm (Environment/Canvas.png).</summary>
@@ -841,6 +908,193 @@ namespace FarmFuryStampede.EditorTools
         }
 
         public static Sprite Mothership(string file) => Load(MothershipDir + file);
+
+        // ---- Crop Factory (World 9, paid) art, in Sprites/UI/CropFactory: generated 2026-10-17 with Kling (gpt-image2
+        // image-to-image from flat side-view layout sketches, several sprites per sheet), the white background cut out
+        // and each sprite trimmed by a script (not in the repo). Props to the world scale, feet on their lowest row.
+        private const string CropFactoryDir = "CropFactory/";
+        private static readonly (string file, float pivotY, float metres)[] CropFactoryFiles =
+        {
+            ("ProcessingPlant.png", 0f, 6.5f),   // ~4.2 units (the barn's place)
+            ("CogMachine.png", 0f, 6f),          // ~3.9 (the windmill's)
+            ("GrainSilo.png", 0f, 8f),           // ~5.2 (the silo's)
+            ("RobotArm.png", 0f, 6f),            // ~3.9 (the oak's)
+            ("CrateStack.png", 0f, 4.5f),        // ~2.9 (the gnarled tree's)
+            ("Hopper.png", 0f, 5f),              // ~3.3 (the water wheel's)
+            ("Forklift.png", 0f, 2.8f),          // ~1.8 (the cart's)
+            ("HookCrate.png", 0.5f, 3f),         // the overhead hook gliding across in the plane's place
+            ("CropCrate.png", 0f, 2.6f),         // ~1.7: random obstacle (its collider follows the art)
+            ("Gearbox.png", 0f, 2.4f),           // ~1.6: random obstacle
+            ("ChemDrum.png", 0f, 2.3f),          // ~1.5: the barrel-pyramid barrel, a barrel's size
+            ("SignalPost.png", 0f, 2.8f),        // ~1.8: every checkpoint
+            ("Crusher.png", 0f, 4f),             // LevelBuilder sizes it to the press (Crusher())
+            ("LaserPost.png", 0f, 2f),           // LevelBuilder sizes it (LaserGate())
+        };
+        private static readonly (string file, float ppu)[] CropFactoryBlocks =
+        {
+            ("CatwalkSegment.png", 82f),     // every ledge: a 3-unit catwalk segment, 1 unit thick
+            ("SteelCrate.png", 372f),        // StoneBlocks() squares, 1 unit
+            ("CrackedGrate.png", 374f),      // Bessie's breakable floor, one cell
+            ("FactoryFill.png", 256f),       // the panelling under the factory floor, one cell
+            ("Drone.png", 280f),             // the vacuum quadcopter in the Drone's place, ~2 wide
+            ("ConveyorLift.png", 100f),      // every moving ledge (LevelBuilder sizes it)
+            ("LaserBeam.png", 100f),         // the laser gate's beam (a generated glow), stretched over it
+        };
+        // The conveyor belt (Conveyor.png with its end outlines trimmed) is drawn tiled, which needs a full-rect mesh.
+        private const string CropFactoryBeltFile = "ConveyorBelt.png";
+
+        private static void ImportCropFactoryArt()
+        {
+            foreach (var (file, pivotY, metres) in CropFactoryFiles) { ImportToScale(CropFactoryDir + file, pivotY, metres); }
+            foreach (var (file, ppu) in CropFactoryBlocks) { ImportCentered(CropFactoryDir + file, ppu); }
+            var belt = BeginImport(CropFactoryDir + CropFactoryBeltFile);
+            if (belt != null)
+            {
+                belt.spritePixelsPerUnit = 68f;   // 68px tall -> 1 unit
+                var settings = new TextureImporterSettings();
+                belt.ReadTextureSettings(settings);
+                settings.spriteMeshType = SpriteMeshType.FullRect;
+                settings.spriteAlignment = (int)SpriteAlignment.Center;
+                belt.SetTextureSettings(settings);
+                belt.wrapMode = TextureWrapMode.Repeat;
+                FinishImport(belt);
+            }
+        }
+
+        public static Sprite CropFactory(string file) => Load(CropFactoryDir + file);
+        public static Sprite CropFactoryCrop() => Load(CropFactoryCropFile);
+        public static Sprite CropFactorySecretCrop() => Load(CropFactorySecretCropFile);
+
+        // ---- Dustbowl Canyon (World 7, paid) art, in Sprites/UI/DustbowlCanyon: generated 2026-10-17 with Kling in three
+        // sheets (gpt-image2 image-to-image from layout sketches, as the Crop Factory), cut out and trimmed by a script.
+        private const string DustbowlDir = "DustbowlCanyon/";
+        private static readonly (string file, float pivotY, float metres)[] DustbowlFiles =
+        {
+            ("RanchHouse.png", 0f, 6.5f),     // ~4.2 units (the barn's place)
+            ("Windpump.png", 0f, 8f),         // ~5.2 (the windmill's)
+            ("WaterTower.png", 0f, 8f),       // ~5.2 (the silo's)
+            ("Saguaro.png", 0f, 6.5f),        // ~4.2 (the oak's)
+            ("DeadTree.png", 0f, 6f),         // ~3.9 (the gnarled tree's)
+            ("Wagon.png", 0f, 4f),            // ~2.6 (the water wheel's)
+            ("MineCart.png", 0f, 2.4f),       // ~1.6 (the cart's)
+            ("Boulder.png", 0f, 2.6f),        // ~1.7: random obstacle (its collider follows the art)
+            ("Crate.png", 0f, 2.4f),          // ~1.6: random obstacle
+            ("WaterBarrel.png", 0f, 2.3f),    // ~1.5: the barrel-pyramid barrel
+            ("SignPost.png", 0f, 2.8f),       // ~1.8: every checkpoint
+        };
+        private static readonly (string file, float ppu)[] DustbowlBlocks =
+        {
+            ("Ledge.png", 132f),              // every ledge, 1 unit thick
+            ("Block.png", 335f),              // StoneBlocks() squares, 1 unit
+            ("Breakable.png", 338f),          // Bessie's breakable floor, one cell
+            ("GroundFill.png", 256f),         // the rock under the desert floor, one cell
+            ("Drone.png", 154f),              // the propeller drone in the Drone's place, ~1.6 wide
+            ("MineCartLift.png", 100f),       // every moving ledge (LevelBuilder sizes it)
+            ("Tumbleweed.png", 100f),         // LevelBuilder sizes it (Tumbleweeds())
+        };
+        // Drawn tiled (SpriteDrawMode.Tiled), which needs a full-rect mesh: the quicksand strip and the sandstorm dust.
+        private static readonly (string file, float ppu)[] DustbowlTiled = { ("Quicksand.png", 117f), ("SandstormDust.png", 100f) };
+
+        private static void ImportDustbowlArt()
+        {
+            foreach (var (file, pivotY, metres) in DustbowlFiles) { ImportToScale(DustbowlDir + file, pivotY, metres); }
+            foreach (var (file, ppu) in DustbowlBlocks) { ImportCentered(DustbowlDir + file, ppu); }
+            foreach (var (file, ppu) in DustbowlTiled) { ImportTiled(DustbowlDir + file, ppu); }
+        }
+
+        // A centred sprite with a full-rect mesh and repeat wrap, for SpriteDrawMode.Tiled.
+        private static void ImportTiled(string file, float ppu)
+        {
+            var importer = BeginImport(file);
+            if (importer == null) { return; }
+            importer.spritePixelsPerUnit = ppu;
+            var settings = new TextureImporterSettings();
+            importer.ReadTextureSettings(settings);
+            settings.spriteMeshType = SpriteMeshType.FullRect;
+            settings.spriteAlignment = (int)SpriteAlignment.Center;
+            importer.SetTextureSettings(settings);
+            importer.wrapMode = TextureWrapMode.Repeat;
+            FinishImport(importer);
+        }
+
+        public static Sprite Dustbowl(string file) => Load(DustbowlDir + file);
+        public static Sprite DustbowlCrop() => Load(DustbowlCropFile);
+        public static Sprite DustbowlSecretCrop() => Load(DustbowlSecretCropFile);
+
+        // ---- Harvest Fairground (World 8, paid) art, in Sprites/UI/HarvestFairground: generated 2026-10-17 with Kling in
+        // three sheets (as Dustbowl Canyon), cut out and trimmed by a script.
+        private const string FairgroundDir = "HarvestFairground/";
+        private static readonly (string file, float pivotY, float metres)[] FairgroundFiles =
+        {
+            ("BigTop.png", 0f, 7f),            // ~4.6 units (the barn's place)
+            ("Carousel.png", 0f, 6f),          // ~3.9 (the windmill's)
+            ("HelterSkelter.png", 0f, 8f),     // ~5.2 (the silo's)
+            ("GameStall.png", 0f, 5f),         // ~3.3 (the oak's)
+            ("FerrisWheel.png", 0f, 8f),       // the gnarled tree's place, and behind every FerrisWheel() (rescaled)
+            ("PopcornCart.png", 0f, 3f),       // ~2.0 (the water wheel's)
+            ("Pumpkin.png", 0f, 2.4f),         // ~1.6: random obstacle (its collider follows the art)
+            ("PrizeCrates.png", 0f, 2.6f),     // ~1.7: random obstacle
+            ("StripedBarrel.png", 0f, 2.3f),   // ~1.5: the barrel-pyramid barrel
+            ("LampPost.png", 0f, 2.8f),        // ~1.8: every checkpoint
+            ("Trampoline.png", 0f, 2f),        // LevelBuilder sizes it (Trampoline())
+            ("Gondola.png", 0f, 3f),           // LevelBuilder sizes it (FerrisWheel() seats)
+        };
+        private static readonly (string file, float ppu)[] FairgroundBlocks =
+        {
+            ("Ledge.png", 131f),              // every ledge, 1 unit thick
+            ("Block.png", 353f),              // StoneBlocks() squares, 1 unit
+            ("Breakable.png", 345f),          // Bessie's breakable floor, one cell
+            ("GroundFill.png", 256f),         // the soil under the fairground grass, one cell
+            ("Drone.png", 190f),              // the balloon drone in the Drone's place, ~1.8 tall
+            ("RideCar.png", 100f),            // every moving ledge (LevelBuilder sizes it)
+        };
+
+        private static void ImportFairgroundArt()
+        {
+            foreach (var (file, pivotY, metres) in FairgroundFiles) { ImportToScale(FairgroundDir + file, pivotY, metres); }
+            foreach (var (file, ppu) in FairgroundBlocks) { ImportCentered(FairgroundDir + file, ppu); }
+            ImportTiled(FairgroundDir + "ConveyorRide.png", 112f);   // the conveyor ride belt, tiled (1 unit tall)
+        }
+
+        public static Sprite Fairground(string file) => Load(FairgroundDir + file);
+        public static Sprite FairgroundCrop() => Load(FairgroundCropFile);
+        public static Sprite FairgroundSecretCrop() => Load(FairgroundSecretCropFile);
+
+        /// <summary>Harvest Fairground's scenery in the farm-prop roles (no cart or sky drifter).</summary>
+        internal static FarmBackdropArt FairgroundBackdrop() => new()
+        {
+            barn = Fairground("BigTop.png"),
+            windmill = Fairground("Carousel.png"),
+            silo = Fairground("HelterSkelter.png"),
+            oak = Fairground("GameStall.png"),
+            gnarledTree = Fairground("FerrisWheel.png"),
+            waterWheel = Fairground("PopcornCart.png"),
+        };
+
+        /// <summary>Dustbowl Canyon's scenery in the farm-prop roles (no sky drifter).</summary>
+        internal static FarmBackdropArt DustbowlBackdrop() => new()
+        {
+            barn = Dustbowl("RanchHouse.png"),
+            windmill = Dustbowl("Windpump.png"),
+            silo = Dustbowl("WaterTower.png"),
+            oak = Dustbowl("Saguaro.png"),
+            gnarledTree = Dustbowl("DeadTree.png"),
+            waterWheel = Dustbowl("Wagon.png"),
+            cart = Dustbowl("MineCart.png"),
+        };
+
+        /// <summary>The Crop Factory's scenery in the farm-prop roles.</summary>
+        internal static FarmBackdropArt CropFactoryBackdrop() => new()
+        {
+            barn = CropFactory("ProcessingPlant.png"),
+            windmill = CropFactory("CogMachine.png"),
+            silo = CropFactory("GrainSilo.png"),
+            oak = CropFactory("RobotArm.png"),
+            gnarledTree = CropFactory("CrateStack.png"),
+            waterWheel = CropFactory("Hopper.png"),
+            cart = CropFactory("Forklift.png"),
+            plane = CropFactory("HookCrate.png"),
+        };
 
         /// <summary>The Mothership's scenery in the farm-prop roles; the rest are left empty.</summary>
         internal static FarmBackdropArt MothershipBackdrop() => new()

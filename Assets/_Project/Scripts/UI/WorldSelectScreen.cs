@@ -16,8 +16,8 @@ namespace FarmFuryStampede.UI
     /// without either a coloured panel with the name as text. Drag, or tap a side badge, to bring it to the centre;
     /// tapping the centred badge opens the world's Level Select. A story world unlocks once the previous world's boss
     /// level has been completed (only Meadow Ruins is open on a fresh save); a locked one is greyed and can be browsed
-    /// but not entered. A paid world not yet bought stays in full colour with the $3.99 price sign (ShopArt.worldPrice)
-    /// on its lower edge, and tapping it opens the world shop. The carousel opens centred on the furthest world the
+    /// but not entered. A paid world not yet bought stays in full colour (no price sign on it since 2026-10-17), and
+    /// tapping it opens the world shop. The carousel opens centred on the furthest world the
     /// player has unlocked. Left/Right (A/D) and Enter/Space work on a keyboard. The carousel fills the safe area
     /// below the wooden banner header; the screen sits on the sunset-farm backdrop (Canvas.png), cover-cropped to the
     /// device. The round home button (Btn_home.png) top-left of the safe area returns to the landing screen.
@@ -184,8 +184,7 @@ namespace FarmFuryStampede.UI
                 nameLabel.text = data != null ? data.displayName : card.world.ToString();
                 nameLabel.gameObject.SetActive(art == null);
 
-                var priceImage = card.priceSign.GetComponent<Image>();
-                card.priceSign.SetActive(card.forSale && priceImage.sprite != null);
+                card.priceSign.SetActive(false);   // no $3.99 sign on the badges (2026-10-17, the user's call); tapping still opens the shop
             }
 
             int start = keepPosition ? _carousel.CenterIndex : furthest;

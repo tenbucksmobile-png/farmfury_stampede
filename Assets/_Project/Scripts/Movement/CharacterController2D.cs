@@ -84,6 +84,8 @@ namespace FarmFuryStampede.Movement
         private bool _characterAssigned;
 
         private bool _inWaterFlag;
+        private bool _inQuicksandFlag;   // set each physics step by a QuicksandZone the player is in (Dustbowl Canyon)
+        private const float QuicksandSpeedMultiplier = 0.45f;
         private float _updraftLift;   // set each physics step by an UpdraftZone the player is inside
         private const float UpdraftAcceleration = 45f;
         private float _waterTime;
@@ -365,6 +367,12 @@ namespace FarmFuryStampede.Movement
             _inWaterFlag = true;
         }
 
+        /// <summary>Called every physics step by a QuicksandZone the character is in: it wades at under half speed.</summary>
+        public void NotifyInQuicksand()
+        {
+            _inQuicksandFlag = true;
+        }
+
         // ------------------------------------------------------------ per-frame
 
         private void Update()
@@ -415,6 +423,11 @@ namespace FarmFuryStampede.Movement
                 MoveAndCollide(new Vector2(ride.Delta.x, 0f), out _, out _);
                 _position.y += ride.Delta.y;
             }
+            // Standing on a conveyor belt (Crop Factory): carried along at the belt's speed.
+            else if (_grounded && _groundCollider != null && _groundCollider.TryGetComponent(out LevelSystem.ConveyorBelt belt))
+            {
+                MoveAndCollide(new Vector2(belt.speed * dt, 0f), out _, out _);
+            }
 
             // Per-step modifiers start neutral; the active ability re-applies its own in Tick.
             GravityScale = 1f;
@@ -434,6 +447,8 @@ namespace FarmFuryStampede.Movement
             // Water: slow down and, if lingering, drown (respawn) unless immune.
             bool inWater = _inWaterFlag && !WaterImmune;
             _inWaterFlag = false;
+            bool inQuicksand = _inQuicksandFlag;
+            _inQuicksandFlag = false;
             _waterTime = inWater ? _waterTime + dt : Mathf.Max(0f, _waterTime - dt * 2f);
             if (_waterTime >= waterDrownSeconds)
             {
@@ -455,7 +470,7 @@ namespace FarmFuryStampede.Movement
                 }
 
                 // Horizontal: accelerate toward target speed; decelerate to rest or when reversing.
-                float targetSpeed = moveInput * moveSpeed * (inWater ? waterSpeedMultiplier : 1f);
+                float targetSpeed = moveInput * moveSpeed * (inWater ? waterSpeedMultiplier : 1f) * (inQuicksand ? QuicksandSpeedMultiplier : 1f);
                 bool reversingOrStopping = Mathf.Approximately(targetSpeed, 0f)
                     || (_velocity.x != 0f && Mathf.Sign(targetSpeed) != Mathf.Sign(_velocity.x));
                 float rate = reversingOrStopping ? groundDeceleration : groundAcceleration;
@@ -552,6 +567,13 @@ namespace FarmFuryStampede.Movement
             {
                 float below = _groundCollider.bounds.max.y + lift.Delta.y - FeetPosition.y;
                 if (below > 0f) { _position.y += below; }
+            }
+
+            // Standing on a hay-bale trampoline (Harvest Fairground): bounced straight up to its height.
+            if (_grounded && _groundCollider != null && _groundCollider.TryGetComponent(out LevelSystem.Trampoline trampoline))
+            {
+                LaunchToHeight(trampoline.launchHeight);
+                trampoline.Bounced();
             }
 
             _body.MovePosition(_position);

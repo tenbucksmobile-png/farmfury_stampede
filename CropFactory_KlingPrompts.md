@@ -1,5 +1,16 @@
 # Crop Factory (World 9) - Kling AI art prompts
 
+> **Done 2026-10-17 through the Kling MCP, and this is the method to reuse for Dustbowl Canyon and Harvest
+> Fairground.** The prompts below (default Kling models, text only) kept coming out 3/4. What worked first time for
+> every asset: model **gpt-image2**, image-to-image, 2k / medium (15 credits a job), with **image 1 = a layout
+> sketch** drawn by script (white 16:9 canvas with flat grey boxes or grey baselines where each sprite goes) and
+> **image 2 = the world's backdrop painting** as the style reference. The prompt says "use the FIRST image as the
+> exact layout, the SECOND only for style", then "STRICT orthographic side elevation / side profile facing RIGHT, NO
+> top face, NO 3/4, NO isometric, NO perspective, no shadows, plain pure white background", then one line per cell.
+> Three to five sprites per sheet (tiles / robots / pickups / obstacles+hazards / two scenery sheets), the boss alone
+> at 1:1, its wreck image-to-image from the boss: 9 jobs for the whole world. A script then cuts the white out, removes
+> the guide baselines and splits each sheet into trimmed sprites.
+
 Art for the paid Crop Factory world, matching the existing `Sprites/Environment/CropFactory.png` backdrop (teal-grey
 factory, red warning lights, yellow-black hazard stripes, big glossy crops) and the other worlds' cartoon look.
 GDD: "The robots' crop processing plant - conveyors, rhythm crushers, laser gates - boss Harvester Prime (true final

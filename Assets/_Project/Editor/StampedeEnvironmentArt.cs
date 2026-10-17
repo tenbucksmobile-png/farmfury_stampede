@@ -113,6 +113,73 @@ namespace FarmFuryStampede.EditorTools
         // ---- Robot Mothership (World 6): one opaque layer, space over the planet (a copy of UI/MotherShip/RobotMothership.png).
         private static readonly string[] MothershipLayers = { "RM_Parallax_Far.png" };
 
+        // ---- Crop Factory (World 9): the factory hall (a copy of UI/CropFactory/FarParallax.png, opaque), then the row
+        // of machines (UI/CropFactory/MidParallax.png, transparent sky) repeated three times side by side at 4096 wide,
+        // as Watermill's middle layer is (a script, 2026-10-17).
+        private static readonly string[] CropFactoryLayers = { "CF_Parallax_Far.png", "CF_Parallax_Mid.png" };
+
+        // ---- Dustbowl Canyon (World 7): one opaque layer, the canyon at sunset (a copy of Environment/DustbowlCanyon.png,
+        // the Level Select painting, which has no title on it).
+        private static readonly string[] DustbowlLayers = { "DC_Parallax_Far.png" };
+
+        /// <summary>Dustbowl Canyon's parallax layers, far to near (missing ones left out).</summary>
+        public static Sprite[] DustbowlParallax() => DustbowlLayers
+            .Select(f => AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/{f}"))
+            .Where(s => s != null)
+            .ToArray();
+
+        // The desert floor (a script, 2026-10-17): GroundStrip.png is 512x265, two one-cell variants (the Kling ground block
+        // and its mirror); the bottom 226 rows are the sand and rock body, the dry grass tufts above overhang the cell.
+        private const string DustbowlFloorPath = "Assets/_Project/Sprites/UI/DustbowlCanyon/GroundStrip.png";
+        private static readonly RectInt DustbowlFloorArea = new(0, 0, 512, 265);   // bottom-up pixel rows
+        private const int DustbowlFloorVariants = 2, DustbowlFloorDirtPixels = 226;
+
+        // ---- Harvest Fairground (World 8): one opaque layer, the fair at night (a copy of Environment/HarvestFairground.png).
+        private static readonly string[] FairgroundLayers = { "HF_Parallax_Far.png" };
+
+        /// <summary>Harvest Fairground's parallax layers, far to near (missing ones left out).</summary>
+        public static Sprite[] FairgroundParallax() => FairgroundLayers
+            .Select(f => AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/{f}"))
+            .Where(s => s != null)
+            .ToArray();
+
+        // The fairground floor (a script, 2026-10-17): GroundStrip.png is 512x246, two one-cell variants (the Kling ground
+        // block and its mirror); the straw-and-grass top is inside the cell, so the body is all but its outline row.
+        private const string FairgroundFloorPath = "Assets/_Project/Sprites/UI/HarvestFairground/GroundStrip.png";
+        private static readonly RectInt FairgroundFloorArea = new(0, 0, 512, 246);   // bottom-up pixel rows
+        private const int FairgroundFloorVariants = 2, FairgroundFloorDirtPixels = 245;
+
+        /// <summary>Harvest Fairground's floor variants, left to right; empty if the art is missing.</summary>
+        public static Sprite[] FairgroundFloorArt() => AssetDatabase.LoadAllAssetsAtPath(FairgroundFloorPath)
+            .OfType<Sprite>()
+            .OrderBy(s => s.name)
+            .ToArray();
+
+        /// <summary>Dustbowl Canyon's floor variants, left to right; empty if the art is missing.</summary>
+        public static Sprite[] DustbowlFloorArt() => AssetDatabase.LoadAllAssetsAtPath(DustbowlFloorPath)
+            .OfType<Sprite>()
+            .OrderBy(s => s.name)
+            .ToArray();
+
+        /// <summary>The Crop Factory's parallax layers, far to near (missing ones left out).</summary>
+        public static Sprite[] CropFactoryParallax() => CropFactoryLayers
+            .Select(f => AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/{f}"))
+            .Where(s => s != null)
+            .ToArray();
+
+        // The factory floor (a script, 2026-10-17): DeckStrip.png is 512x280, two one-cell variants (the Kling floor
+        // block and its mirror, so they join seamlessly either way round); the bottom 256 rows are the panelled body and
+        // the top edge's outline overhangs the cell by ~0.09.
+        private const string CropFactoryFloorPath = "Assets/_Project/Sprites/UI/CropFactory/DeckStrip.png";
+        private static readonly RectInt CropFactoryFloorArea = new(0, 0, 512, 280);   // bottom-up pixel rows
+        private const int CropFactoryFloorVariants = 2, CropFactoryFloorDirtPixels = 256;
+
+        /// <summary>The Crop Factory's floor variants, left to right; empty if the art is missing.</summary>
+        public static Sprite[] CropFactoryFloorArt() => AssetDatabase.LoadAllAssetsAtPath(CropFactoryFloorPath)
+            .OfType<Sprite>()
+            .OrderBy(s => s.name)
+            .ToArray();
+
         /// <summary>The Mothership's parallax layers, far to near (missing ones left out).</summary>
         public static Sprite[] MothershipParallax() => MothershipLayers
             .Select(f => AssetDatabase.LoadAssetAtPath<Sprite>($"{EnvironmentDir}/{f}"))
@@ -184,7 +251,7 @@ namespace FarmFuryStampede.EditorTools
         /// <summary>Imports every configured layer file as a smooth, opaque sprite. Idempotent; missing files warn and are skipped.</summary>
         public static void ImportBackgroundArt()
         {
-            foreach (string file in Layers.Select(l => l.file).Concat(TundraLayers).Concat(WatermillLayers).Concat(SkyLayers).Concat(SunkenLayers).Concat(MothershipLayers))
+            foreach (string file in Layers.Select(l => l.file).Concat(TundraLayers).Concat(WatermillLayers).Concat(SkyLayers).Concat(SunkenLayers).Concat(MothershipLayers).Concat(CropFactoryLayers).Concat(DustbowlLayers).Concat(FairgroundLayers))
             {
                 string path = $"{EnvironmentDir}/{file}";
                 if (!File.Exists(path))
@@ -202,7 +269,7 @@ namespace FarmFuryStampede.EditorTools
                 importer.filterMode = FilterMode.Bilinear;
                 importer.mipmapEnabled = false;
                 // Most are opaque paintings; Watermill's middle and near layers have a transparent sky.
-                importer.alphaIsTransparency = WatermillLayers.Contains(file);
+                importer.alphaIsTransparency = WatermillLayers.Contains(file) || file == "CF_Parallax_Mid.png";
                 importer.maxTextureSize = 4096;   // the repeated Watermill layers are 4096 wide
                 importer.SaveAndReimport();
             }
@@ -223,6 +290,9 @@ namespace FarmFuryStampede.EditorTools
             SliceCloudStrip(SkyFloorPath, "SI_Cloud", SkyFloorArea, SkyFloorVariants);
             SliceFloorStrip(SunkenFloorPath, "SC_Ground", SunkenFloorArea, SunkenFloorVariants, SunkenFloorDirtPixels);
             SliceFloorStrip(MothershipFloorPath, "RM_Deck", MothershipFloorArea, MothershipFloorVariants, MothershipFloorDirtPixels);
+            SliceFloorStrip(CropFactoryFloorPath, "CF_Floor", CropFactoryFloorArea, CropFactoryFloorVariants, CropFactoryFloorDirtPixels);
+            SliceFloorStrip(DustbowlFloorPath, "DC_Floor", DustbowlFloorArea, DustbowlFloorVariants, DustbowlFloorDirtPixels);
+            SliceFloorStrip(FairgroundFloorPath, "HF_Floor", FairgroundFloorArea, FairgroundFloorVariants, FairgroundFloorDirtPixels);
         }
 
         // ---- Sky Islands' ground: there is no grass strip up here. The ground is cloud: CloudTile.png is two copies of

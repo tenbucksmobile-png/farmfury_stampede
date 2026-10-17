@@ -19,6 +19,8 @@ namespace FarmFuryStampede.LevelSystem
         public float period = 5f;
         [Tooltip("Where in the round trip it starts, 0-1 (0 = at the start, 0.5 = at the far end).")]
         [Range(0f, 1f)] public float phase;
+        [Tooltip("Above 0: a ferris-wheel seat instead of a ping-pong ledge, going round a circle of this radius once per period (anticlockwise, starting at the bottom at phase 0), the object's start position being the wheel's hub. The seat stays level.")]
+        public float orbitRadius;
 
         /// <summary>How far the platform moves during the current physics step.</summary>
         public Vector2 Delta { get; private set; }
@@ -47,9 +49,14 @@ namespace FarmFuryStampede.LevelSystem
             _body.MovePosition(to);
         }
 
-        // Smooth ping-pong: 0 at the start, 1 at the far end, easing at both.
+        // Smooth ping-pong: 0 at the start, 1 at the far end, easing at both. A ferris-wheel seat goes round its hub.
         private Vector2 PositionAt(float time)
         {
+            if (orbitRadius > 0f)
+            {
+                float a = period > 0f ? 2f * Mathf.PI * time / period : 0f;
+                return _origin + new Vector2(Mathf.Sin(a), -Mathf.Cos(a)) * orbitRadius;
+            }
             float t = period > 0f ? 0.5f - 0.5f * Mathf.Cos(2f * Mathf.PI * time / period) : 0f;
             return _origin + travel * t;
         }

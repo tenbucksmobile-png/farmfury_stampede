@@ -119,239 +119,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &77433572
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 77433573}
-  - component: {fileID: 77433575}
-  - component: {fileID: 77433574}
-  m_Layer: 0
-  m_Name: GameFlow
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &77433573
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 77433572}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1196459348}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &77433574
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 77433572}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f50c7de96c735724dacf3177f4b5f277, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.UI.DebugPanel
---- !u!114 &77433575
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 77433572}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 80a8b87ea52c93b4aa10899dc3ebe88c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.UI.GameFlow
-  characterSelect: {fileID: 1657151909}
-  menuArt:
-    landingPoster: {fileID: 21300000, guid: ccc150ddb6ddef2448f281b1bb92fa88, type: 3}
-    landingBackdrop: {fileID: 0}
-    playButton: {fileID: 21300000, guid: 9b1749fdde8cf954ca99ce13fcae49b7, type: 3}
-    exitButton: {fileID: 21300000, guid: 8928f1d9312cd2d47bf22b4bbb101e4b, type: 3}
-    settingsButton: {fileID: 21300000, guid: cba373159f1b33a4ba4f8d4af96fb06c, type: 3}
-    lifeIcon: {fileID: 21300000, guid: 9902f2f2fd3d346469d533f76da8ab99, type: 3}
-    pauseButton: {fileID: 21300000, guid: 2aa14273a3bf9c1418ed7b665b2aac81, type: 3}
-    newCharacterBackground: {fileID: 21300000, guid: ba844510de40a1d468ea6c77689ed5c2, type: 3}
-    newCharacterTitle: {fileID: 21300000, guid: 80b5fc7ee3503754ba63ebde69073fa6, type: 3}
-    characterSwapBackground: {fileID: 21300000, guid: 8263cbf026df9734da542c1cca00006d, type: 3}
-    pauseBackground: {fileID: 21300000, guid: 752db73409c9a21499a8260fff9a4ff3, type: 3}
-    levelCompleteBackground: {fileID: 21300000, guid: 72537aaf5bac6ff46a5d136e6e867a00, type: 3}
-    levelFailedBackground: {fileID: 21300000, guid: 65a61c670cd2e7a4bb30fa4b78e3e752, type: 3}
-    levelCompleteStarEmpty: {fileID: 21300000, guid: 0291fd1c8951cc64e99a51ddcdf87497, type: 3}
-    scoreIcon: {fileID: 21300000, guid: 11ec4cb82f6309346a2ee627343ecf7b, type: 3}
-    quitButton: {fileID: 21300000, guid: 34589c3e25897eb4eb5fc78ff097d815, type: 3}
-    worldSelectBackground: {fileID: 21300000, guid: 8903f33bb7dbec94ba48274d3a73976c, type: 3}
-    homeButton: {fileID: 21300000, guid: 5c2f80cba95b1de45a4976664cbca042, type: 3}
-    worldSelectBanner: {fileID: 21300000, guid: 658351f8f4f1bc64c8a629d84cff63f9, type: 3}
-    characterSelectBanner: {fileID: 21300000, guid: 250151fff9322244ebb04721aa1112af, type: 3}
-    levelTileLocked: {fileID: 21300000, guid: 33c75eee67044b04eb842b49fe3d31d6, type: 3}
-    levelTileNext: {fileID: 21300000, guid: b79e82643a924db47ad3e4519d137f3f, type: 3}
-    bossShield: {fileID: 21300000, guid: 59d59673faae43f4ca95dca3620c99e3, type: 3}
-    backButton: {fileID: 21300000, guid: 7fc8bdecc1da73148935666fc1be4ed7, type: 3}
-    oneStarBoard: {fileID: 21300000, guid: f50d5aedd5b07f4438fbc75a5778ced6, type: 3}
-    twoStarBoard: {fileID: 21300000, guid: 6b0a1ec57d3521546ac56596a88ed062, type: 3}
-    threeStarBoard: {fileID: 21300000, guid: 9f67054bd340a784db5c7e31449bc326, type: 3}
-    newCharacterSign: {fileID: 21300000, guid: 250151fff9322244ebb04721aa1112af, type: 3}
-    worldUnlockedSign: {fileID: 21300000, guid: 658351f8f4f1bc64c8a629d84cff63f9, type: 3}
-    rarePellet: {fileID: 21300000, guid: 5a07f34e32b389e478b703febe8181da, type: 3}
-    swapCharacterButton: {fileID: 21300000, guid: 79b4fd89cd30ace44abbae51fd7bfaf6, type: 3}
-  shopArt:
-    pageBackground: {fileID: 21300000, guid: 188af9908decf7a4c967e4d7a5569e02, type: 3}
-    settingsSign: {fileID: 21300000, guid: 441533d872aaca0438daf501fc74e530, type: 3}
-    shopSign: {fileID: 21300000, guid: 57967194f2fc6b240a1deca455f5828c, type: 3}
-    merchBanner: {fileID: 21300000, guid: 7263c425970201540889b3b28522a968, type: 3}
-    legalSign: {fileID: 21300000, guid: 54c9d1431c67b09428e01d6707906d31, type: 3}
-    leaderboardSign: {fileID: 21300000, guid: 38a0c715ce3dd4146957b58ede5232b6, type: 3}
-    musicIcon: {fileID: 21300000, guid: 7d0f5ee9a99c4734e9fa907c20e80b0d, type: 3}
-    leaderboardIcon: {fileID: 21300000, guid: e1c581d54099749429d3d2e9e7fde804, type: 3}
-    characterStoryIcon: {fileID: 21300000, guid: c94f987dc93d9fa4784b2ba1ea6c8cd2, type: 3}
-    policiesIcon: {fileID: 21300000, guid: 2bc74e6bbc1a07548b6f6fac711e09fe, type: 3}
-    cashIcon: {fileID: 21300000, guid: 2964fbe913a34ec46b22b75858a76000, type: 3}
-    worldsIcon: {fileID: 21300000, guid: d8dd4d41ea73e1e4c82ddd38e759be91, type: 3}
-    removeAdsIcon: {fileID: 21300000, guid: 6e297fb88aea7404093b30bf3a5b0f33, type: 3}
-    cosmeticsIcon: {fileID: 21300000, guid: 4183a19036c58e844bf003551ccc832b, type: 3}
-    plaque: {fileID: 21300000, guid: e9e9600820e8d31429d6947158860698, type: 3}
-    coinPacks:
-    - {fileID: 21300000, guid: 0169b8942065a0b498ff82191bbe56ae, type: 3}
-    - {fileID: 21300000, guid: 1311ea791b4c94048a119a117544a936, type: 3}
-    - {fileID: 21300000, guid: 9db4ead559dea154f8c72f3a09bd5cf7, type: 3}
-    - {fileID: 21300000, guid: 6157db937ad77904fadb3f39515a3660, type: 3}
-    worldPrice: {fileID: 21300000, guid: e8e9d7b12ed05704084c33a91bf46fdb, type: 3}
-    hatsBanner: {fileID: 21300000, guid: 8eadac520425c204ab140fd4c8d3b061, type: 3}
-    trailsBanner: {fileID: 21300000, guid: 3c37614e919ce1348ab5f5f9424e1761, type: 3}
-    machinesBanner: {fileID: 21300000, guid: a8cde13a46890af4fa5768ab3668ceb1, type: 3}
-    hatItems:
-    - {fileID: 21300000, guid: 1b1c26301e966554b876b81f450cc126, type: 3}
-    - {fileID: 21300000, guid: f927a871683b9644a8a42a339e46909b, type: 3}
-    - {fileID: 21300000, guid: cdd2d7704d76d904685055cc31090921, type: 3}
-    - {fileID: 21300000, guid: b7d50e999e1291c4c8cdf570fe2dc671, type: 3}
-    - {fileID: 21300000, guid: 938c3a5869c267e45b4e3c236a8b0c72, type: 3}
-    trailItems:
-    - {fileID: 21300000, guid: 77c0bb60d8fa604478af0aab71562171, type: 3}
-    - {fileID: 21300000, guid: bda6d27d704bda44d8c02fec2bc9e7c7, type: 3}
-    - {fileID: 21300000, guid: 696f7b1530fd80743b69df069a5bf3b1, type: 3}
-    - {fileID: 21300000, guid: 661a301be25f7fa4b8abce706c958716, type: 3}
-    - {fileID: 21300000, guid: 9881c570590e2664abc6fab3450ac2ae, type: 3}
-    - {fileID: 21300000, guid: 56fdf51b3d9ebf14cb256167abc90361, type: 3}
-    machineItems:
-    - {fileID: 21300000, guid: 54f86152aa12dad4e8d1a0030e09fc75, type: 3}
-    - {fileID: 21300000, guid: 4d77d48b8175f5749ad1bff11246580c, type: 3}
-    - {fileID: 21300000, guid: 7484604e08524cf40acf9dfaf75526fb, type: 3}
-    ownedBadge: {fileID: 21300000, guid: ea1f8d44ddfabee429b5077fe897857a, type: 3}
-    purchaseComplete: {fileID: 21300000, guid: 6fed8343817d6d84cbfb9dcbb55087c7, type: 3}
-    coinIcon: {fileID: 21300000, guid: 2e0d1add9e9cca24da6bd487ce99f574, type: 3}
-    yesButton: {fileID: 21300000, guid: 1dbf00426bd1c78408d32f32cd98a724, type: 3}
-    noButton: {fileID: 21300000, guid: 055239e1673d735459bfa0cb7781cbc8, type: 3}
-    revivePanel: {fileID: 21300000, guid: 24143199a70f9e24a87f7f40f0439603, type: 3}
-    watchAd: {fileID: 21300000, guid: f30bb93e9786eb7488efdfe79884ee8a, type: 3}
-    doubleCoins: {fileID: 21300000, guid: 22e5a1c2c4076ba4c9fcc4b272b7b90e, type: 3}
-    useCoinsSign: {fileID: 21300000, guid: 59d311365bfbb7f42b9b00aa04e3cf3d, type: 3}
-    lockerIcon: {fileID: 21300000, guid: e150fe29424230643b0a150bd0243d34, type: 3}
-    lockerBanner: {fileID: 21300000, guid: 27fa196e18b14014fa347e5dc4afd4d6, type: 3}
-    lockerSuggestion: {fileID: 21300000, guid: dd8c90907efbc324b8b426a589345d59, type: 3}
-    cardFrame: {fileID: 21300000, guid: 8d9883899dcdeaa408c749da9de89597, type: 3}
-    moveLeftButton: {fileID: 21300000, guid: 48976fe32056cbd44a08ee8ae5db1feb, type: 3}
-    moveRightButton: {fileID: 21300000, guid: 9b96fe0557acb974fae802328712b9b3, type: 3}
-    jumpButton: {fileID: 21300000, guid: 44e909e3b4bf81740915481625b2c054, type: 3}
-    abilityIcons:
-    - {fileID: 21300000, guid: e73af051959c6ea47ba9d4926fc85337, type: 3}
-    - {fileID: 21300000, guid: b07369dcf8a0f104d8ae686617985e13, type: 3}
-    - {fileID: 21300000, guid: 830819177079f3d42aa0981885784741, type: 3}
-    - {fileID: 21300000, guid: f2fc65672ba5ae946a5c0fa5a1ed6625, type: 3}
-    - {fileID: 21300000, guid: 1db4bec3f9885f84dbe3e460f39fa28c, type: 3}
-    - {fileID: 21300000, guid: 3a9254ec6ac6ce642b4bd07a6df715ca, type: 3}
-    - {fileID: 21300000, guid: 21a53ce01857d1f4087eaf1b2cce1f97, type: 3}
-    - {fileID: 21300000, guid: ff145bf858678c842b14a8b1c7115305, type: 3}
-    cosmeticIcons:
-    - {fileID: 21300000, guid: b5109d365c147174e828eef2bb1f79f9, type: 3}
-    - {fileID: 21300000, guid: 45e8252c492e1cc4aa0feb4d68855409, type: 3}
-    - {fileID: 21300000, guid: a08310057af5c794d9b8c740824137aa, type: 3}
-    - {fileID: 21300000, guid: a50d85241f4e4f141a8ee09ee9ab3fb7, type: 3}
-    - {fileID: 21300000, guid: 3109d232152f56341b1f8bffa30b8e8e, type: 3}
-    - {fileID: 21300000, guid: 8670cdca7fa02e949b408b15e61cd091, type: 3}
-    - {fileID: 21300000, guid: db5f2680ca093f94ca2fe7458dedd88d, type: 3}
-    - {fileID: 21300000, guid: 034f0cfd8e446e644b3ebebfb03574a4, type: 3}
-    - {fileID: 21300000, guid: 804ba52b165784745a77b1b8c356a2a7, type: 3}
-    - {fileID: 21300000, guid: e312393328d79fd4d983290cb208915b, type: 3}
-    - {fileID: 21300000, guid: 070118ced4cfacd4fa84c20576be56d7, type: 3}
-    - {fileID: 21300000, guid: 2fcb6564871bf2844997dea6236e8b94, type: 3}
-    - {fileID: 21300000, guid: 347d4ad3bbf53944b8fe87e492294dc9, type: 3}
-    - {fileID: 21300000, guid: c9972a67a86281f40ba8ee1f0591328e, type: 3}
-  leaderboardArt:
-    background: {fileID: 21300000, guid: 188af9908decf7a4c967e4d7a5569e02, type: 3}
-    logo: {fileID: 21300000, guid: 4c2cb8451f6cc334ea51ce2b2cb4d8d3, type: 3}
-    worldNames:
-    - {fileID: -1372585228, guid: 70cae6efeb5883542bb90683ebedc962, type: 3}
-    - {fileID: 1448618602, guid: 5ece5bb4db85ee24cb31d7f893faf30b, type: 3}
-    - {fileID: -905574298, guid: ef0e1420b889d954c9dce5fa187fa696, type: 3}
-    - {fileID: -1651435272, guid: 1d9ed6839839feb4398494cb6c6b2d75, type: 3}
-    - {fileID: -1204959650, guid: af0b6647471ff9241a3ca39cd6fa4b29, type: 3}
-    - {fileID: -568004959, guid: 8a2beb34e169aa248bd80e999273995e, type: 3}
-    - {fileID: 203861631, guid: 3ae1b748e7fe1284a8f492e5e4c6507d, type: 3}
-    - {fileID: 608557637, guid: 83638d7bf1883db4fbf48e9eea00dcbb, type: 3}
-    - {fileID: -1642785682, guid: 0fd6b6cde02119349844c4d50c4ccebb, type: 3}
-    bestLabel: {fileID: 21300000, guid: f0ed140c836789d4e84f24850ffa5f8d, type: 3}
-    highScoreLabel: {fileID: 21300000, guid: 1c288bb61883a71498c9de39dd5a4b5a, type: 3}
-    fastestTimeLabel: {fileID: 21300000, guid: 2092ce7eed8d2cb4a8a2fdd27b650373, type: 3}
-    coin: {fileID: 21300000, guid: abaf0d34226ae50489fba07313ae63af, type: 3}
---- !u!1 &93125566
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 93125567}
-  - component: {fileID: 93125568}
-  m_Layer: 0
-  m_Name: ObjectPool
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &93125567
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 93125566}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1196459348}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &93125568
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 93125566}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3df8b4877cd1c3d499b64b6e62546661, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.Utilities.ObjectPool
 --- !u!1 &100000001
 GameObject:
   m_ObjectHideFlags: 0
@@ -457,8 +224,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 33974850ac813804d9b1a8736dac10f7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.Movement.CameraFollow2D
-  target: {fileID: 677902586}
-  controller: {fileID: 677902585}
+  target: {fileID: 1361719494}
+  controller: {fileID: 1361719493}
   lookAheadDistance: 2.5
   lookAheadSmoothTime: 0.35
   xSmoothTime: 0.12
@@ -629,6 +396,42 @@ MonoBehaviour:
   - {fileID: 11400000, guid: be62228130b9db14f8a006b1635a928f, type: 2}
   - {fileID: 11400000, guid: f2e7e6f274f5df64cbeca39beb5d2598, type: 2}
   - {fileID: 11400000, guid: 3990e0de8a46b3d49bb4f58f79cf9508, type: 2}
+  - {fileID: 11400000, guid: 1939d423227962944a5f642926c1db49, type: 2}
+  - {fileID: 11400000, guid: e1a373aaa51453b41b9dba691b48566a, type: 2}
+  - {fileID: 11400000, guid: 9f33312b48a6c7b4b8198ddd0c8a9575, type: 2}
+  - {fileID: 11400000, guid: f1732537c7c313f4f8321952a09b6a5d, type: 2}
+  - {fileID: 11400000, guid: cbe0797a1634f8842a706a23122aaebd, type: 2}
+  - {fileID: 11400000, guid: 3a869d1ae5e4e134089f473e08e9423a, type: 2}
+  - {fileID: 11400000, guid: f2dadda9ac865ab42bbc46114ac4c904, type: 2}
+  - {fileID: 11400000, guid: 1c3a224bc297d144f807c580d906cc1a, type: 2}
+  - {fileID: 11400000, guid: d43029ee778b75145b879d14b65d58eb, type: 2}
+  - {fileID: 11400000, guid: 7dcb14322f3315247a03165e28406ecc, type: 2}
+  - {fileID: 11400000, guid: c1d7a57c52ca2ac4bb6bcd6250454f03, type: 2}
+  - {fileID: 11400000, guid: 2158e333102aaeb4e88091de0279c585, type: 2}
+  - {fileID: 11400000, guid: e47577197b090cf499d1191b289ddfec, type: 2}
+  - {fileID: 11400000, guid: 4b90c8aeaabe30f48bdc0471e884cd54, type: 2}
+  - {fileID: 11400000, guid: b14784be016e1f44880e5620b2fa17b0, type: 2}
+  - {fileID: 11400000, guid: cf95fb99ae351ed4ca9a81291c330d94, type: 2}
+  - {fileID: 11400000, guid: 4754575a7e546db47be914a192656bf5, type: 2}
+  - {fileID: 11400000, guid: 3ca60745d87c2cb4383b3b40cc852269, type: 2}
+  - {fileID: 11400000, guid: 71014094ba5792545aa6d060a9e2d440, type: 2}
+  - {fileID: 11400000, guid: 34367733c69f6504196fcb7d4a760695, type: 2}
+  - {fileID: 11400000, guid: 3a129c46dc36d034a8d225ad1336e761, type: 2}
+  - {fileID: 11400000, guid: 5431c9246868c9e4ba409a216d317a22, type: 2}
+  - {fileID: 11400000, guid: dc5c52a93fc31974c9a158cb1a4a8fcc, type: 2}
+  - {fileID: 11400000, guid: 85cd6f26346673941b365180de3dda64, type: 2}
+  - {fileID: 11400000, guid: 21abbf7b8ae79a3449a4520991c78f85, type: 2}
+  - {fileID: 11400000, guid: 0333761b3a065894081d231f3afc64d6, type: 2}
+  - {fileID: 11400000, guid: f0c0236cb43f3eb47938c4c5743c5b6c, type: 2}
+  - {fileID: 11400000, guid: f508f1d41e8c31c4a8227d3fbd1f4001, type: 2}
+  - {fileID: 11400000, guid: 0e42fef51cf2c894dac357dda263a265, type: 2}
+  - {fileID: 11400000, guid: 7d22f5b5d554d034ba06c330b889714f, type: 2}
+  - {fileID: 11400000, guid: dcce7b3417a9e0f43b14832915507733, type: 2}
+  - {fileID: 11400000, guid: 119e2fa62e4a6374e8ee00a956f6102b, type: 2}
+  - {fileID: 11400000, guid: 7ec258dd9f242c24a9375f4e05a9c542, type: 2}
+  - {fileID: 11400000, guid: fc4fa8cec5503b546a59d86aa1f23612, type: 2}
+  - {fileID: 11400000, guid: 1fe8e6be5bb994c4b806bc567b61e5e8, type: 2}
+  - {fileID: 11400000, guid: 834a0f865f32e7b41ba5a94afafc2404, type: 2}
   allWorlds:
   - {fileID: 11400000, guid: 889e498b6e93529cc057ad95680e3d7e, type: 2}
   - {fileID: 11400000, guid: 076f3dffa56bb6645b26b0ed1859ad65, type: 2}
@@ -708,6 +511,12 @@ MonoBehaviour:
     clip: {fileID: 8300000, guid: da1badd21bc960246bf58477071a0155, type: 3}
   - world: 5
     clip: {fileID: 8300000, guid: 0a64c0b3eed7d724cbda8bf03b4751e1, type: 3}
+  - world: 6
+    clip: {fileID: 8300000, guid: 1ba97aab00d70e7409daa3f90de4d421, type: 3}
+  - world: 7
+    clip: {fileID: 8300000, guid: 8b316d3bc806f6648873f646e618bf97, type: 3}
+  - world: 8
+    clip: {fileID: 8300000, guid: f98d38a86a5321048b013d7004a4ca1c, type: 3}
   musicVolume: 0.6
   cropPickup: {fileID: 8300000, guid: cc93af9517fb7ca4fba948d0bb7fa09e, type: 3}
   coinPickup: {fileID: 8300000, guid: 5aaf73061c4bbf74bbc327e5d9873ade, type: 3}
@@ -1018,7 +827,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &233995043
+--- !u!1 &117377101
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1026,37 +835,257 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 233995046}
-  - component: {fileID: 233995045}
-  - component: {fileID: 233995044}
+  - component: {fileID: 117377102}
   m_Layer: 0
-  m_Name: Layer1
+  m_Name: CurrentLevel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &233995044
+--- !u!4 &117377102
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 117377101}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1652305312}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &480340406
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 480340407}
+  - component: {fileID: 480340409}
+  - component: {fileID: 480340408}
+  m_Layer: 0
+  m_Name: GameFlow
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &480340407
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 480340406}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1652305312}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &480340408
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 233995043}
+  m_GameObject: {fileID: 480340406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f50c7de96c735724dacf3177f4b5f277, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.UI.DebugPanel
+--- !u!114 &480340409
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 480340406}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80a8b87ea52c93b4aa10899dc3ebe88c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.UI.GameFlow
+  characterSelect: {fileID: 956902604}
+  menuArt:
+    landingPoster: {fileID: 21300000, guid: ccc150ddb6ddef2448f281b1bb92fa88, type: 3}
+    landingBackdrop: {fileID: 0}
+    playButton: {fileID: 21300000, guid: 9b1749fdde8cf954ca99ce13fcae49b7, type: 3}
+    exitButton: {fileID: 21300000, guid: 8928f1d9312cd2d47bf22b4bbb101e4b, type: 3}
+    settingsButton: {fileID: 21300000, guid: cba373159f1b33a4ba4f8d4af96fb06c, type: 3}
+    lifeIcon: {fileID: 21300000, guid: 9902f2f2fd3d346469d533f76da8ab99, type: 3}
+    pauseButton: {fileID: 21300000, guid: 2aa14273a3bf9c1418ed7b665b2aac81, type: 3}
+    newCharacterBackground: {fileID: 21300000, guid: ba844510de40a1d468ea6c77689ed5c2, type: 3}
+    newCharacterTitle: {fileID: 21300000, guid: 80b5fc7ee3503754ba63ebde69073fa6, type: 3}
+    characterSwapBackground: {fileID: 21300000, guid: 8263cbf026df9734da542c1cca00006d, type: 3}
+    pauseBackground: {fileID: 21300000, guid: 752db73409c9a21499a8260fff9a4ff3, type: 3}
+    levelCompleteBackground: {fileID: 21300000, guid: 72537aaf5bac6ff46a5d136e6e867a00, type: 3}
+    levelFailedBackground: {fileID: 21300000, guid: 65a61c670cd2e7a4bb30fa4b78e3e752, type: 3}
+    levelCompleteStarEmpty: {fileID: 21300000, guid: 0291fd1c8951cc64e99a51ddcdf87497, type: 3}
+    scoreIcon: {fileID: 21300000, guid: 11ec4cb82f6309346a2ee627343ecf7b, type: 3}
+    quitButton: {fileID: 21300000, guid: 34589c3e25897eb4eb5fc78ff097d815, type: 3}
+    worldSelectBackground: {fileID: 21300000, guid: 8903f33bb7dbec94ba48274d3a73976c, type: 3}
+    homeButton: {fileID: 21300000, guid: 5c2f80cba95b1de45a4976664cbca042, type: 3}
+    worldSelectBanner: {fileID: 21300000, guid: 658351f8f4f1bc64c8a629d84cff63f9, type: 3}
+    characterSelectBanner: {fileID: 21300000, guid: 250151fff9322244ebb04721aa1112af, type: 3}
+    levelTileLocked: {fileID: 21300000, guid: 33c75eee67044b04eb842b49fe3d31d6, type: 3}
+    levelTileNext: {fileID: 21300000, guid: b79e82643a924db47ad3e4519d137f3f, type: 3}
+    bossShield: {fileID: 21300000, guid: 59d59673faae43f4ca95dca3620c99e3, type: 3}
+    backButton: {fileID: 21300000, guid: 7fc8bdecc1da73148935666fc1be4ed7, type: 3}
+    oneStarBoard: {fileID: 21300000, guid: f50d5aedd5b07f4438fbc75a5778ced6, type: 3}
+    twoStarBoard: {fileID: 21300000, guid: 6b0a1ec57d3521546ac56596a88ed062, type: 3}
+    threeStarBoard: {fileID: 21300000, guid: 9f67054bd340a784db5c7e31449bc326, type: 3}
+    newCharacterSign: {fileID: 21300000, guid: 250151fff9322244ebb04721aa1112af, type: 3}
+    worldUnlockedSign: {fileID: 21300000, guid: 658351f8f4f1bc64c8a629d84cff63f9, type: 3}
+    rarePellet: {fileID: 21300000, guid: 5a07f34e32b389e478b703febe8181da, type: 3}
+    swapCharacterButton: {fileID: 21300000, guid: 79b4fd89cd30ace44abbae51fd7bfaf6, type: 3}
+  shopArt:
+    pageBackground: {fileID: 21300000, guid: 188af9908decf7a4c967e4d7a5569e02, type: 3}
+    settingsSign: {fileID: 21300000, guid: 441533d872aaca0438daf501fc74e530, type: 3}
+    shopSign: {fileID: 21300000, guid: 57967194f2fc6b240a1deca455f5828c, type: 3}
+    merchBanner: {fileID: 21300000, guid: 7263c425970201540889b3b28522a968, type: 3}
+    legalSign: {fileID: 21300000, guid: 54c9d1431c67b09428e01d6707906d31, type: 3}
+    leaderboardSign: {fileID: 21300000, guid: 38a0c715ce3dd4146957b58ede5232b6, type: 3}
+    musicIcon: {fileID: 21300000, guid: 7d0f5ee9a99c4734e9fa907c20e80b0d, type: 3}
+    leaderboardIcon: {fileID: 21300000, guid: e1c581d54099749429d3d2e9e7fde804, type: 3}
+    characterStoryIcon: {fileID: 21300000, guid: c94f987dc93d9fa4784b2ba1ea6c8cd2, type: 3}
+    policiesIcon: {fileID: 21300000, guid: 2bc74e6bbc1a07548b6f6fac711e09fe, type: 3}
+    cashIcon: {fileID: 21300000, guid: 2964fbe913a34ec46b22b75858a76000, type: 3}
+    worldsIcon: {fileID: 21300000, guid: d8dd4d41ea73e1e4c82ddd38e759be91, type: 3}
+    removeAdsIcon: {fileID: 21300000, guid: 6e297fb88aea7404093b30bf3a5b0f33, type: 3}
+    cosmeticsIcon: {fileID: 21300000, guid: 4183a19036c58e844bf003551ccc832b, type: 3}
+    plaque: {fileID: 21300000, guid: e9e9600820e8d31429d6947158860698, type: 3}
+    coinPacks:
+    - {fileID: 21300000, guid: 0169b8942065a0b498ff82191bbe56ae, type: 3}
+    - {fileID: 21300000, guid: 1311ea791b4c94048a119a117544a936, type: 3}
+    - {fileID: 21300000, guid: 9db4ead559dea154f8c72f3a09bd5cf7, type: 3}
+    - {fileID: 21300000, guid: 6157db937ad77904fadb3f39515a3660, type: 3}
+    worldPrice: {fileID: 21300000, guid: e8e9d7b12ed05704084c33a91bf46fdb, type: 3}
+    hatsBanner: {fileID: 21300000, guid: 8eadac520425c204ab140fd4c8d3b061, type: 3}
+    trailsBanner: {fileID: 21300000, guid: 3c37614e919ce1348ab5f5f9424e1761, type: 3}
+    machinesBanner: {fileID: 21300000, guid: a8cde13a46890af4fa5768ab3668ceb1, type: 3}
+    hatItems:
+    - {fileID: 21300000, guid: 1b1c26301e966554b876b81f450cc126, type: 3}
+    - {fileID: 21300000, guid: f927a871683b9644a8a42a339e46909b, type: 3}
+    - {fileID: 21300000, guid: cdd2d7704d76d904685055cc31090921, type: 3}
+    - {fileID: 21300000, guid: b7d50e999e1291c4c8cdf570fe2dc671, type: 3}
+    - {fileID: 21300000, guid: 938c3a5869c267e45b4e3c236a8b0c72, type: 3}
+    trailItems:
+    - {fileID: 21300000, guid: 77c0bb60d8fa604478af0aab71562171, type: 3}
+    - {fileID: 21300000, guid: bda6d27d704bda44d8c02fec2bc9e7c7, type: 3}
+    - {fileID: 21300000, guid: 696f7b1530fd80743b69df069a5bf3b1, type: 3}
+    - {fileID: 21300000, guid: 661a301be25f7fa4b8abce706c958716, type: 3}
+    - {fileID: 21300000, guid: 9881c570590e2664abc6fab3450ac2ae, type: 3}
+    - {fileID: 21300000, guid: 56fdf51b3d9ebf14cb256167abc90361, type: 3}
+    machineItems:
+    - {fileID: 21300000, guid: 54f86152aa12dad4e8d1a0030e09fc75, type: 3}
+    - {fileID: 21300000, guid: 4d77d48b8175f5749ad1bff11246580c, type: 3}
+    - {fileID: 21300000, guid: 7484604e08524cf40acf9dfaf75526fb, type: 3}
+    ownedBadge: {fileID: 21300000, guid: ea1f8d44ddfabee429b5077fe897857a, type: 3}
+    purchaseComplete: {fileID: 21300000, guid: 6fed8343817d6d84cbfb9dcbb55087c7, type: 3}
+    coinIcon: {fileID: 21300000, guid: 2e0d1add9e9cca24da6bd487ce99f574, type: 3}
+    yesButton: {fileID: 21300000, guid: 1dbf00426bd1c78408d32f32cd98a724, type: 3}
+    noButton: {fileID: 21300000, guid: 055239e1673d735459bfa0cb7781cbc8, type: 3}
+    revivePanel: {fileID: 21300000, guid: 24143199a70f9e24a87f7f40f0439603, type: 3}
+    watchAd: {fileID: 21300000, guid: f30bb93e9786eb7488efdfe79884ee8a, type: 3}
+    doubleCoins: {fileID: 21300000, guid: 22e5a1c2c4076ba4c9fcc4b272b7b90e, type: 3}
+    useCoinsSign: {fileID: 21300000, guid: 59d311365bfbb7f42b9b00aa04e3cf3d, type: 3}
+    lockerIcon: {fileID: 21300000, guid: e150fe29424230643b0a150bd0243d34, type: 3}
+    lockerBanner: {fileID: 21300000, guid: 27fa196e18b14014fa347e5dc4afd4d6, type: 3}
+    lockerSuggestion: {fileID: 21300000, guid: dd8c90907efbc324b8b426a589345d59, type: 3}
+    cardFrame: {fileID: 21300000, guid: 8d9883899dcdeaa408c749da9de89597, type: 3}
+    moveLeftButton: {fileID: 21300000, guid: 48976fe32056cbd44a08ee8ae5db1feb, type: 3}
+    moveRightButton: {fileID: 21300000, guid: 9b96fe0557acb974fae802328712b9b3, type: 3}
+    jumpButton: {fileID: 21300000, guid: 44e909e3b4bf81740915481625b2c054, type: 3}
+    abilityIcons:
+    - {fileID: 21300000, guid: e73af051959c6ea47ba9d4926fc85337, type: 3}
+    - {fileID: 21300000, guid: b07369dcf8a0f104d8ae686617985e13, type: 3}
+    - {fileID: 21300000, guid: 830819177079f3d42aa0981885784741, type: 3}
+    - {fileID: 21300000, guid: f2fc65672ba5ae946a5c0fa5a1ed6625, type: 3}
+    - {fileID: 21300000, guid: 1db4bec3f9885f84dbe3e460f39fa28c, type: 3}
+    - {fileID: 21300000, guid: 3a9254ec6ac6ce642b4bd07a6df715ca, type: 3}
+    - {fileID: 21300000, guid: 21a53ce01857d1f4087eaf1b2cce1f97, type: 3}
+    - {fileID: 21300000, guid: ff145bf858678c842b14a8b1c7115305, type: 3}
+    cosmeticIcons:
+    - {fileID: 21300000, guid: b5109d365c147174e828eef2bb1f79f9, type: 3}
+    - {fileID: 21300000, guid: 45e8252c492e1cc4aa0feb4d68855409, type: 3}
+    - {fileID: 21300000, guid: a08310057af5c794d9b8c740824137aa, type: 3}
+    - {fileID: 21300000, guid: a50d85241f4e4f141a8ee09ee9ab3fb7, type: 3}
+    - {fileID: 21300000, guid: 3109d232152f56341b1f8bffa30b8e8e, type: 3}
+    - {fileID: 21300000, guid: 8670cdca7fa02e949b408b15e61cd091, type: 3}
+    - {fileID: 21300000, guid: db5f2680ca093f94ca2fe7458dedd88d, type: 3}
+    - {fileID: 21300000, guid: 034f0cfd8e446e644b3ebebfb03574a4, type: 3}
+    - {fileID: 21300000, guid: 804ba52b165784745a77b1b8c356a2a7, type: 3}
+    - {fileID: 21300000, guid: e312393328d79fd4d983290cb208915b, type: 3}
+    - {fileID: 21300000, guid: 070118ced4cfacd4fa84c20576be56d7, type: 3}
+    - {fileID: 21300000, guid: 2fcb6564871bf2844997dea6236e8b94, type: 3}
+    - {fileID: 21300000, guid: 347d4ad3bbf53944b8fe87e492294dc9, type: 3}
+    - {fileID: 21300000, guid: c9972a67a86281f40ba8ee1f0591328e, type: 3}
+  leaderboardArt:
+    background: {fileID: 21300000, guid: 188af9908decf7a4c967e4d7a5569e02, type: 3}
+    logo: {fileID: 21300000, guid: 4c2cb8451f6cc334ea51ce2b2cb4d8d3, type: 3}
+    worldNames:
+    - {fileID: -1372585228, guid: 70cae6efeb5883542bb90683ebedc962, type: 3}
+    - {fileID: 1448618602, guid: 5ece5bb4db85ee24cb31d7f893faf30b, type: 3}
+    - {fileID: -905574298, guid: ef0e1420b889d954c9dce5fa187fa696, type: 3}
+    - {fileID: -1651435272, guid: 1d9ed6839839feb4398494cb6c6b2d75, type: 3}
+    - {fileID: -1204959650, guid: af0b6647471ff9241a3ca39cd6fa4b29, type: 3}
+    - {fileID: -568004959, guid: 8a2beb34e169aa248bd80e999273995e, type: 3}
+    - {fileID: 203861631, guid: 3ae1b748e7fe1284a8f492e5e4c6507d, type: 3}
+    - {fileID: 608557637, guid: 83638d7bf1883db4fbf48e9eea00dcbb, type: 3}
+    - {fileID: -1642785682, guid: 0fd6b6cde02119349844c4d50c4ccebb, type: 3}
+    bestLabel: {fileID: 21300000, guid: f0ed140c836789d4e84f24850ffa5f8d, type: 3}
+    highScoreLabel: {fileID: 21300000, guid: 1c288bb61883a71498c9de39dd5a4b5a, type: 3}
+    fastestTimeLabel: {fileID: 21300000, guid: 2092ce7eed8d2cb4a8a2fdd27b650373, type: 3}
+    coin: {fileID: 21300000, guid: abaf0d34226ae50489fba07313ae63af, type: 3}
+--- !u!1 &760047465
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 760047468}
+  - component: {fileID: 760047467}
+  - component: {fileID: 760047466}
+  m_Layer: 0
+  m_Name: Layer2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &760047466
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 760047465}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7b7eafbef2aa57d4e9447eda1c66c881, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.LevelSystem.ParallaxLayer
-  parallaxFactor: 0.08
---- !u!212 &233995045
+  parallaxFactor: 0.35
+--- !u!212 &760047467
 SpriteRenderer:
   serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 233995043}
+  m_GameObject: {fileID: 760047465}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
@@ -1096,9 +1125,9 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -30
+  m_SortingOrder: -20
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: a03a218a0b21f004f9bd6172a5b990fc, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 8d6dd7ea846c1c54eb54c1aa551222da, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -1109,125 +1138,21 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
---- !u!4 &233995046
+--- !u!4 &760047468
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 233995043}
+  m_GameObject: {fileID: 760047465}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1976723430}
+  m_Father: {fileID: 1222314382}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &247406886
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 247406887}
-  m_Layer: 0
-  m_Name: CurrentLevel
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &247406887
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 247406886}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1196459348}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &677902584
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 1196459348}
-    m_Modifications:
-    - target: {fileID: 4842312749932803812, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
-      propertyPath: m_Name
-      value: Player
-      objectReference: {fileID: 0}
-    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
---- !u!114 &677902585 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 8302337635906784941, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
-  m_PrefabInstance: {fileID: 677902584}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c1f27a94036d9ec43bc0738b39e723cb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.Movement.CharacterController2D
---- !u!4 &677902586 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
-  m_PrefabInstance: {fileID: 677902584}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &795317050
 GameObject:
   m_ObjectHideFlags: 0
@@ -1272,7 +1197,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c59c458039104274ca7bab8223fe4319, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.Core.AnalyticsManager
---- !u!1 &910744796
+--- !u!1 &956902603
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1280,9 +1205,107 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 910744799}
-  - component: {fileID: 910744798}
-  - component: {fileID: 910744797}
+  - component: {fileID: 956902605}
+  - component: {fileID: 956902604}
+  m_Layer: 0
+  m_Name: CharacterSelectScreen
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &956902604
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 956902603}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 198c9f7864614cc4b9bfe837f8459a51, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.UI.CharacterSelectScreen
+--- !u!4 &956902605
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 956902603}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1652305312}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &958760766
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 958760767}
+  - component: {fileID: 958760768}
+  m_Layer: 0
+  m_Name: LevelLoader
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &958760767
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 958760766}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1652305312}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &958760768
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 958760766}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f971872157700e42a085c1b1f7e08c0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.LevelSystem.LevelLoader
+  levelContainer: {fileID: 117377102}
+  player: {fileID: 1361719493}
+  cameraFollow: {fileID: 100000005}
+  background: {fileID: 1222314381}
+  cropPrefab: {fileID: 1427720605885767998, guid: b0ace4b471c52c94e875c4393e1812c3, type: 3}
+  checkpointPrefab: {fileID: 3279528755336430944, guid: 3c34657210a3d3242bda791e1c5b1597, type: 3}
+  goalPrefab: {fileID: 4967899647447973828, guid: 3dbeabf19589c4a4497deeb83388e48c, type: 3}
+  breakableWallPrefab: {fileID: 6666772588333291453, guid: 5a28de6796e57d541b15eed6b9d0025f, type: 3}
+  respawnInvulnerability: 1.5
+  defeatPoseSeconds: 0.6
+--- !u!1 &985023824
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 985023827}
+  - component: {fileID: 985023826}
+  - component: {fileID: 985023825}
   m_Layer: 0
   m_Name: Layer3
   m_TagString: Untagged
@@ -1290,27 +1313,27 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &910744797
+--- !u!114 &985023825
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 910744796}
+  m_GameObject: {fileID: 985023824}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7b7eafbef2aa57d4e9447eda1c66c881, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.LevelSystem.ParallaxLayer
   parallaxFactor: 0.65
---- !u!212 &910744798
+--- !u!212 &985023826
 SpriteRenderer:
   serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 910744796}
+  m_GameObject: {fileID: 985023824}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
@@ -1363,22 +1386,22 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
---- !u!4 &910744799
+--- !u!4 &985023827
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 910744796}
+  m_GameObject: {fileID: 985023824}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1976723430}
+  m_Father: {fileID: 1222314382}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1196459347
+--- !u!1 &1078941954
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1386,36 +1409,168 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1196459348}
+  - component: {fileID: 1078941955}
+  - component: {fileID: 1078941956}
   m_Layer: 0
-  m_Name: LevelSystem
+  m_Name: ObjectPool
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1196459348
+--- !u!4 &1078941955
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1196459347}
+  m_GameObject: {fileID: 1078941954}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1652305312}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1078941956
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1078941954}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3df8b4877cd1c3d499b64b6e62546661, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.Utilities.ObjectPool
+--- !u!1 &1222314380
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1222314382}
+  - component: {fileID: 1222314381}
+  m_Layer: 0
+  m_Name: Background
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1222314381
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1222314380}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9439b69e111fae24f9c7c6001f1312e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.LevelSystem.ParallaxBackground
+  targetCamera: {fileID: 100000003}
+  layers:
+  - {fileID: 1574070656}
+  - {fileID: 760047466}
+  - {fileID: 985023825}
+  baseY: 3
+--- !u!4 &1222314382
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1222314380}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 247406887}
-  - {fileID: 93125567}
-  - {fileID: 677902586}
-  - {fileID: 1976723430}
-  - {fileID: 1970382141}
-  - {fileID: 1657151910}
-  - {fileID: 77433573}
-  m_Father: {fileID: 0}
+  - {fileID: 1574070658}
+  - {fileID: 760047468}
+  - {fileID: 985023827}
+  m_Father: {fileID: 1652305312}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &1361719492
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1652305312}
+    m_Modifications:
+    - target: {fileID: 4842312749932803812, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
+      propertyPath: m_Name
+      value: Player
+      objectReference: {fileID: 0}
+    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
+--- !u!114 &1361719493 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8302337635906784941, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
+  m_PrefabInstance: {fileID: 1361719492}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1f27a94036d9ec43bc0738b39e723cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.Movement.CharacterController2D
+--- !u!4 &1361719494 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8684802231290360049, guid: 1e6fa78db98f48e4f9d5e3ba7bafefbd, type: 3}
+  m_PrefabInstance: {fileID: 1361719492}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1417829422
 GameObject:
   m_ObjectHideFlags: 0
@@ -1471,7 +1626,7 @@ MonoBehaviour:
   enableTestSuite: 1
   autoLaunchTestSuite: 1
   interstitialLevelInterval: 6
---- !u!1 &1592437339
+--- !u!1 &1574070655
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1479,37 +1634,37 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1592437342}
-  - component: {fileID: 1592437341}
-  - component: {fileID: 1592437340}
+  - component: {fileID: 1574070658}
+  - component: {fileID: 1574070657}
+  - component: {fileID: 1574070656}
   m_Layer: 0
-  m_Name: Layer2
+  m_Name: Layer1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1592437340
+--- !u!114 &1574070656
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1592437339}
+  m_GameObject: {fileID: 1574070655}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7b7eafbef2aa57d4e9447eda1c66c881, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.LevelSystem.ParallaxLayer
-  parallaxFactor: 0.35
---- !u!212 &1592437341
+  parallaxFactor: 0.08
+--- !u!212 &1574070657
 SpriteRenderer:
   serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1592437339}
+  m_GameObject: {fileID: 1574070655}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
@@ -1549,9 +1704,9 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: -20
+  m_SortingOrder: -30
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 8d6dd7ea846c1c54eb54c1aa551222da, type: 3}
+  m_Sprite: {fileID: 21300000, guid: a03a218a0b21f004f9bd6172a5b990fc, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -1562,22 +1717,22 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
---- !u!4 &1592437342
+--- !u!4 &1574070658
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1592437339}
+  m_GameObject: {fileID: 1574070655}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 1976723430}
+  m_Father: {fileID: 1222314382}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1657151908
+--- !u!1 &1652305311
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -1585,148 +1740,35 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1657151910}
-  - component: {fileID: 1657151909}
+  - component: {fileID: 1652305312}
   m_Layer: 0
-  m_Name: CharacterSelectScreen
+  m_Name: LevelSystem
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1657151909
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1657151908}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 198c9f7864614cc4b9bfe837f8459a51, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.UI.CharacterSelectScreen
---- !u!4 &1657151910
+--- !u!4 &1652305312
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1657151908}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1196459348}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1970382140
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1970382141}
-  - component: {fileID: 1970382142}
-  m_Layer: 0
-  m_Name: LevelLoader
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1970382141
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1970382140}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1196459348}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1970382142
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1970382140}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1f971872157700e42a085c1b1f7e08c0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.LevelSystem.LevelLoader
-  levelContainer: {fileID: 247406887}
-  player: {fileID: 677902585}
-  cameraFollow: {fileID: 100000005}
-  background: {fileID: 1976723429}
-  cropPrefab: {fileID: 1427720605885767998, guid: b0ace4b471c52c94e875c4393e1812c3, type: 3}
-  checkpointPrefab: {fileID: 3279528755336430944, guid: 3c34657210a3d3242bda791e1c5b1597, type: 3}
-  goalPrefab: {fileID: 4967899647447973828, guid: 3dbeabf19589c4a4497deeb83388e48c, type: 3}
-  breakableWallPrefab: {fileID: 6666772588333291453, guid: 5a28de6796e57d541b15eed6b9d0025f, type: 3}
-  respawnInvulnerability: 1.5
-  defeatPoseSeconds: 0.6
---- !u!1 &1976723428
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1976723430}
-  - component: {fileID: 1976723429}
-  m_Layer: 0
-  m_Name: Background
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1976723429
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1976723428}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9439b69e111fae24f9c7c6001f1312e4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.LevelSystem.ParallaxBackground
-  targetCamera: {fileID: 100000003}
-  layers:
-  - {fileID: 233995044}
-  - {fileID: 1592437340}
-  - {fileID: 910744797}
-  baseY: 3
---- !u!4 &1976723430
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1976723428}
+  m_GameObject: {fileID: 1652305311}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 233995046}
-  - {fileID: 1592437342}
-  - {fileID: 910744799}
-  m_Father: {fileID: 1196459348}
+  - {fileID: 117377102}
+  - {fileID: 1078941955}
+  - {fileID: 1361719494}
+  - {fileID: 1222314382}
+  - {fileID: 958760767}
+  - {fileID: 956902605}
+  - {fileID: 480340407}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2012902905
 GameObject:
@@ -1780,4 +1822,4 @@ SceneRoots:
   - {fileID: 100000011}
   - {fileID: 100000021}
   - {fileID: 100000031}
-  - {fileID: 1196459348}
+  - {fileID: 1652305312}

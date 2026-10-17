@@ -59,6 +59,18 @@ namespace FarmFuryStampede.EditorTools
         private const string MothershipGroundTileName = "MothershipGroundTile";
         private const string MothershipSurfaceTileName = "MothershipSurfaceTile";
         private const string MothershipBreakableTileName = "MothershipBreakableTile";
+        // The Crop Factory's: the hazard-striped factory floor over riveted panelling, and a cracked grate to break.
+        private const string CropFactoryGroundTileName = "CropFactoryGroundTile";
+        private const string CropFactorySurfaceTileName = "CropFactorySurfaceTile";
+        private const string CropFactoryBreakableTileName = "CropFactoryBreakableTile";
+        // Dustbowl Canyon's: the sandy desert floor over red rock, and a cracked clay block to break.
+        private const string DustbowlGroundTileName = "DustbowlGroundTile";
+        private const string DustbowlSurfaceTileName = "DustbowlSurfaceTile";
+        private const string DustbowlBreakableTileName = "DustbowlBreakableTile";
+        // Harvest Fairground's: straw-strewn grass over soil, and a cracked prize box to break.
+        private const string FairgroundGroundTileName = "FairgroundGroundTile";
+        private const string FairgroundSurfaceTileName = "FairgroundSurfaceTile";
+        private const string FairgroundBreakableTileName = "FairgroundBreakableTile";
         private const string WaterTilePath = SpritesDir + "/WaterTile.asset";
         private const string InvisibleTilePath = SpritesDir + "/InvisibleTile.asset";
         private const string OldClusterPrefabPath = PrefabsDir + "/Cluck.prefab";
@@ -96,7 +108,8 @@ namespace FarmFuryStampede.EditorTools
         // scale the character looks like it shrinks mid-air. Frames named "*jump*" are drawn this much bigger.
         private const float JumpFrameScale = 1.25f;
         // Jump frames whose body fills the canvas like the walk frames (no spread wings), so they keep the shared scale.
-        private static readonly HashSet<string> FullSizeJumpFrames = new() { "Gerald_Jump.png", "Gerald_Jump_Left.png" };
+        private static readonly HashSet<string> FullSizeJumpFrames = new() { "Gerald_Jump.png", "Gerald_Jump_Left.png",
+            "Wooly_Jump.png", "Wooly_Jump_Left.png", "Percy_Jump.png", "Percy_Jump_Left.png" };   // tucked-up jumps, not spread wings
 
         private const int ObstaclesPerLevel = 2;   // rock / haybale, placed at random (seeded) spots
         private static readonly Vector2 FeetPivot = new Vector2(0.5f, 0f);
@@ -270,6 +283,30 @@ namespace FarmFuryStampede.EditorTools
             }
             CreateTile(MothershipGroundTileName, StampedeUIArt.Mothership("HullFill.png"), Color.white);
             if (deck.Length > 0) { CreateTile(MothershipBreakableTileName, deck[0], new Color(1f, 0.55f, 0.45f), FloorTileTransform(deck[0])); }
+            // The Crop Factory: the factory floor over its panelling, and the cracked grate for Bessie.
+            Sprite[] factoryFloor = StampedeEnvironmentArt.CropFactoryFloorArt();
+            for (int i = 0; i < factoryFloor.Length; i++)
+            {
+                CreateTile($"{CropFactorySurfaceTileName}_{i}", factoryFloor[i], Color.white, FloorTileTransform(factoryFloor[i]));
+            }
+            CreateTile(CropFactoryGroundTileName, StampedeUIArt.CropFactory("FactoryFill.png"), Color.white);
+            CreateTile(CropFactoryBreakableTileName, StampedeUIArt.CropFactory("CrackedGrate.png"), Color.white);
+            // Dustbowl Canyon: the desert floor over its rock, and the cracked clay block for Bessie.
+            Sprite[] desertFloor = StampedeEnvironmentArt.DustbowlFloorArt();
+            for (int i = 0; i < desertFloor.Length; i++)
+            {
+                CreateTile($"{DustbowlSurfaceTileName}_{i}", desertFloor[i], Color.white, FloorTileTransform(desertFloor[i]));
+            }
+            CreateTile(DustbowlGroundTileName, StampedeUIArt.Dustbowl("GroundFill.png"), Color.white);
+            CreateTile(DustbowlBreakableTileName, StampedeUIArt.Dustbowl("Breakable.png"), Color.white);
+            // Harvest Fairground: the fairground floor over its soil, and the cracked prize box for Bessie.
+            Sprite[] fairFloor = StampedeEnvironmentArt.FairgroundFloorArt();
+            for (int i = 0; i < fairFloor.Length; i++)
+            {
+                CreateTile($"{FairgroundSurfaceTileName}_{i}", fairFloor[i], Color.white, FloorTileTransform(fairFloor[i]));
+            }
+            CreateTile(FairgroundGroundTileName, StampedeUIArt.Fairground("GroundFill.png"), Color.white);
+            CreateTile(FairgroundBreakableTileName, StampedeUIArt.Fairground("Breakable.png"), Color.white);
             CreateTile(TundraIceTileName, StampedeUIArt.Tundra("Ice_block.png"), Color.white);
             CreateTile(TundraBreakableTileName, StampedeUIArt.Tundra("WoodBlock.png"), Color.white);
 
@@ -347,6 +384,9 @@ namespace FarmFuryStampede.EditorTools
             var skyAssets = SkyAssets(assets);
             var sunkenAssets = SunkenAssets(assets);
             var mothershipAssets = MothershipAssets(assets);
+            var cropFactoryAssets = CropFactoryAssets(assets);
+            var dustbowlAssets = DustbowlAssets(assets);
+            var fairgroundAssets = FairgroundAssets(assets);
 
             var harvesterRobot = AssetDatabase.LoadAssetAtPath<GameObject>(HarvesterPrefabPath);
             var droneRobot = AssetDatabase.LoadAssetAtPath<GameObject>(DronePrefabPath);
@@ -398,6 +438,9 @@ namespace FarmFuryStampede.EditorTools
                 (WorldType.SkyIslands, SkyIslandsLevels.CreateAll(), skyAssets),
                 (WorldType.SunkenCity, SunkenCityLevels.CreateAll(), sunkenAssets),
                 (WorldType.RobotMothership, RobotMothershipLevels.CreateAll(), mothershipAssets),
+                (WorldType.DustbowlCanyon, DustbowlCanyonLevels.CreateAll(), dustbowlAssets),
+                (WorldType.HarvestFairground, HarvestFairgroundLevels.CreateAll(), fairgroundAssets),
+                (WorldType.CropFactory, CropFactoryLevels.CreateAll(), cropFactoryAssets),
             };
             foreach (var (world, levels, art) in worlds)
             foreach (var builder in levels)
@@ -880,6 +923,197 @@ namespace FarmFuryStampede.EditorTools
             if (overlordRight != null && overlordLeft != null) { ship.robotArt[RobotType.Commander] = (overlordRight, overlordLeft, null); }
             return ship;
         }
+
+        /// <summary>
+        /// Crop Factory (World 9, paid, 2026-10-17): the factory hall and its row of machines behind, the hazard-striped
+        /// factory floor over riveted panelling, steel catwalks for every ledge, steel crates for the block steps, the
+        /// hovering conveyor lift for every moving ledge, tins of corn for crops (golden cobs in jars for secrets),
+        /// crop crates and gearboxes as the random obstacles, chemical drums for the barrel pyramids, the signal post as
+        /// every checkpoint, the factory props as scenery, its own Harvester, Scout and Drone, and Harvester Prime as the
+        /// boss. The world's twist is the machinery: conveyor belts, rhythm crushers and laser gates (CropFactoryLevels).
+        /// All Kling art in Sprites/UI/CropFactory.
+        /// </summary>
+        private static LevelAssets CropFactoryAssets(LevelAssets meadow)
+        {
+            var factory = meadow.Clone();
+            factory.farmArt = StampedeUIArt.CropFactoryBackdrop();
+            factory.parallaxLayers = StampedeEnvironmentArt.CropFactoryParallax();
+            var surface = Enumerable.Range(0, 16)
+                .Select(i => AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{CropFactorySurfaceTileName}_{i}.asset"))
+                .TakeWhile(t => t != null)
+                .ToArray();
+            if (surface.Length > 0) { factory.groundSurfaceTiles = surface; }
+            factory.groundTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{CropFactoryGroundTileName}.asset") ?? meadow.groundTile;
+            factory.breakableTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{CropFactoryBreakableTileName}.asset") ?? meadow.breakableTile;
+            factory.ledgeSprite = StampedeUIArt.CropFactory("CatwalkSegment.png") ?? meadow.ledgeSprite;
+            factory.stoneBlockSprite = StampedeUIArt.CropFactory("SteelCrate.png") ?? meadow.stoneBlockSprite;
+            factory.moverSprite = StampedeUIArt.CropFactory("ConveyorLift.png");
+            factory.moverDeckFromBottom = 0.97f;   // the lift's belt is its top edge
+            factory.moverDeckWidth = 0.98f;
+            factory.conveyorSprite = StampedeUIArt.CropFactory("ConveyorBelt.png");
+            factory.crusherSprite = StampedeUIArt.CropFactory("Crusher.png");
+            factory.laserPostSprite = StampedeUIArt.CropFactory("LaserPost.png");
+            factory.laserBeamSprite = StampedeUIArt.CropFactory("LaserBeam.png");
+            factory.cropSprite = StampedeUIArt.CropFactoryCrop();
+            factory.secretCropSprite = StampedeUIArt.CropFactorySecretCrop();
+            factory.checkpointSprite = StampedeUIArt.CropFactory("SignalPost.png");
+            factory.barrelSprite = StampedeUIArt.CropFactory("ChemDrum.png") ?? meadow.barrelSprite;
+            factory.obstacleSprites = new[] { StampedeUIArt.CropFactory("CropCrate.png"), StampedeUIArt.CropFactory("Gearbox.png") }
+                .Where(s => s != null).ToArray();
+            factory.haybaleSprite = null;
+            factory.barnSprite = null;
+            factory.windmillSprite = null;
+
+            factory.robotArt = new Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)>();
+            // The tracked harvester and the bucket-headed scout (left frames are script mirrors), drawn 2.1 units
+            // tall like the other worlds' own robots; the vacuum quadcopter flips to turn.
+            var harvesterRight = StampedeUIArt.ImportActor("CropFactory/Harvester_right.png", WorldRobotHeight);
+            var harvesterLeft = StampedeUIArt.ImportActor("CropFactory/Harvester_left.png", WorldRobotHeight);
+            if (harvesterRight != null && harvesterLeft != null) { factory.robotArt[RobotType.Harvester] = (harvesterRight, harvesterLeft, null); }
+            var scoutRight = StampedeUIArt.ImportActor("CropFactory/Scout_right.png", WorldRobotHeight);
+            var scoutLeft = StampedeUIArt.ImportActor("CropFactory/Scout_left.png", WorldRobotHeight);
+            if (scoutRight != null && scoutLeft != null) { factory.robotArt[RobotType.Scout] = (scoutRight, scoutLeft, null); }
+            var drone = StampedeUIArt.CropFactory("Drone.png");
+            if (drone != null) { factory.robotArt[RobotType.Drone] = (drone, null, null); }
+            // Harvester Prime, the true final boss: faces right (HarvesterPrime_Left.png is a script mirror), rolls on
+            // its treads (grounded) and is drawn CropFactoryBossScale times the Commander, its wreck on the floor.
+            var primeRight = ImportBossArt("Assets/_Project/Sprites/UI/CropFactory/HarvesterPrime_Right.png");
+            var primeLeft = ImportBossArt("Assets/_Project/Sprites/UI/CropFactory/HarvesterPrime_Left.png");
+            var primeDown = ImportBossArt("Assets/_Project/Sprites/UI/CropFactory/HarvesterPrime_Defeated.png");
+            if (primeRight != null && primeLeft != null) { factory.robotArt[RobotType.Commander] = (primeRight, primeLeft, primeDown); }
+            factory.bossArtScale = CropFactoryBossScale;
+            factory.bossGrounded = true;
+            return factory;
+        }
+
+        /// <summary>
+        /// Dustbowl Canyon (World 7, paid, 2026-10-17): the canyon at sunset behind, a sandy desert floor over red rock,
+        /// sandstone ledges and brick blocks, the mine-cart lift for every moving ledge, prickly pears for crops (golden
+        /// ones for secrets), boulders and crates as the random obstacles, water barrels for the barrel pyramids, the
+        /// lantern signpost as every checkpoint, the ranch props as scenery, its own Harvester, Scout and Drone and the
+        /// Drill Rig as the boss. The world's twist (DustbowlCanyonLevels): quicksand, tumbleweeds and sandstorms. All
+        /// Kling art in Sprites/UI/DustbowlCanyon.
+        /// </summary>
+        private static LevelAssets DustbowlAssets(LevelAssets meadow)
+        {
+            var desert = meadow.Clone();
+            desert.farmArt = StampedeUIArt.DustbowlBackdrop();
+            desert.parallaxLayers = StampedeEnvironmentArt.DustbowlParallax();
+            var surface = Enumerable.Range(0, 16)
+                .Select(i => AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{DustbowlSurfaceTileName}_{i}.asset"))
+                .TakeWhile(t => t != null)
+                .ToArray();
+            if (surface.Length > 0) { desert.groundSurfaceTiles = surface; }
+            desert.groundTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{DustbowlGroundTileName}.asset") ?? meadow.groundTile;
+            desert.breakableTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{DustbowlBreakableTileName}.asset") ?? meadow.breakableTile;
+            desert.ledgeSprite = StampedeUIArt.Dustbowl("Ledge.png") ?? meadow.ledgeSprite;
+            desert.stoneBlockSprite = StampedeUIArt.Dustbowl("Block.png") ?? meadow.stoneBlockSprite;
+            desert.moverSprite = StampedeUIArt.Dustbowl("MineCartLift.png");
+            desert.moverDeckFromBottom = 0.97f;   // the plank deck is the lift's top edge
+            desert.moverDeckWidth = 0.98f;
+            desert.quicksandSprite = StampedeUIArt.Dustbowl("Quicksand.png");
+            desert.tumbleweedSprite = StampedeUIArt.Dustbowl("Tumbleweed.png");
+            desert.sandstormSprite = StampedeUIArt.Dustbowl("SandstormDust.png");
+            desert.cropSprite = StampedeUIArt.DustbowlCrop();
+            desert.secretCropSprite = StampedeUIArt.DustbowlSecretCrop();
+            desert.checkpointSprite = StampedeUIArt.Dustbowl("SignPost.png");
+            desert.barrelSprite = StampedeUIArt.Dustbowl("WaterBarrel.png") ?? meadow.barrelSprite;
+            desert.obstacleSprites = new[] { StampedeUIArt.Dustbowl("Boulder.png"), StampedeUIArt.Dustbowl("Crate.png") }
+                .Where(s => s != null).ToArray();
+            desert.haybaleSprite = null;
+            desert.barnSprite = null;
+            desert.windmillSprite = null;
+
+            desert.robotArt = new Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)>();
+            // The shovel harvester is long and low (541x310), so it is drawn 1.6 tall (~2.8 long) rather than 2.1; the
+            // cowboy scout 2.1 like the other worlds' own robots; the propeller drone flips to turn. Left frames are
+            // script mirrors.
+            var harvesterRight = StampedeUIArt.ImportActor("DustbowlCanyon/Harvester_right.png", DustbowlHarvesterHeight);
+            var harvesterLeft = StampedeUIArt.ImportActor("DustbowlCanyon/Harvester_left.png", DustbowlHarvesterHeight);
+            if (harvesterRight != null && harvesterLeft != null) { desert.robotArt[RobotType.Harvester] = (harvesterRight, harvesterLeft, null); }
+            var scoutRight = StampedeUIArt.ImportActor("DustbowlCanyon/Scout_right.png", WorldRobotHeight);
+            var scoutLeft = StampedeUIArt.ImportActor("DustbowlCanyon/Scout_left.png", WorldRobotHeight);
+            if (scoutRight != null && scoutLeft != null) { desert.robotArt[RobotType.Scout] = (scoutRight, scoutLeft, null); }
+            var drone = StampedeUIArt.Dustbowl("Drone.png");
+            if (drone != null) { desert.robotArt[RobotType.Drone] = (drone, null, null); }
+            // The Drill Rig: faces right (DrillRig_Left.png is a script mirror), rolls on its treads, its wreck on the floor.
+            var rigRight = ImportBossArt("Assets/_Project/Sprites/UI/DustbowlCanyon/DrillRig_Right.png");
+            var rigLeft = ImportBossArt("Assets/_Project/Sprites/UI/DustbowlCanyon/DrillRig_Left.png");
+            var rigDown = ImportBossArt("Assets/_Project/Sprites/UI/DustbowlCanyon/DrillRig_Defeated.png");
+            if (rigRight != null && rigLeft != null) { desert.robotArt[RobotType.Commander] = (rigRight, rigLeft, rigDown); }
+            desert.bossArtScale = CropFactoryBossScale;   // 768px frames as Harvester Prime's: ~4.1 wide
+            desert.bossGrounded = true;
+            return desert;
+        }
+
+        private const float DustbowlHarvesterHeight = 1.6f;
+
+        /// <summary>
+        /// Harvest Fairground (World 8, paid, 2026-10-17): the fair at night behind, straw-strewn grass over soil, stage
+        /// planks for every ledge, striped circus crates for the block steps, the carnival ride car for every moving
+        /// ledge, toffee apples for crops (golden ones for secrets), pumpkins and prize crates as the random obstacles,
+        /// striped barrels for the barrel pyramids, the pennant lamp post as every checkpoint, the fair's tents and rides
+        /// as scenery, its own Harvester, Scout and Drone and the Ringmaster Bot as the boss. The world's twist
+        /// (HarvestFairgroundLevels): hay-bale trampolines, ferris wheels and conveyor rides. All Kling art in
+        /// Sprites/UI/HarvestFairground.
+        /// </summary>
+        private static LevelAssets FairgroundAssets(LevelAssets meadow)
+        {
+            var fair = meadow.Clone();
+            fair.farmArt = StampedeUIArt.FairgroundBackdrop();
+            fair.parallaxLayers = StampedeEnvironmentArt.FairgroundParallax();
+            var surface = Enumerable.Range(0, 16)
+                .Select(i => AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{FairgroundSurfaceTileName}_{i}.asset"))
+                .TakeWhile(t => t != null)
+                .ToArray();
+            if (surface.Length > 0) { fair.groundSurfaceTiles = surface; }
+            fair.groundTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{FairgroundGroundTileName}.asset") ?? meadow.groundTile;
+            fair.breakableTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{FairgroundBreakableTileName}.asset") ?? meadow.breakableTile;
+            fair.ledgeSprite = StampedeUIArt.Fairground("Ledge.png") ?? meadow.ledgeSprite;
+            fair.stoneBlockSprite = StampedeUIArt.Fairground("Block.png") ?? meadow.stoneBlockSprite;
+            fair.moverSprite = StampedeUIArt.Fairground("RideCar.png");
+            fair.moverDeckFromBottom = 0.97f;   // the cushioned deck is the car's top edge
+            fair.moverDeckWidth = 0.98f;
+            fair.conveyorSprite = StampedeUIArt.Fairground("ConveyorRide.png");
+            fair.trampolineSprite = StampedeUIArt.Fairground("Trampoline.png");
+            fair.wheelSeatSprite = StampedeUIArt.Fairground("Gondola.png");
+            fair.wheelSeatFloorFromBottom = 0.35f;   // the gondola's floor: the top of its lower box
+            fair.wheelSeatFloorWidth = 0.88f;
+            fair.ferrisWheelSprite = StampedeUIArt.Fairground("FerrisWheel.png");
+            fair.cropSprite = StampedeUIArt.FairgroundCrop();
+            fair.secretCropSprite = StampedeUIArt.FairgroundSecretCrop();
+            fair.checkpointSprite = StampedeUIArt.Fairground("LampPost.png");
+            fair.barrelSprite = StampedeUIArt.Fairground("StripedBarrel.png") ?? meadow.barrelSprite;
+            fair.obstacleSprites = new[] { StampedeUIArt.Fairground("Pumpkin.png"), StampedeUIArt.Fairground("PrizeCrates.png") }
+                .Where(s => s != null).ToArray();
+            fair.haybaleSprite = null;
+            fair.barnSprite = null;
+            fair.windmillSprite = null;
+
+            fair.robotArt = new Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)>();
+            // The clown-car harvester and the unicycle juggler, 2.1 tall like the other worlds' own robots; the balloon
+            // drone flips to turn. Left frames are script mirrors.
+            var harvesterRight = StampedeUIArt.ImportActor("HarvestFairground/Harvester_right.png", WorldRobotHeight);
+            var harvesterLeft = StampedeUIArt.ImportActor("HarvestFairground/Harvester_left.png", WorldRobotHeight);
+            if (harvesterRight != null && harvesterLeft != null) { fair.robotArt[RobotType.Harvester] = (harvesterRight, harvesterLeft, null); }
+            var scoutRight = StampedeUIArt.ImportActor("HarvestFairground/Scout_right.png", WorldRobotHeight);
+            var scoutLeft = StampedeUIArt.ImportActor("HarvestFairground/Scout_left.png", WorldRobotHeight);
+            if (scoutRight != null && scoutLeft != null) { fair.robotArt[RobotType.Scout] = (scoutRight, scoutLeft, null); }
+            var drone = StampedeUIArt.Fairground("Drone.png");
+            if (drone != null) { fair.robotArt[RobotType.Drone] = (drone, null, null); }
+            // The Ringmaster Bot: faces right (Ringmaster_Left.png is a script mirror), rolls on its treads, its wreck on the floor.
+            var bossRight = ImportBossArt("Assets/_Project/Sprites/UI/HarvestFairground/Ringmaster_Right.png");
+            var bossLeft = ImportBossArt("Assets/_Project/Sprites/UI/HarvestFairground/Ringmaster_Left.png");
+            var bossDown = ImportBossArt("Assets/_Project/Sprites/UI/HarvestFairground/Ringmaster_Defeated.png");
+            if (bossRight != null && bossLeft != null) { fair.robotArt[RobotType.Commander] = (bossRight, bossLeft, bossDown); }
+            fair.bossArtScale = CropFactoryBossScale;   // 768px frames as the other paid bosses: ~4.1 wide
+            fair.bossGrounded = true;
+            return fair;
+        }
+
+        // Harvester Prime's frames are 768px wide at the Commander's 500px-frame scale (~2.3 units), so it is drawn 1.8x
+        // (~4.1 wide, ~3.4 tall) with its contact zones grown to match (CommanderBoss.OnWorldArtScale).
+        private const float CropFactoryBossScale = 1.8f;
 
         // Watermill Village's boss frames (Sprites/UI/WatermillVillage, 500px like the Commander's): MileStoneMauler.png
         // faces right, MilestoneMaulerLeft.png left (renamed by the user 2026-10-04; it was MilestoneMaulerRight.png).
@@ -1517,13 +1751,17 @@ namespace FarmFuryStampede.EditorTools
             { CharacterType.Bessie, new ArtFrames {
                 idleRight = "Bessie_right.png", runRight = new[] { "Bessie_right.png", "Bessie_right2.png" },
                 idleLeft = "Bessie_left3.png", runLeft = new[] { "Bessie_left.png", "Bessie_left2.png" } } },   // left3 = thumbs-up idle
+            // Percy's and Woolly's jump and defeat frames and Woolly's second walk frame (2026-10-17): one Kling job from
+            // their existing frames; the _Left files are script mirrors of the right-facing ones.
             { CharacterType.Percy, new ArtFrames {
-                idleRight = "Right1.png", runRight = new[] { "Right1.png", "Right2.png" },
-                idleLeft = "Flat1.png", runLeft = new[] { "Flat1.png", "Flat2.png" },
+                idleRight = "Right1.png", runRight = new[] { "Right1.png", "Right2.png" }, jumpRight = "Percy_Jump.png",
+                idleLeft = "Flat1.png", runLeft = new[] { "Flat1.png", "Flat2.png" }, jumpLeft = "Percy_Jump_Left.png",
+                defeat = "Percy_Defeat.png",
                 abilityRight = "Percy_effect.png", abilityLeft = "Percy_effect.png" } },                         // rolled up for Roll Dash
             { CharacterType.Woolly, new ArtFrames {
-                idleRight = "Wooly_right.png", runRight = new[] { "Wooly_right.png" },
-                idleLeft = "Wooly_left.png", runLeft = new[] { "Wooly_left.png" } } },
+                idleRight = "Wooly_right.png", runRight = new[] { "Wooly_right.png", "Wooly_Walk2.png" }, jumpRight = "Wooly_Jump.png",
+                idleLeft = "Wooly_left.png", runLeft = new[] { "Wooly_left.png", "Wooly_Walk2_Left.png" }, jumpLeft = "Wooly_Jump_Left.png",
+                defeat = "Wooly_Defeat.png" } },
             // Ducky (2026-10-11): standing idle, a two-frame walk and the wings-up InFLight pose in the air. The user's
             // frames face right; the _Left files are script mirrors of them.
             { CharacterType.Ducky, new ArtFrames {
@@ -1535,7 +1773,8 @@ namespace FarmFuryStampede.EditorTools
             // Gerald (2026-10-11): a second right walk frame and a wing-up jump; Gerald_Jump_Left is a script mirror.
             { CharacterType.Gerald, new ArtFrames {
                 idleRight = "Gerald_right.png", runRight = new[] { "Gerald_right.png", "Gerald_Right1.png" }, jumpRight = "Gerald_Jump.png",
-                idleLeft = "Gerald_left.png", runLeft = new[] { "Gerald_left.png", "Gerald_left1.png" }, jumpLeft = "Gerald_Jump_Left.png" } },
+                idleLeft = "Gerald_left.png", runLeft = new[] { "Gerald_left.png", "Gerald_left1.png" }, jumpLeft = "Gerald_Jump_Left.png",
+                defeat = "Gerald_Defeat.png" } },   // 2026-10-17, Kling
             { CharacterType.Billy, new ArtFrames {
                 idleRight = "Billy_right.png", runRight = new[] { "Billy_right.png", "Billy_right1.png" },
                 idleLeft = "Billy_left.png", runLeft = new[] { "Billy_left.png", "Billy_left1.png" },

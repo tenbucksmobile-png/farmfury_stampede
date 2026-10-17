@@ -28,6 +28,10 @@ namespace FarmFuryStampede.EditorTools
             { WorldType.SkyIslands, "SkyIsland.mp3" },
             { WorldType.SunkenCity, "SunkenCity.mp3" },
             { WorldType.RobotMothership, "Mothership.mp3" },
+            // The paid worlds' tracks (the user is supplying them; until a file is in Audio/Music the theme plays).
+            { WorldType.DustbowlCanyon, "DustbowlCanyon.mp3" },
+            { WorldType.HarvestFairground, "HarvestFairground.mp3" },
+            { WorldType.CropFactory, "CropFactory.mp3" },
         };
 
         private static readonly Dictionary<CharacterType, string> AbilityFiles = new()
