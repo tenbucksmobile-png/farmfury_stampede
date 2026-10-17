@@ -8,7 +8,9 @@ namespace FarmFuryStampede.UI
 {
     /// <summary>
     /// Arcade's Character Story screen (Settings -> Character Story): tabs along the top - Story, How to Play,
-    /// Characters, Cosmetics, Robots - each its own vertical scroll list of cream rows with a gold border. The copy
+    /// Characters, Cosmetics, Robots - each its own vertical scroll list of cream rows with a gold border, except
+    /// Robots (since 2026-10-17, with every world's own robots): one world at a time (< and > step through them), its
+    /// boss in the middle of a slowly turning ring of its robots and a card for the one tapped (RobotsPage). The copy
     /// is Stampede's (Arcade's describes its maze, power crops and swap combos, none of which exist here; Stampede
     /// has no combos, so that tab is gone). Rows are filled the first time the screen opens, since the character
     /// and robot rows need DataManager.
@@ -81,23 +83,58 @@ namespace FarmFuryStampede.UI
             { CharacterType.Gerald, ("Feather Blow", "Gerald's temper is legendary, and when he puffs up the " +
                 "whole farm knows it. One furious huff sends a storm of feathers flying straight ahead, and any " +
                 "robot in its way - even a Drone - is blown clean off its feet.") },
-            { CharacterType.Billy, ("Charge Break", "Billy's never met a wall he'd rather walk around than through. " +
-                "Lower the horns, charge - and cracked walls and even the steel Barrier Units come crashing down.") },
+            { CharacterType.Billy, ("Mud Sling", "Billy's never met a puddle he didn't want to throw at somebody. " +
+                "He flings a glob of mud that splats the first robot it hits - and where it lands it leaves a sticky " +
+                "mud pile that bogs down the next robot to blunder into it.") },
         };
 
-        private static readonly (RobotType type, string name, string story)[] Robots =
+        // What each kind of robot does (the same in every world; each world dresses them in its own look).
+        private static readonly Dictionary<RobotType, string> RobotStories = new()
         {
-            (RobotType.Harvester, "Harvester", "The workhorse of the robot army. It trundles back and forth on its " +
-                "patrol, turning at walls and ledges. Simple, steady - and easy to stomp."),
-            (RobotType.Scout, "Scout", "Faster than a Harvester and a lot nosier: sneak up behind a Scout and it " +
-                "spins round to face you. Time your jump before it turns."),
-            (RobotType.Drone, "Drone", "Rules of the ground don't apply to Drones - they hover out of reach. Jump " +
-                "into one to knock it down, or let Horace's horseshoe do the job."),
-            (RobotType.Chaser, "Chaser", "Sleeps until you come close, then races after you. It's quick - but not " +
-                "as quick as you. Keep moving, or turn and stomp it."),
-            (RobotType.Commander, "Commander", "The boss of every territory. It takes three hits, gets faster after " +
-                "each one and calls in reinforcements. Beat it to free the world."),
+            { RobotType.Harvester, "The workhorse of the robot army. It trundles back and forth on its patrol, turning " +
+                "at walls and ledges. Simple, steady - and easy to stomp." },
+            { RobotType.Scout, "Faster than a Harvester and a lot nosier: sneak up behind a Scout and it spins round " +
+                "to face you. Time your jump before it turns." },
+            { RobotType.Drone, "Rules of the ground don't apply to Drones - they hover out of reach. Jump into one " +
+                "to knock it down, or let Horace's horseshoe do the job." },
+            { RobotType.Chaser, "Sleeps until you come close, then races after you. It's quick - but not as quick " +
+                "as you. Keep moving, or turn and stomp it." },
+            { RobotType.Piranha, "Lurks under the river and leaps out in an arc when you cross. Harmless under the " +
+                "water - stomp it while it's in the air." },
+            { RobotType.Commander, "The boss of this territory. It takes three hits, gets faster after each one and " +
+                "calls in reinforcements. Beat it to free the world." },
         };
+
+        // Each world's names for its robots (types not listed keep the plain type name).
+        private static readonly Dictionary<WorldType, Dictionary<RobotType, string>> RobotNames = new()
+        {
+            { WorldType.MeadowRuins, new() { { RobotType.Commander, "The Commander" } } },
+            { WorldType.FrozenTundra, new() { { RobotType.Harvester, "Ice Harvester" }, { RobotType.Commander, "Glacier Harvester" } } },
+            { WorldType.WatermillVillage, new() { { RobotType.Commander, "Millstone Mauler" } } },
+            { WorldType.SkyIslands, new() { { RobotType.Commander, "Storm Baron" } } },
+            { WorldType.SunkenCity, new() { { RobotType.Harvester, "Crab" }, { RobotType.Scout, "Shrimp" },
+                { RobotType.Drone, "Jellyfish" }, { RobotType.Commander, "Deep Dredger" } } },
+            { WorldType.RobotMothership, new() { { RobotType.Scout, "Patrol Tank" }, { RobotType.Drone, "Quad Drone" },
+                { RobotType.Commander, "Robot Overlord" } } },
+            { WorldType.DustbowlCanyon, new() { { RobotType.Harvester, "Shovel Harvester" }, { RobotType.Scout, "Cowboy Scout" },
+                { RobotType.Drone, "Propeller Drone" }, { RobotType.Commander, "Drill Rig" } } },
+            { WorldType.HarvestFairground, new() { { RobotType.Harvester, "Clown Car" }, { RobotType.Scout, "Juggler" },
+                { RobotType.Drone, "Balloon Drone" }, { RobotType.Commander, "Ringmaster Bot" } } },
+            { WorldType.CropFactory, new() { { RobotType.Harvester, "Reaper" }, { RobotType.Scout, "Bucket Scout" },
+                { RobotType.Drone, "Vacuum Drone" }, { RobotType.Commander, "Harvester Prime" } } },
+        };
+
+        // The order robots go round the ring (the boss stands in the middle).
+        private static readonly RobotType[] RingOrder =
+            { RobotType.Harvester, RobotType.Scout, RobotType.Chaser, RobotType.Drone, RobotType.Piranha };
+
+        private const int RobotsTab = 4;
+        private readonly List<(WorldType world, string title, List<(RobotType type, Sprite art)> robots)> _robotWorlds = new();
+        private int _robotWorld;
+        private RectTransform _robotStage;
+        private RobotRing _ring;
+        private Text _robotWorldTitle, _robotName, _robotStory;
+        private readonly List<(Image image, RobotType type)> _robotButtons = new();
 
         private readonly Button[] _tabs = new Button[TabNames.Length];
         private readonly RectTransform[] _lists = new RectTransform[TabNames.Length];
@@ -118,7 +155,14 @@ namespace FarmFuryStampede.UI
                 UIKit.Place(_tabs[i].image.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
                     new Vector2((i - (TabNames.Length - 1) * 0.5f) * (tabWidth + tabGap), -50f), new Vector2(tabWidth, 90f));
 
-                (_pages[i], _lists[i]) = ScrollList(TabNames[i]);
+                if (i == RobotsTab)
+                {
+                    _pages[i] = RobotsPage();   // a ring per world instead of a list
+                }
+                else
+                {
+                    (_pages[i], _lists[i]) = ScrollList(TabNames[i]);
+                }
             }
         }
 
@@ -135,7 +179,7 @@ namespace FarmFuryStampede.UI
                 _pages[i].SetActive(i == index);
                 _tabs[i].image.color = i == index ? TabActive : TabInactive;
             }
-            _lists[index].anchoredPosition = Vector2.zero;   // back to the top
+            if (_lists[index] != null) { _lists[index].anchoredPosition = Vector2.zero; }   // back to the top
         }
 
         // A vertical ScrollRect under the tabs, ending above the back button; returns (page, content).
@@ -204,13 +248,139 @@ namespace FarmFuryStampede.UI
                 InfoRow(_lists[3], ShopArt.At(Shop.cosmeticIcons, i), 180f, name, blurb);
             }
 
-            foreach (var (type, name, story) in Robots)
+            CollectRobotWorlds(dm);
+            ShowRobotWorld(0);
+        }
+
+        // ------------------------------------------------------------ robots page
+
+        // The page: the world's name between < and > at the top; on the left the world's boss in the middle of a slowly
+        // turning ring of its robots (RobotRing); on the right a cream card with the tapped robot's name and what it
+        // does. Fits the same area as the other tabs' lists.
+        private GameObject RobotsPage()
+        {
+            var page = UIKit.NewRect("RobotsPage", Rect);
+            page.anchorMin = new Vector2(0.5f, 0f);
+            page.anchorMax = new Vector2(0.5f, 1f);
+            page.offsetMin = new Vector2(-(RowWidth + 40f) * 0.5f, 180f);
+            page.offsetMax = new Vector2((RowWidth + 40f) * 0.5f, -170f);
+
+            var prev = UIKit.MakeButton(page, "PrevWorld", "<", TabInactive, () => ShowRobotWorld(_robotWorld - 1), 60);
+            UIKit.Place(prev.image.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(-560f, -10f), new Vector2(110f, 90f));
+            var next = UIKit.MakeButton(page, "NextWorld", ">", TabInactive, () => ShowRobotWorld(_robotWorld + 1), 60);
+            UIKit.Place(next.image.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(560f, -10f), new Vector2(110f, 90f));
+            foreach (var b in new[] { prev, next })
             {
-                var data = dm != null ? dm.GetRobotData(type) : null;
-                var renderer = data != null && data.prefab != null ? data.prefab.GetComponentInChildren<SpriteRenderer>(true) : null;
-                InfoRow(_lists[4], renderer != null ? renderer.sprite : null, 200f, name, story);
+                b.GetComponentInChildren<Text>().fontStyle = FontStyle.Bold;
+                b.gameObject.AddComponent<Outline>().effectColor = RowBorder;
+            }
+            _robotWorldTitle = UIKit.Label(page, "WorldTitle", "", 54, TextAnchor.MiddleCenter, UIKit.Accent);
+            _robotWorldTitle.fontStyle = FontStyle.Bold;
+            _robotWorldTitle.gameObject.AddComponent<Outline>().effectDistance = new Vector2(3f, -3f);
+            UIKit.Place(_robotWorldTitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -10f), new Vector2(980f, 90f));
+
+            // The ring: its own stage, so the boss and the robots re-sort only among themselves.
+            _robotStage = UIKit.NewRect("RobotRing", page);
+            UIKit.Place(_robotStage, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-400f, -55f), new Vector2(860f, 600f));
+            _ring = _robotStage.gameObject.AddComponent<RobotRing>();
+            _ring.radius = new Vector2(320f, 200f);
+
+            // The card.
+            var card = Row(page, "RobotCard");
+            UIKit.Place(card, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(430f, -55f), new Vector2(760f, 520f));
+            _robotName = UIKit.Label(card, "Name", "", 50, TextAnchor.UpperLeft, TitleColor);
+            _robotName.fontStyle = FontStyle.Bold;
+            UIKit.Place(_robotName.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -36f), new Vector2(680f, 70f));
+            _robotStory = UIKit.Label(card, "Story", "", 34, TextAnchor.UpperLeft, Color.black);
+            UIKit.Place(_robotStory.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, -126f), new Vector2(680f, 360f));
+            return page.gameObject;
+        }
+
+        // Every world's robots, read from its own level prefabs: the first look each robot type has in that world
+        // (RobotSpawnPoint.artRight), or the robot prefab's own art where the world keeps it.
+        private void CollectRobotWorlds(DataManager dm)
+        {
+            _robotWorlds.Clear();
+            if (dm == null) { return; }
+            foreach (var world in dm.GetAllWorlds())
+            {
+                var found = new Dictionary<RobotType, Sprite>();
+                foreach (var level in dm.GetWorldLevels(world.worldType))
+                {
+                    if (level == null || level.levelPrefab == null) { continue; }
+                    foreach (var spawn in level.levelPrefab.GetComponentsInChildren<LevelSystem.RobotSpawnPoint>(true))
+                    {
+                        if (found.ContainsKey(spawn.robotType) || !RobotStories.ContainsKey(spawn.robotType)) { continue; }
+                        Sprite art = spawn.artRight;
+                        if (art == null)
+                        {
+                            var data = dm.GetRobotData(spawn.robotType);
+                            var renderer = data != null && data.prefab != null ? data.prefab.GetComponentInChildren<SpriteRenderer>(true) : null;
+                            art = renderer != null ? renderer.sprite : null;
+                        }
+                        found[spawn.robotType] = art;
+                    }
+                }
+                if (found.Count == 0) { continue; }
+                var robots = new List<(RobotType, Sprite)>();
+                if (found.TryGetValue(RobotType.Commander, out var boss)) { robots.Add((RobotType.Commander, boss)); }
+                foreach (var type in RingOrder)
+                {
+                    if (found.TryGetValue(type, out var art)) { robots.Add((type, art)); }
+                }
+                _robotWorlds.Add((world.worldType, world.displayName, robots));
             }
         }
+
+        private void ShowRobotWorld(int index)
+        {
+            if (_robotWorlds.Count == 0 || _robotStage == null) { return; }
+            _robotWorld = (index % _robotWorlds.Count + _robotWorlds.Count) % _robotWorlds.Count;   // wraps both ways
+            var (world, title, robots) = _robotWorlds[_robotWorld];
+            _robotWorldTitle.text = title;
+
+            for (int i = _robotStage.childCount - 1; i >= 0; i--) { Object.Destroy(_robotStage.GetChild(i).gameObject); }
+            _robotButtons.Clear();
+
+            var ringItems = new List<RectTransform>();
+            foreach (var (type, art) in robots)
+            {
+                bool boss = type == RobotType.Commander;
+                var image = UIKit.Picture(_robotStage, $"Robot_{type}", art);
+                image.gameObject.SetActive(true);
+                image.raycastTarget = true;
+                image.color = art != null ? Color.white : new Color(1f, 1f, 1f, 0f);
+                var rt = image.rectTransform;
+                UIKit.Place(rt, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, boss ? new Vector2(300f, 300f) : new Vector2(170f, 170f));
+                var outline = image.gameObject.AddComponent<Outline>();
+                outline.effectColor = UIKit.Accent;
+                outline.effectDistance = new Vector2(5f, -5f);
+                outline.enabled = false;
+                RobotType picked = type;
+                image.gameObject.AddComponent<Button>().onClick.AddListener(() => SelectRobot(picked));
+                _robotButtons.Add((image, type));
+                if (!boss) { ringItems.Add(rt); }
+            }
+            _ring.SetItems(ringItems);
+            SelectRobot(robots.Count > 0 ? robots[0].type : RobotType.Commander);   // the boss first
+        }
+
+        private void SelectRobot(RobotType type)
+        {
+            if (_robotWorlds.Count == 0) { return; }
+            var world = _robotWorlds[_robotWorld].world;
+            foreach (var (image, t) in _robotButtons)
+            {
+                var outline = image.GetComponent<Outline>();
+                if (outline != null) { outline.enabled = t == type; }
+            }
+            _robotName.text = RobotName(world, type);
+            _robotStory.text = RobotStories.TryGetValue(type, out string story) ? story : "";
+        }
+
+        private static string RobotName(WorldType world, RobotType type) =>
+            RobotNames.TryGetValue(world, out var names) && names.TryGetValue(type, out string name) ? name
+            : type == RobotType.Commander ? "The Boss" : type.ToString();
 
         // A bordered cream row laid out horizontally: [icon] [title + body]. Height follows the text.
         private RectTransform InfoRow(Transform list, Sprite icon, float iconSize, string title, string body)

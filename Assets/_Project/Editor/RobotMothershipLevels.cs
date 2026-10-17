@@ -8,7 +8,7 @@ namespace FarmFuryStampede.EditorTools
     /// validated floaty-jump layouts (see StampedePhase5aSetup.MothershipAssets). The twist is zero-G: every level has
     /// low gravity (LevelBuilder.LowGravity(): jumps reach the usual height but float ~1.35x as long, so 6-unit gaps
     /// are everyday) and a gravity lift (GravityLift: the gravity sling fires a beam that carries the player up to a
-    /// bonus girder with two energy cells and a coin). Every moving ledge is the carrier, every ledge a steel girder;
+    /// bonus girder with two energy cells and a coin). Every ledge, moving ones too, is a steel girder (the carrier only flies overhead);
     /// energy cells are the crops, flying turbines take the Drones' place and the factory machine stands in for the
     /// Robot Overlord until its art exists.
     ///   1-3   Scouts and Harvesters; floaty gaps, a sliding carrier (1), bobbing carriers (2), a bridge (1, 3)

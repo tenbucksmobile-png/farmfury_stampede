@@ -82,6 +82,11 @@ namespace FarmFuryStampede.EditorTools
         private const string CloudPrefabPath = PrefabsDir + "/CloudPlatform.prefab";
         private const string HorseshoePrefabPath = PrefabsDir + "/Horseshoe.prefab";
         private const string EggPrefabPath = PrefabsDir + "/Egg.prefab";
+        // Billy's Mud Sling (2026-10-17, Kling art in Sprites/Characters): the glob, the pile it leaves and its splat.
+        private const string MudBallPrefabPath = PrefabsDir + "/MudBall.prefab";
+        private const string MudPilePrefabPath = PrefabsDir + "/MudPile.prefab";
+        private const string MudSplatPrefabPath = PrefabsDir + "/MudSplat.prefab";
+        private const float MudBallHeight = 0.65f, MudSplatHeight = 0.55f, MudPileHeight = 0.3f;   // units (the pile ~2.7 wide)
         // Cluck's Egg Launch projectile: the cracked-egg art, imported centred at EggHeight units tall.
         private const string EggArtFile = "Power_1.png";
         private const float EggHeight = 0.6f;
@@ -118,6 +123,7 @@ namespace FarmFuryStampede.EditorTools
         private const float RobotFeetY = -0.5f;        // ground robots spawn 0.5 above the ground (LevelBuilder)
         private const float BossFeetY = -1.0f;         // the Commander spawns 1.0 above the ground
         private const string DroneArtFile = "Drone.png"; // flies, so stays centre-pivoted
+        private const string DroneDefeatFile = "Drone_defeat.png"; // its defeat frame: the same scale and centre pivot
         // The Commander boss. Its two frames differ in height (472 / 500 px) but are drawn at the same scale, so
         // both import at the standard 500px-frame scale instead of each being stretched to the same height.
         private const string BossArtRight = "Robot_right.png", BossArtLeft = "Robot_left.png", BossArtDefeated = "Commander_Defeated.png";
@@ -161,7 +167,7 @@ namespace FarmFuryStampede.EditorTools
             new CharacterSpec { type = CharacterType.Gerald, displayName = "Gerald the Turkey", ability = AbilityType.PuffGlide, unlockLevels = 30, ui = new Color(0.55f, 0.35f, 0.25f),
                 description = "Feather Blow: puffs up and blows a flurry of feathers straight ahead, on the ground or in the air, that defeats the first robot it reaches." },
             new CharacterSpec { type = CharacterType.Billy, displayName = "Billy the Goat", ability = AbilityType.ChargeBreak, unlockLevels = 40, ui = new Color(0.78f, 0.78f, 0.82f),
-                description = "Charge Break: charges forward, breaking Breakable Walls that nothing else can." },
+                description = "Mud Sling: flings a glob of mud that defeats the first robot it hits and leaves a mud pile that knocks out the next robot to walk into it." },
         };
 
         [MenuItem("Farm Fury Stampede/Phase 5a/Run Setup")]
@@ -314,6 +320,9 @@ namespace FarmFuryStampede.EditorTools
             BuildCloudPrefab(square, groundLayer, woolArt);
             BuildHorseshoePrefab(ImportCentredArt(HorseshoeArtFile, HorseshoeHeight) ?? horseshoeSprite);
             BuildEggPrefab(ImportCentredArt(EggArtFile, EggHeight) ?? horseshoeSprite);
+            BuildFadeEffectPrefab(ImportCentredArt("MudSplat.png", MudSplatHeight), "MudSplat", MudSplatPrefabPath);
+            BuildMudPilePrefab(ImportCentredArt("MudPile.png", MudPileHeight));
+            BuildMudBallPrefab(ImportCentredArt("MudBall.png", MudBallHeight) ?? horseshoeSprite);
             BuildFadeEffectPrefab(ImportCentredArt(PoundArtFile, PoundArtHeight), "PoundEffect", PoundEffectPrefabPath);
             Sprite spoutArt = ImportCentredArt(WaterSpoutArtFile, WaterSpout.Radius * 2f);
             Sprite featherArt = ImportCentredArt(FeatherArtFile, FeatherArtHeight);
@@ -329,17 +338,17 @@ namespace FarmFuryStampede.EditorTools
             BuildPlayerPrefab(groundLayer, playerLayer);
             BuildCropPrefab(cropSprite);
             BuildRobotPrefab<HarvesterRobot>("Harvester", RobotType.Harvester, harvesterSprite, HarvesterPrefabPath,
-                art: RobotArt("Robot_Harvest_right.png", "Robot_Harvest_left.png", null));
+                art: RobotArt("Robot_Harvest_right.png", "Robot_Harvest_left.png", "Robot_Harvest_defeat.png"));
             BuildRobotPrefab<DroneRobot>("Drone", RobotType.Drone, droneSprite, DronePrefabPath,
-                art: RobotArt("Drone.png", null, null), visualScale: DroneVisualScale);
+                art: RobotArt("Drone.png", null, DroneDefeatFile), visualScale: DroneVisualScale);
             BuildRobotPrefab<ScoutRobot>("Scout", RobotType.Scout, scoutSprite, ScoutPrefabPath,
-                art: RobotArt("ScoutRobot_right.png", "ScoutRobot_left.png", null));
+                art: RobotArt("ScoutRobot_right.png", "ScoutRobot_left.png", "ScoutRobot_defeat.png"));
             BuildRobotPrefab<ChaserRobot>("Chaser", RobotType.Chaser, chaserSprite, ChaserPrefabPath,
-                art: RobotArt("DriftRobot_right.png", "DriftRobot_left.png", null), visualScale: ChaserVisualScale);
+                art: RobotArt("DriftRobot_right.png", "DriftRobot_left.png", "DriftRobot_defeat.png"), visualScale: ChaserVisualScale);
             BuildRobotPrefab<CommanderBoss>("Commander", RobotType.Commander, commanderSprite, CommanderPrefabPath, bossSize: true,
                 art: RobotArt(BossArtRight, BossArtLeft, BossArtDefeated));
             BuildRobotPrefab<PiranhaRobot>("Piranha", RobotType.Piranha, droneSprite, PiranhaPrefabPath,
-                art: (StampedeUIArt.Piranha(), null, null));
+                art: (StampedeUIArt.Piranha(), null, StampedeUIArt.PiranhaDefeat()));
             BuildBarrierUnitPrefab(barrierUnitSprite, groundLayer);
             BuildCheckpointPrefab(square);
             BuildGoalPrefab(square);
@@ -705,7 +714,7 @@ namespace FarmFuryStampede.EditorTools
         // The Scout, Chaser and Drone keep Meadow Ruins' look.
         private static readonly (RobotType type, string right, string left, string defeat)[] TundraRobotArt =
         {
-            (RobotType.Harvester, "Iceharvestor_right.png", "IceHarvestor_left.png", null),
+            (RobotType.Harvester, "Iceharvestor_right.png", "IceHarvestor_left.png", "Iceharvestor_defeat.png"),
             (RobotType.Commander, "GlacierHarvestor_Right.png", "GlacierHarvestor_left.png", "GlacierHarvestorDefeat.png"),
         };
         // The Glacier Harvester boss is drawn this much bigger than the Commander prefab (3 units -> 4.5), and its
@@ -746,6 +755,7 @@ namespace FarmFuryStampede.EditorTools
                 .Where(s => s != null).ToArray();
             if (obstacles.Length > 0) { village.obstacleSprites = obstacles; }
             village.cropSprite = StampedeUIArt.WatermillCrop();   // golden acorns instead of corn kernels
+            village.secretCropSprite = village.cropSprite;        // and instead of the secret-cluster cobs (corn is Meadow-only, 2026-10-17)
             village.haybaleSprite = null;
             village.barnSprite = null;
             village.windmillSprite = null;
@@ -786,6 +796,7 @@ namespace FarmFuryStampede.EditorTools
             sky.stoneBlockSprite = StampedeUIArt.Sky("Cloud.png") ?? meadow.stoneBlockSprite;
             sky.chasmWaterfallSprite = StampedeUIArt.Sky("HangingLantern.png");
             sky.cropSprite = StampedeUIArt.SkyCrop();   // plums on clouds instead of corn kernels
+            sky.secretCropSprite = sky.cropSprite;      // and instead of the secret-cluster cobs (corn is Meadow-only, 2026-10-17)
             sky.balloonSprite = StampedeUIArt.Sky("AirBalloon.png");
             sky.updraftSprite = StampedeUIArt.Sky("UpdraftSpiral.png");
             // The ground is cloud (no grass strip up here): the cloud-strip surface over a cloud fill, a grey storm
@@ -808,7 +819,8 @@ namespace FarmFuryStampede.EditorTools
             // Commander's 500px-frame scale like the Millstone Mauler.
             var baronLeft = ImportBossArt("Assets/_Project/Sprites/UI/SkyIsland/StormBaron.png");
             var baronRight = ImportBossArt("Assets/_Project/Sprites/UI/SkyIsland/StormBaron_Right.png");
-            if (baronLeft != null && baronRight != null) { sky.robotArt[RobotType.Commander] = (baronRight, baronLeft, null); }
+            var baronDown = ImportBossArt("Assets/_Project/Sprites/UI/SkyIsland/StormBaronDefeated.png");
+            if (baronLeft != null && baronRight != null) { sky.robotArt[RobotType.Commander] = (baronRight, baronLeft, baronDown); }
             return sky;
         }
 
@@ -860,22 +872,23 @@ namespace FarmFuryStampede.EditorTools
             // The crab (faces right) patrols as the Harvester, the shrimp as the Scout (it faces left; Shrimp_Right.png
             // is its mirror, a script copy). Drawn 2.1 units tall like Frozen Tundra's robots (visual only).
             var crab = StampedeUIArt.ImportActor("SunkenCity/Crab.png", WorldRobotHeight);
-            if (crab != null) { sea.robotArt[RobotType.Harvester] = (crab, null, null); }
+            if (crab != null) { sea.robotArt[RobotType.Harvester] = (crab, null, StampedeUIArt.ImportMatching("SunkenCity/Crab_Defeat.png", "SunkenCity/Crab.png", false)); }
             var shrimpRight = StampedeUIArt.ImportActor("SunkenCity/Shrimp_Right.png", WorldRobotHeight);
             var shrimpLeft = StampedeUIArt.ImportActor("SunkenCity/Shrimp.png", WorldRobotHeight);
-            if (shrimpRight != null && shrimpLeft != null) { sea.robotArt[RobotType.Scout] = (shrimpRight, shrimpLeft, null); }
+            if (shrimpRight != null && shrimpLeft != null) { sea.robotArt[RobotType.Scout] = (shrimpRight, shrimpLeft, StampedeUIArt.ImportMatching("SunkenCity/Shrimp_Defeat.png", "SunkenCity/Shrimp_Right.png", false)); }
             var jelly = StampedeUIArt.Sunken("JellyFish.png");
-            if (jelly != null) { sea.robotArt[RobotType.Drone] = (jelly, null, null); }
+            if (jelly != null) { sea.robotArt[RobotType.Drone] = (jelly, null, StampedeUIArt.ImportMatching("SunkenCity/JellyFish_Defeat.png", "SunkenCity/JellyFish.png", true)); }
             // The Deep Dredger: DeepDredger.png faces right, DeepDredger_Left.png left (the user's own pair since 2026-10-04).
             var dredgerRight = ImportBossArt("Assets/_Project/Sprites/UI/SunkenCity/DeepDredger.png");
             var dredgerLeft = ImportBossArt("Assets/_Project/Sprites/UI/SunkenCity/DeepDredger_Left.png");
-            if (dredgerRight != null && dredgerLeft != null) { sea.robotArt[RobotType.Commander] = (dredgerRight, dredgerLeft, null); }
+            var dredgerDown = ImportBossArt("Assets/_Project/Sprites/UI/SunkenCity/DeepDredger_Defeated.png");
+            if (dredgerRight != null && dredgerLeft != null) { sea.robotArt[RobotType.Commander] = (dredgerRight, dredgerLeft, dredgerDown); }
             return sea;
         }
 
         /// <summary>
         /// Robot Mothership (World 6): space over the planet behind, a generated steel deck over hull panels, steel
-        /// girders for every ledge, circuit panels for the block steps, the carrier for every moving ledge, containment
+        /// girders for every ledge (moving ones too), circuit panels for the block steps, the carrier flying overhead, containment
         /// pods (energy cells) for crops, the flying turbine in the Drones' place, laser emitters and plasma conduits
         /// as the random obstacles, and the factory machine standing in for the Robot Overlord (no Overlord art yet).
         /// The world's twist is zero-G: every level has low gravity (LevelBuilder.LowGravity(), the underwater
@@ -895,12 +908,13 @@ namespace FarmFuryStampede.EditorTools
             ship.breakableTile = AssetDatabase.LoadAssetAtPath<Tile>($"{SpritesDir}/{MothershipBreakableTileName}.asset") ?? meadow.breakableTile;
             ship.ledgeSprite = StampedeUIArt.Mothership("SteelGirder.png") ?? meadow.ledgeSprite;
             ship.stoneBlockSprite = StampedeUIArt.Mothership("CircuitPanel.png") ?? meadow.stoneBlockSprite;
-            ship.moverSprite = StampedeUIArt.Mothership("Ship.png");
-            ship.moverDeckFromBottom = 0.55f;   // the carrier's flight deck
-            ship.moverDeckWidth = 0.9f;
+            // Moving ledges are steel girders like every other ledge (since 2026-10-17, the user's call; they were the
+            // carrier). The carrier (Ship.png) still flies across the background in the plane's place.
+            ship.moverSprite = null;
             ship.updraftSprite = StampedeUIArt.Mothership("GravityBeam.png");
             ship.updraftBaseSprite = StampedeUIArt.Mothership("GravitySling.png");
             ship.cropSprite = StampedeUIArt.MothershipCrop();
+            ship.secretCropSprite = ship.cropSprite;   // energy pods instead of the secret-cluster cobs too (corn is Meadow-only, 2026-10-17)
             ship.obstacleSprites = new[] { StampedeUIArt.Mothership("LaserEmitter.png"), StampedeUIArt.Mothership("PlasmaConduit.png") }
                 .Where(s => s != null).ToArray();
             ship.haybaleSprite = null;
@@ -909,18 +923,19 @@ namespace FarmFuryStampede.EditorTools
 
             ship.robotArt = new Dictionary<RobotType, (Sprite right, Sprite left, Sprite defeat)>();
             var drone = StampedeUIArt.Mothership("Drone.png");
-            if (drone != null) { ship.robotArt[RobotType.Drone] = (drone, null, null); }   // one frame, flipped to turn
+            if (drone != null) { ship.robotArt[RobotType.Drone] = (drone, null, StampedeUIArt.ImportMatching("MotherShip/Drone_Defeat.png", "MotherShip/Drone.png", true)); }   // one frame, flipped to turn
             // The tracked harvester and the patrol tank, drawn 2.1 units tall like Frozen Tundra's robots.
             var harvesterRight = StampedeUIArt.ImportActor("MotherShip/HarvestorRobot_right.png", WorldRobotHeight);
             var harvesterLeft = StampedeUIArt.ImportActor("MotherShip/HarvestorRobot_left.png", WorldRobotHeight);
-            if (harvesterRight != null && harvesterLeft != null) { ship.robotArt[RobotType.Harvester] = (harvesterRight, harvesterLeft, null); }
+            if (harvesterRight != null && harvesterLeft != null) { ship.robotArt[RobotType.Harvester] = (harvesterRight, harvesterLeft, StampedeUIArt.ImportMatching("MotherShip/HarvestorRobot_defeat.png", "MotherShip/HarvestorRobot_right.png", false)); }
             var tankRight = StampedeUIArt.ImportActor("MotherShip/PatrolRobot_right.png", WorldRobotHeight);
             var tankLeft = StampedeUIArt.ImportActor("MotherShip/PatrolRobot_left.png", WorldRobotHeight);
-            if (tankRight != null && tankLeft != null) { ship.robotArt[RobotType.Scout] = (tankRight, tankLeft, null); }
+            if (tankRight != null && tankLeft != null) { ship.robotArt[RobotType.Scout] = (tankRight, tankLeft, StampedeUIArt.ImportMatching("MotherShip/PatrolRobot_defeat.png", "MotherShip/PatrolRobot_right.png", false)); }
             // The factory machine faces right; FActoryMachine_Left.png is its mirror (a script copy).
             var overlordRight = ImportBossArt("Assets/_Project/Sprites/UI/MotherShip/FActoryMachine.png");
             var overlordLeft = ImportBossArt("Assets/_Project/Sprites/UI/MotherShip/FActoryMachine_Left.png");
-            if (overlordRight != null && overlordLeft != null) { ship.robotArt[RobotType.Commander] = (overlordRight, overlordLeft, null); }
+            var overlordDown = ImportBossArt("Assets/_Project/Sprites/UI/MotherShip/FActoryMachine_Defeated.png");
+            if (overlordRight != null && overlordLeft != null) { ship.robotArt[RobotType.Commander] = (overlordRight, overlordLeft, overlordDown); }
             return ship;
         }
 
@@ -969,12 +984,12 @@ namespace FarmFuryStampede.EditorTools
             // tall like the other worlds' own robots; the vacuum quadcopter flips to turn.
             var harvesterRight = StampedeUIArt.ImportActor("CropFactory/Harvester_right.png", WorldRobotHeight);
             var harvesterLeft = StampedeUIArt.ImportActor("CropFactory/Harvester_left.png", WorldRobotHeight);
-            if (harvesterRight != null && harvesterLeft != null) { factory.robotArt[RobotType.Harvester] = (harvesterRight, harvesterLeft, null); }
+            if (harvesterRight != null && harvesterLeft != null) { factory.robotArt[RobotType.Harvester] = (harvesterRight, harvesterLeft, StampedeUIArt.ImportMatching("CropFactory/Harvester_defeat.png", "CropFactory/Harvester_right.png", false)); }
             var scoutRight = StampedeUIArt.ImportActor("CropFactory/Scout_right.png", WorldRobotHeight);
             var scoutLeft = StampedeUIArt.ImportActor("CropFactory/Scout_left.png", WorldRobotHeight);
-            if (scoutRight != null && scoutLeft != null) { factory.robotArt[RobotType.Scout] = (scoutRight, scoutLeft, null); }
+            if (scoutRight != null && scoutLeft != null) { factory.robotArt[RobotType.Scout] = (scoutRight, scoutLeft, StampedeUIArt.ImportMatching("CropFactory/Scout_defeat.png", "CropFactory/Scout_right.png", false)); }
             var drone = StampedeUIArt.CropFactory("Drone.png");
-            if (drone != null) { factory.robotArt[RobotType.Drone] = (drone, null, null); }
+            if (drone != null) { factory.robotArt[RobotType.Drone] = (drone, null, StampedeUIArt.ImportMatching("CropFactory/Drone_Defeat.png", "CropFactory/Drone.png", true)); }
             // Harvester Prime, the true final boss: faces right (HarvesterPrime_Left.png is a script mirror), rolls on
             // its treads (grounded) and is drawn CropFactoryBossScale times the Commander, its wreck on the floor.
             var primeRight = ImportBossArt("Assets/_Project/Sprites/UI/CropFactory/HarvesterPrime_Right.png");
@@ -1030,12 +1045,12 @@ namespace FarmFuryStampede.EditorTools
             // script mirrors.
             var harvesterRight = StampedeUIArt.ImportActor("DustbowlCanyon/Harvester_right.png", DustbowlHarvesterHeight);
             var harvesterLeft = StampedeUIArt.ImportActor("DustbowlCanyon/Harvester_left.png", DustbowlHarvesterHeight);
-            if (harvesterRight != null && harvesterLeft != null) { desert.robotArt[RobotType.Harvester] = (harvesterRight, harvesterLeft, null); }
+            if (harvesterRight != null && harvesterLeft != null) { desert.robotArt[RobotType.Harvester] = (harvesterRight, harvesterLeft, StampedeUIArt.ImportMatching("DustbowlCanyon/Harvester_defeat.png", "DustbowlCanyon/Harvester_right.png", false)); }
             var scoutRight = StampedeUIArt.ImportActor("DustbowlCanyon/Scout_right.png", WorldRobotHeight);
             var scoutLeft = StampedeUIArt.ImportActor("DustbowlCanyon/Scout_left.png", WorldRobotHeight);
-            if (scoutRight != null && scoutLeft != null) { desert.robotArt[RobotType.Scout] = (scoutRight, scoutLeft, null); }
+            if (scoutRight != null && scoutLeft != null) { desert.robotArt[RobotType.Scout] = (scoutRight, scoutLeft, StampedeUIArt.ImportMatching("DustbowlCanyon/Scout_defeat.png", "DustbowlCanyon/Scout_right.png", false)); }
             var drone = StampedeUIArt.Dustbowl("Drone.png");
-            if (drone != null) { desert.robotArt[RobotType.Drone] = (drone, null, null); }
+            if (drone != null) { desert.robotArt[RobotType.Drone] = (drone, null, StampedeUIArt.ImportMatching("DustbowlCanyon/Drone_Defeat.png", "DustbowlCanyon/Drone.png", true)); }
             // The Drill Rig: faces right (DrillRig_Left.png is a script mirror), rolls on its treads, its wreck on the floor.
             var rigRight = ImportBossArt("Assets/_Project/Sprites/UI/DustbowlCanyon/DrillRig_Right.png");
             var rigLeft = ImportBossArt("Assets/_Project/Sprites/UI/DustbowlCanyon/DrillRig_Left.png");
@@ -1095,12 +1110,12 @@ namespace FarmFuryStampede.EditorTools
             // drone flips to turn. Left frames are script mirrors.
             var harvesterRight = StampedeUIArt.ImportActor("HarvestFairground/Harvester_right.png", WorldRobotHeight);
             var harvesterLeft = StampedeUIArt.ImportActor("HarvestFairground/Harvester_left.png", WorldRobotHeight);
-            if (harvesterRight != null && harvesterLeft != null) { fair.robotArt[RobotType.Harvester] = (harvesterRight, harvesterLeft, null); }
+            if (harvesterRight != null && harvesterLeft != null) { fair.robotArt[RobotType.Harvester] = (harvesterRight, harvesterLeft, StampedeUIArt.ImportMatching("HarvestFairground/Harvester_defeat.png", "HarvestFairground/Harvester_right.png", false)); }
             var scoutRight = StampedeUIArt.ImportActor("HarvestFairground/Scout_right.png", WorldRobotHeight);
             var scoutLeft = StampedeUIArt.ImportActor("HarvestFairground/Scout_left.png", WorldRobotHeight);
-            if (scoutRight != null && scoutLeft != null) { fair.robotArt[RobotType.Scout] = (scoutRight, scoutLeft, null); }
+            if (scoutRight != null && scoutLeft != null) { fair.robotArt[RobotType.Scout] = (scoutRight, scoutLeft, StampedeUIArt.ImportMatching("HarvestFairground/Scout_defeat.png", "HarvestFairground/Scout_right.png", false)); }
             var drone = StampedeUIArt.Fairground("Drone.png");
-            if (drone != null) { fair.robotArt[RobotType.Drone] = (drone, null, null); }
+            if (drone != null) { fair.robotArt[RobotType.Drone] = (drone, null, StampedeUIArt.ImportMatching("HarvestFairground/Drone_Defeat.png", "HarvestFairground/Drone.png", true)); }
             // The Ringmaster Bot: faces right (Ringmaster_Left.png is a script mirror), rolls on its treads, its wreck on the floor.
             var bossRight = ImportBossArt("Assets/_Project/Sprites/UI/HarvestFairground/Ringmaster_Right.png");
             var bossLeft = ImportBossArt("Assets/_Project/Sprites/UI/HarvestFairground/Ringmaster_Left.png");
@@ -1262,6 +1277,7 @@ namespace FarmFuryStampede.EditorTools
             so.FindProperty("abilityPrefabs.cloudPlatform").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(CloudPrefabPath);
             so.FindProperty("abilityPrefabs.horseshoe").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(HorseshoePrefabPath);
             so.FindProperty("abilityPrefabs.egg").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(EggPrefabPath);
+            so.FindProperty("abilityPrefabs.mudBall").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(MudBallPrefabPath);
             so.FindProperty("abilityPrefabs.poundEffect").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(PoundEffectPrefabPath);
             so.FindProperty("abilityPrefabs.waterSpout").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(WaterSpoutPrefabPath);
             so.FindProperty("abilityPrefabs.splashEffect").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(SplashEffectPrefabPath);
@@ -1337,6 +1353,43 @@ namespace FarmFuryStampede.EditorTools
             root.AddComponent<Egg>();
 
             SavePrefab(root, EggPrefabPath);
+        }
+
+        // Billy's slung mud: the egg's shape (kinematic trigger circle, pooled) with MudBall, which leaves a MudPile where it
+        // lands and a MudSplat where it hits.
+        private static void BuildMudBallPrefab(Sprite sprite)
+        {
+            var root = new GameObject("MudBall");
+            root.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
+            var circle = root.AddComponent<CircleCollider2D>();
+            circle.isTrigger = true;
+            circle.radius = 0.3f;
+            AddVisual(root.transform, "Visual", sprite, Color.white, Vector3.zero, Vector3.one, 9);
+            AddPooled(root, "MudBall");
+            var ball = root.AddComponent<MudBall>();
+            var so = new SerializedObject(ball);
+            so.FindProperty("pile").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(MudPilePrefabPath);
+            so.FindProperty("splat").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(MudSplatPrefabPath);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            SavePrefab(root, MudBallPrefabPath);
+        }
+
+        // The mud pile: a low trigger box on the ground point (its origin), the pile art sitting on it.
+        private static void BuildMudPilePrefab(Sprite sprite)
+        {
+            var root = new GameObject("MudPile");
+            root.AddComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
+            var box = root.AddComponent<BoxCollider2D>();
+            box.isTrigger = true;
+            box.size = new Vector2(1.8f, 0.7f);
+            box.offset = new Vector2(0f, 0.35f);
+            var visual = AddVisual(root.transform, "Visual", sprite, Color.white, new Vector3(0f, MudPileHeight * 0.5f - 0.05f, 0f), Vector3.one, 6);
+            AddPooled(root, "MudPile");
+            var pile = root.AddComponent<MudPile>();
+            var so = new SerializedObject(pile);
+            so.FindProperty("visual").objectReferenceValue = visual;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            SavePrefab(root, MudPilePrefabPath);
         }
 
         // Ducky's water spout, Gerald's feather gust and Woolly's wool tuft: the egg's shape (kinematic trigger circle,
@@ -1778,7 +1831,7 @@ namespace FarmFuryStampede.EditorTools
             { CharacterType.Billy, new ArtFrames {
                 idleRight = "Billy_right.png", runRight = new[] { "Billy_right.png", "Billy_right1.png" },
                 idleLeft = "Billy_left.png", runLeft = new[] { "Billy_left.png", "Billy_left1.png" },
-                abilityRight = "Billy_right_ram1.png", abilityLeft = "Billy_left_ram1.png" } },                 // ramming for Charge Break
+                abilityRight = "Billy_Sling.png", abilityLeft = "Billy_Sling_Left.png" } },                     // slinging mud (Kling 2026-10-17; the left is a mirror)
         };
 
         // Ability effect art in Sprites/Characters, imported centred at these heights (units).
@@ -1857,7 +1910,7 @@ namespace FarmFuryStampede.EditorTools
                 // Ruins frames come out as before; Frozen Tundra's 256/426px frames match them).
                 importer.GetSourceTextureWidthAndHeight(out _, out int frameHeight);
                 string fileName = Path.GetFileName(assetPath);
-                bool drone = fileName == DroneArtFile;
+                bool drone = fileName == DroneArtFile || fileName == DroneDefeatFile;
                 bool fixedScale = drone || fileName == BossArtRight || fileName == BossArtLeft || fileName == BossArtDefeated;
                 importer.spritePixelsPerUnit = fixedScale ? ArtPixelsPerUnit : Mathf.Max(1, frameHeight) / ActorVisualHeight;
                 StampedeUIArt.SetPivot(importer, drone ? CentrePivot

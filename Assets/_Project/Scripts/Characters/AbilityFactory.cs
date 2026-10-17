@@ -17,7 +17,7 @@ namespace FarmFuryStampede.Characters
                 case AbilityType.SkipDash: return new WaterSpoutAbility();
                 case AbilityType.RearVaultThrow: return new RearVaultThrowAbility();
                 case AbilityType.PuffGlide: return new FeatherBlowAbility();
-                case AbilityType.ChargeBreak: return new ChargeBreakAbility();
+                case AbilityType.ChargeBreak: return new MudSlingAbility();   // Billy's Mud Sling (was the Charge Break ram)
                 default: throw new ArgumentOutOfRangeException(nameof(type), type, "No ability implementation.");
             }
         }

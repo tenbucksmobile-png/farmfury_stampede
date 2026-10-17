@@ -1,6 +1,6 @@
 # FARM FURY: STAMPEDE — Game Design Document
 
-**v1.4** · "Charge In. Break Through. Take It Back." · A Farm Fury Universe Game
+**v1.5** · "Charge In. Break Through. Take It Back." · A Farm Fury Universe Game
 Side-Scrolling Platformer · Mobile · Free-to-Play
 
 ---
@@ -94,13 +94,13 @@ All eight animals return. Each has exactly one platforming-relevant ability, tra
 | Character | Ability | Effect | Obstacle specialty |
 |---|---|---|---|
 | Cluck the Chicken | Egg Launch (was Flutter Jump until v1.3) | Lobs an egg that defeats a robot, on the ground or in mid-air. | Robots out of stomping reach |
-| Bessie the Cow | Ground Pound | A heavy stomp on landing that breaks cracked floor tiles and instantly defeats any robot directly beneath her. | Hidden floors, ground-level secrets |
+| Bessie the Cow | Ground Pound | A heavy stomp (in the air, or a foot stamp on the ground) that breaks cracked floor tiles; every slam sends a quake along the ground that defeats the first robot it reaches. | Hidden floors, ground-level secrets |
 | Percy the Pig | Roll Dash | Curls into a ball and dashes forward at speed, defeating robots on contact and clearing small gaps. | Speed sections, low tunnels |
-| Woolly the Sheep | Cloud Step | Spawns a temporary wool platform underfoot mid-air, usable once per jump. | Vertical sections, otherwise-unreachable ledges |
-| Ducky the Duck | Skip Dash | Skims across water surfaces and short hazard gaps; the only character who doesn't sink or take damage from water tiles. | Water levels, flooded sections |
-| Horace the Horse | Rear Vault & Horseshoe Throw | The highest single jump of any character; can also throw a horseshoe forward to defeat a robot at range. | Tall obstacles, robots on unreachable ledges |
-| Gerald the Turkey | Puff Glide | Inflates and glides slowly downward, crossing wide chasms; defeats robots on contact while inflated. | Extended aerial sections, long chasms |
-| Billy the Goat | Charge Break | Charges forward, breaking cracked walls and robot barriers no other character can break. | Walled-off secrets, robot-barrier shortcuts |
+| Woolly the Sheep | Cloud Step | Spawns a temporary wool platform underfoot mid-air, usable once per jump; every press (v1.5) also fires a tuft of wool ahead that knocks a robot flat. | Vertical sections, otherwise-unreachable ledges |
+| Ducky the Duck | Water Spout (was Skip Dash until v1.5) | Sends a spinning spout of water rolling along the ground that washes away the first robot it reaches; still the only character immune to water. | Water levels, flooded sections |
+| Horace the Horse | Horseshoe Throw (the Rear Vault was dropped in v1.5) | Lobs a spinning horseshoe in an arc, on the ground or in the air, that defeats one robot at range, Drones included. | Robots on unreachable ledges, Drones |
+| Gerald the Turkey | Feather Blow (was Puff Glide until v1.5) | Puffs up and blows a flurry of feathers straight ahead that defeats the first robot it reaches, Drones included. | Robots ahead, Drones |
+| Billy the Goat | Mud Sling (was Charge Break until v1.5) | Flings a glob of mud that defeats the first robot it hits; where it lands it leaves a mud pile that knocks out the next robot to walk into it. | Robots ahead, robots walking into a trap |
 
 **Design rule:** every main path through every level must be completable by *any* unlocked character — Billy's wall-break, Ducky's water-immunity, etc. gate secrets and bonus areas, never the critical path. This mirrors Arcade's own launch rule ("every level genuinely completable by a skilled free player") extended from monetisation-gating to character-gating.
 
@@ -110,7 +110,8 @@ All eight animals return. Each has exactly one platforming-relevant ability, tra
 - **Once per airborne period:** Flutter Jump, Cloud Step, Roll Dash and Skip Dash re-arm on landing (each activation still spends a use). Ground Pound and Puff Glide only work in the air.
 - **Horace is contextual:** on the ground the button is a Rear Vault (5.5 units, against the shared 3.5); in the air it throws a horseshoe that defeats one robot. Throws fly level, so a low throw is needed to hit a ground-level target.
 - **Ducky** is passively immune to Water tiles (others are slowed to 40% and drown — a respawn — after about 1.2s) and her Skip Dash skims forward with reduced gravity.
-- **Billy** clears Breakable Walls and Barrier Units; Bessie's pound is the only thing that breaks Breakable Floor tiles. Neither affects the other's obstacle.
+- **Billy** cleared Breakable Walls and Barrier Units with Charge Break until v1.5; no level uses either any more, so the ram did nothing and became Mud Sling. Bessie's pound is still the only thing that breaks Breakable Floor tiles.
+- **As built (v1.5):** every ability now deals with robots - Cluck's egg, Bessie's quake, Percy's roll, Woolly's wool tuft, Ducky's water spout, Horace's lobbed horseshoe, Gerald's feather blow and Billy's mud - while Woolly's cloud step and Bessie's pound keep their traversal jobs. Woolly, Percy and Gerald gained jump/defeat (and Woolly a second walk) frames; Gerald's glide is gone, so the chasm-island secrets marked Gerald / Woolly are Woolly's alone now.
 
 **Unlock thresholds** reuse the exact cadence already established in both Arcade (mazes completed) and Rush (runs completed) for franchise consistency — a returning player recognises the rhythm immediately:
 
@@ -137,6 +138,9 @@ All eight animals return. Each has exactly one platforming-relevant ability, tra
 | Barrier Unit (stationary) | Blocks a path outright; only Billy's Charge Break clears it — the platformer's version of Rush's "requires Billy or Bessie to destroy" barrier robots. It cannot be stomped, dashed through or shot. It is 3 tall, so on open ground a high jump can hop it: use it only to seal capped passages (e.g. a chamber entrance), never on a main path |
 | Chaser | Appears in specific levels; once the player is in range and on its level it pursues at a fixed 6.4 units/s against the player's 8 — pressure without being an instant-fail. Stops at walls and ledges, can be stomped |
 | Commander (boss) | The world boss: patrols its arena, needs several hits with a stagger window between them, speeds up per hit, and calls reinforcements (see Section 6) |
+| Piranha (v1.4, Watermill Village) | Waits under a river and leaps out in an arc; harmless under the water, stompable in the air |
+
+**Each world dresses the roster in its own look (as built, v1.5)** - the Ice Harvester and Glacier Harvester (Tundra), the Crab, Shrimp, Jellyfish and Deep Dredger (Sunken City), the patrol tank, quadcopter and Robot Overlord's core (Mothership), the shovel harvester, cowboy scout, propeller drone and Drill Rig (Dustbowl), the clown car, unicycle juggler, balloon drone and Ringmaster Bot (Fairground), the reaper, bucket scout, vacuum drone and Harvester Prime (Crop Factory) - and **every robot has a defeat frame** (knocked over, X eyes, a puff of smoke) shown as it is beaten. Settings -> Character Story -> Robots shows each world's robots in a ring round its boss.
 
 ---
 
@@ -164,6 +168,18 @@ All eight animals return. Each has exactly one platforming-relevant ability, tra
 
 **Rope bridges (as built, v1.4).** A rope bridge carries the main path across a chasm too wide to jump (the corn line runs along its deck; in Frozen Tundra a frozen waterfall hangs in the chasm below). A raised bridge between two ledges can also form an optional bonus route, reached with the double jump and left by brick steps back down.
 
+**Rivers, boats and piranhas (Watermill Village, as built v1.4).** A river fills a pit (falling in costs a life); a rowing boat ferries the player across, docked flush against both banks; piranhas leap out from under the bridges.
+
+**Wind (Sky Islands, as built).** Updraft columns carry the player up to bonus clouds (they can drift out sideways at any height), and hot-air balloons are lifts up to higher islands. The ground is cloud.
+
+**Underwater and low gravity (Sunken City and the Robot Mothership, as built).** Jumps reach the usual height but hang about 1.35x as long, so wider gaps are everyday. Sunken City's air vents bubble the player up to bonus rocks; the Mothership's gravity lifts do the same with a beam.
+
+**Paid-world machinery (as built, v1.5).**
+- *Crop Factory:* **conveyor belts** across pits carry the player with them (faster) or against them (slower); **rhythm crushers** slam onto the path on a beat (under one during a slam costs a life; beside it is safe); **laser gates** fire straight up for half of each cycle and flicker just before.
+- *Dustbowl Canyon:* **quicksand** slows everyone to under half speed (jumping still works); **tumbleweeds** roll along a lane every few seconds and cost a life on contact - jump them; **sandstorms** blow a haze over the screen whose regular gusts hide the way ahead.
+- *Harvest Fairground:* **hay-bale trampolines** bounce the player high, onto bonus stage planks; **ferris wheels** carry gondolas round a hub, each a level ride (here the way up to a higher stage); **conveyor rides** as the factory's belts.
+None of these is a gate: the level builder keeps hazards clear of the start, every checkpoint and every robot patrol, and every main path stays completable by any character.
+
 **Traversal feature — Irrigation Pipes.** (Superseded in practice by the secret passages above; kept for a later world if a two-way pipe is wanted.) Physical pipe/tunnel entrances that connect two points in a level or lead to a bonus area. Deliberately named differently from Arcade's "Warp Tunnel" glossary entry, even though both are Pac-Man/Mario-style teleportation devices — Arcade's is an instant maze-edge wraparound, this is a walked-into physical space, and giving them different names avoids the two mechanics blurring together across games that share a glossary.
 
 **Scoring.** 1–3 stars per level based on crops collected, time, and whether the character-gated secret was found — not a points-chase like Arcade's chain-scoring, since a platformer's satisfaction is completion and discovery, not combo maximisation. **As built:** 1 star for completing; +1 for collecting at least 75% of the level's normal crops; +1 for finding the level's character-gated secret (or, for a level with no gated secret, finishing without dying). Time is not scored yet — a par time needs playtest data first. **Leaderboard (as built, v1.3):** this device's records per world, over the levels completed - Best Farm Fury (the character holding the most level best scores), High Score (the best score per level, summed: 10 per crop, 25 per robot, 100 per star; weights untested), Fastest Time (the fastest clear per level, summed), coins earned, best crops / total and rare pellets found. No online board until the shared backend exists. A secret counts as found once any crop of its cluster has been collected, and that is remembered across attempts.
@@ -179,19 +195,21 @@ All eight animals return. Each has exactly one platforming-relevant ability, tra
 | 1. Meadow Ruins | Farm Fury World 1 | Grassland tutorial world, wood/stone robot outposts | 11 + boss (built) |
 | 2. Frozen Tundra | Farm Fury World 2 | Ice physics — reduced traction on ice tiles, frozen lake platforming | 11 + boss (built) |
 | 3. Watermill Village | Farm Fury World 3 | Water-wheel village, timed fire-spread hazards reinterpreted as platforming obstacles (as built v1.4: moving ledges and rope bridges; fire not built yet) | 11 + boss (built) |
-| 4. Sky Islands | Farm Fury World 4 | Vertical platforming across floating islands, wind gusts push mid-air trajectories | 11 + boss |
-| 5. Sunken City | Farm Fury World 5 | Flooded ruins — Ducky-favoured world, underwater sections with reduced gravity | 11 + boss |
-| 6. Robot Mothership | Farm Fury World 6 | Zero-G platforming twist, Robot Overlord final boss | 11 + Overlord |
+| 4. Sky Islands | Farm Fury World 4 | Vertical platforming across floating islands (as built: updrafts, balloon lifts, cloud ground; boss the Storm Baron) | 11 + boss (built) |
+| 5. Sunken City | Farm Fury World 5 | Flooded ruins (as built: the whole world underwater - floaty jumps, air vents; boss the Deep Dredger) | 11 + boss (built) |
+| 6. Robot Mothership | Farm Fury World 6 | Low-gravity platforming (as built: gravity lifts, steel girders; the factory machine stands in for the Robot Overlord until its art exists) | 11 + Overlord (built) |
 
 **Paid post-finale worlds (decided v1.3).** All six story worlds are **free**. The paid content is three new worlds after the Mothership - the Overlord's remaining forces retreat to hidden outposts - each unlocked by purchase alone (no boss needed), $3.99 each:
 
 | World | Setting | Twist | Boss | Levels |
 |---|---|---|---|---|
-| 7. Dustbowl Canyon | Drought-cracked ranch and red-rock canyon | Sandstorms hide the path, quicksand slows, tumbleweeds roll | Drill Rig | 11 + boss (not built) |
-| 8. Harvest Fairground | The county fair at night | Hay-bale trampolines, ferris-wheel platforms, conveyor rides | Ringmaster Bot | 11 + boss (not built) |
-| 9. Crop Factory | The robots' crop processing plant | Conveyors, rhythm crushers, laser gates | Harvester Prime (true final boss) | 11 + boss (not built) |
+| 7. Dustbowl Canyon | Drought-cracked ranch and red-rock canyon | Sandstorms hide the path, quicksand slows, tumbleweeds roll | Drill Rig | 11 + boss (built v1.5) |
+| 8. Harvest Fairground | The county fair at night | Hay-bale trampolines, ferris-wheel platforms, conveyor rides | Ringmaster Bot | 11 + boss (built v1.5) |
+| 9. Crop Factory | The robots' crop processing plant | Conveyors, rhythm crushers, laser gates | Harvester Prime (true final boss) | 11 + boss (built v1.5) |
 
-Their menu art is in and they appear on World Select and in the shop; their levels come after the story worlds, which are built world by world in order.
+**As built (v1.5).** All three are built: 11 levels and a boss each, their own ground, ledges, blocks, moving ledges (Crop Factory's hovering conveyor lift, Dustbowl's mine-cart lift, the Fairground's ride car), crops (corn tins, prickly pears, toffee apples, each with a golden version for secrets), obstacles, barrels, checkpoints, scenery, robots, boss and wreck, parallax and menu canvases. The layouts share the Crop Factory's validated geometry, re-dressed with each world's machinery (Section 5): gated secrets in 3 (high ledge), 6 (Breakable Floor) and 9 (island behind the start); secret passages in 1, 3, 4, 5, 7, 9 and 11. The bosses are grounded, 1.8x the Commander's size, on the usual boss pattern. **Corn is Meadow Ruins' alone:** every other world uses its own crop for both everyday and secret crops.
+
+**Art method (v1.5).** Every paid-world asset was made with Kling AI's image-to-image (the gpt-image2 model) from a script-drawn layout sketch plus the world's backdrop as the style reference, several sprites per image, then cut out by script - flat side views first time, about 45 credits a world. Character poses and robot wrecks used the existing sprites as the reference so they stay on-model.
 
 **12 levels per world — 11 regular levels plus the boss as the 12th — 72 levels total for v1.** This replaces the original 46-level scope (8 per world, 6 + boss for the Mothership). Every world uses the same count so World and Level Select read the same everywhere: the Level Select grid is two rows of six with the boss in the last slot. The trade-off is real: hand-built platformer levels take materially longer to design and test than Arcade's mazes or Rush's procedural chunks, so the added levels are the biggest content cost in the roadmap. If schedule pressure bites, cut per-world variety (fewer new set-pieces per level) before cutting the count, so the grid stays consistent.
 
@@ -213,12 +231,13 @@ Their menu art is in and they appear on World Select and in the shop; their leve
 
 ## 7. User Interface
 
-- **World Select (as built, v1.3)** — nine cards in a 3x3 grid fitted inside the device safe area: the six story worlds, then the three paid worlds, which stay bright with a $3.99 price sign until bought and open the world shop when tapped. Earlier: a wooden banner header over six world cards (matching the world table above): each card is the world's art with its name baked in and a round play button in the bottom-left corner; a locked world's card and button are greyed out. (As built, the cards no longer show stars earned or which boss unlocks a world — the art mockup dropped the text.) **Rule:** a world unlocks once the previous world's boss level has been completed; only Meadow Ruins is open on a fresh save.
+- **World Select (as built, v1.5)** — a carousel of the nine world badges (wooden shields, names baked in), drag or tap a side badge to centre it, tap the centred one to enter; the paid worlds always come last, stay bright (no price sign on the badge since v1.5) and open the world shop when tapped, where each paid world is shown as its badge with the $3.99 price sign. Was (v1.3): nine cards in a 3x3 grid, the paid ones with a $3.99 sign. Earlier: a wooden banner header over six world cards (matching the world table above): each card is the world's art with its name baked in and a round play button in the bottom-left corner; a locked world's card and button are greyed out. (As built, the cards no longer show stars earned or which boss unlocks a world — the art mockup dropped the text.) **Rule:** a world unlocks once the previous world's boss level has been completed; only Meadow Ruins is open on a fresh save.
 - **Level Select (within world)** — the world's backdrop (name baked in) with two rows of six wooden plaques, sized to the device safe area: a padlock plaque when locked, a question-mark plaque for the next level to play, a board showing the 1-3 stars earned once completed, and the boss shield as the 12th slot. (As built, the art look drops level numbers and the undiscovered-secret icon; the plain fallback grid, used for a world without art, still shows both.) **Rules:** the first level of a world is open; each later level opens when the previous one is completed; the boss level opens once every regular level is cleared. The icon shows on a completed level with a gated secret that has not been found yet (found = a crop of the secret cluster was collected)
 - **Character Select (before a level)** — *removed from the flow in v1.3 (the in-level swap replaced it, Section 4).* Was: a "New Character" banner over the eight framed character cards (names baked in), locked ones greyed out; as built there's no ability text under the cards; picking one is a level *attempt*, not a permanent choice — replay the same level with a different character freely
 - **Gameplay HUD (as built, v1.3)** — coin balance top-left, the played character's thumbs-up per life top-right; one row of same-size buttons along the bottom: hold-to-run left/right and pause bottom-left, character swap and the Locker centred, the played character's ability card (greyed while recharging - no countdown text since v1.4 - with a coin badge, no price text, and a Watch Ad button to skip it) and jump bottom-right. (Originally planned: crops/score top-left, portrait + ability uses bottom-left, pause top-centre.)
 - **Character swap (as built, v1.4)** — the level freezes behind the world's "Character" backdrop, with the eight framed cards in a carousel (as Arcade's Choose Character): drag or tap a side card to centre it, tap the centred card to become that character; it opens on the character being played (gold frame); locked characters are dark silhouettes that can be browsed but not chosen. Was (v1.3): two rows of four over a dim
 - **Settings -> Leaderboards** — the world names over the wooden sign (per the mockups); each opens that world's records page (Section 5)
+- **Settings -> Character Story -> Robots (as built, v1.5)** — one world at a time (< and > step through all nine): the world's boss in the middle of a slowly turning ring of its robots, and a card with the name and behaviour of the one tapped. Was: a single list of the five robot types
 - **Level Complete** — stars earned, crops collected, deaths, any character or world unlocked by this clear. **Level Failed** (out of lives) shows briefly, then returns to Level Select
 - **Pause** — Play, Settings (a stub until settings exist), Restart Level (reloads the level, same character, full lives), Quit (back to Level Select)
 - Reuses Arcade's proven navigation pattern where sensible (Shop hub off Settings, not off Main Menu) rather than inventing new IA for the same purchases
@@ -234,6 +253,8 @@ Their menu art is in and they appear on World Select and in the shop; their leve
 ---
 
 ## 9. Audio Design
+
+**As built (v1.5):** the menu theme everywhere outside a level and a track per story world in it; the paid worlds' tracks (DustbowlCanyon, HarvestFairground, CropFactory) are mapped and play once the files are added - until then the theme plays. Robot defeats, the boss's defeat, every pickup, deaths and each character's ability have their own sounds.
 
 Per-world music themes, reusing the franchise's established practice from Arcade (dedicated track per world, crossfade for power-up windows). Per-character ability sound cues, matching Arcade's "mechanical cue, not a voice bark" choice (Section 9 of the Arcade GDD) rather than Rush's planned voice-bark approach — Arcade's choice already shipped and read fine; no reason to relitigate it per title.
 
@@ -284,8 +305,8 @@ Mirrors the phase structure that's already worked for Rush (see its `CLAUDE.md`)
 2. **Core movement & controls** — Cluck only. Kinematic Rigidbody2D + MovePosition movement, coyote time, jump buffering, one hand-built test level in Meadow Ruins. Priority is game feel — this is the phase most likely to need real iteration time, same as it was for Rush. **Built.**
 3. **Level system & World 1** — Tilemap-based level loading from ScriptableObject descriptors, the Meadow Ruins levels (8 at the time; now 11 + boss), ground-patrol and drone robot AI, checkpoint/level-complete flow, crop collection. **Built; machine-verified, hand-playtest pending.**
 4. **Characters & abilities** — remaining 7 characters and all 8 unique abilities, character-select-before-level UI, ability-gated secrets, the 5/10/15/20/30/40 unlock ladder. **Built; machine-verified, hand-playtest pending.**
-5. **Remaining worlds, bosses & progression UI** — Worlds 2–6, per-world bosses, Robot Overlord finale, World Select/Level Select screens, HUD, pause. Split into one session per world: **5a done** (Scout/Barrier Unit/Chaser, the reusable boss pattern proven on Meadow Ruins, World/Level Select, HUD, pause, lives; machine-verified, hand-playtest pending); **5b Frozen Tundra built** (ice physics, 11 + boss; machine-verified, hand-playtest and some Tundra robot/boss art pending); **5c Watermill Village built** (moving ledges and rope bridges, 11 + boss, its own ground/parallax/menu art; machine-verified, hand-playtest and the fire-spread twist pending); 5d Sky Islands; 5e Sunken City; 5f Robot Mothership and the Robot Overlord.
-   Then **5g** — the paid post-finale worlds (Dustbowl Canyon, Harvest Fairground, Crop Factory; menu art and store wiring done, levels not started).
+5. **Remaining worlds, bosses & progression UI** — Worlds 2–6, per-world bosses, Robot Overlord finale, World Select/Level Select screens, HUD, pause. Split into one session per world: **5a done** (Scout/Barrier Unit/Chaser, the reusable boss pattern proven on Meadow Ruins, World/Level Select, HUD, pause, lives; machine-verified, hand-playtest pending); **5b Frozen Tundra built** (ice physics, 11 + boss; machine-verified, hand-playtest and some Tundra robot/boss art pending); **5c Watermill Village built** (moving ledges and rope bridges, 11 + boss, its own ground/parallax/menu art; machine-verified, hand-playtest and the fire-spread twist pending); **5d Sky Islands, 5e Sunken City and 5f Robot Mothership built** (updrafts and balloons; underwater floaty jumps; low gravity and gravity lifts; the Robot Overlord's own art still pending); all machine-verified, hand-playtest pending.
+   Then **5g** — the paid post-finale worlds: **Crop Factory, Dustbowl Canyon and Harvest Fairground built (v1.5)**, each 11 + boss with its own machinery and Kling art; machine-verified, hand-playtest and their music pending.
 6. **Monetisation & polish** (monetisation ported from Arcade early, during 5a; polish not started) — Unity IAP (Arcade's proven product catalog, adapted), LevelPlay ad mediation, Firebase Analytics, Supabase cloud save, cross-promo, tutorial, launch polish.
 
 ---
@@ -321,4 +342,5 @@ Mirrors the phase structure that's already worked for Rush (see its `CLAUDE.md`)
 - v1.1 — Updated to the as-built design after Phases 1-5a: unified base movement and the 3-uses-per-level ability limit; ability rules as implemented; refined Scout/Barrier Unit/Chaser and the Commander boss; lives (3 per attempt) and the star formula; the boss pattern; world/level unlock rules and the secret-found icon rule; prefab-based level loading; roadmap status with Phase 5 split into 5a-5f.
 - v1.2 — Level count raised to 12 per world (11 levels + the boss as the 12th), 72 total, replacing the 46-level v1 scope; Meadow Ruins levels 9-11 built (Bessie, Gerald/Woolly and Billy gates) and the as-built difficulty ramp recorded. UI section updated to the art-driven World, Level and Character Select screens.
 - v1.3 — Character Select before a level replaced by a mid-level character swap; rare pellets unlock the next character; Cluck's ability is Egg Launch; Mario-style secret passages (automatic entry, coins, the rare pellet); leaderboard records and score; the as-built HUD; all six story worlds free, with three new paid post-finale worlds (Dustbowl Canyon, Harvest Fairground, Crop Factory) on a 3x3 World Select; Frozen Tundra built (Phase 5b) with slippery ice.
+- v1.5 — Sky Islands, Sunken City and the Robot Mothership recorded as built; the three paid worlds built - Crop Factory (conveyors, rhythm crushers, laser gates; Harvester Prime), Dustbowl Canyon (quicksand, tumbleweeds, sandstorms; the Drill Rig) and Harvest Fairground (trampolines, ferris wheels, conveyor rides; the Ringmaster Bot) - with art made in Kling from layout sketches; abilities now all deal with robots (Ducky's Water Spout, Horace's lobbed horseshoe, Gerald's Feather Blow, Woolly's wool tuft, Billy's Mud Sling replacing Charge Break); new Woolly, Percy and Gerald frames; a defeat frame for every robot; corn only in Meadow Ruins; the Mothership's moving ledges are steel girders; World Select a badge carousel with no price sign on the paid badges; the Robots page a ring per world; music slots for the paid worlds.
 - v1.4 — Watermill Village built (Phase 5c) around Mario-style moving ledges (sliding, meeting, bobbing, lifts) and rope bridges, with its own ground, parallax and menu art; moving ledges and bridges added to Frozen Tundra 1, 2, 3, 6 and 8; secret passages return the player to the entrance; the remaining Billy chambers removed; the THIN ICE sign became the Tundra's checkpoint; the character swap became a carousel; the boss victory goes straight to World Unlocked; the HUD ability countdown and skip-price text removed.

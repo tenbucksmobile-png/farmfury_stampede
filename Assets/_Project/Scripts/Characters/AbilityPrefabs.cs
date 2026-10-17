@@ -18,5 +18,6 @@ namespace FarmFuryStampede.Characters
         public GameObject woolTuft;      // Woolly's tuft of wool (FeatherGust with the Wooly_effect art)
         public GameObject woolEffect;    // its shed wisps and the scatter: Wooly_effect.png (FadeEffect)
         public GameObject victoryEffect; // the beaten boss's dazed stars: DazedStar.png (DazedStars)
+        public GameObject mudBall;       // Billy's slung mud (MudBall), which carries its own pile and splat prefabs
     }
 }

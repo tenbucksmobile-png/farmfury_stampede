@@ -1132,6 +1132,24 @@ namespace FarmFuryStampede.EditorTools
         };
         public static Sprite Boat() => Load(BoatFile);
         public static Sprite Piranha() => Load(PiranhaFile);
+        /// <summary>The piranha's defeat frame (WaterRobot_Defeat.png, Kling 2026-10-17), at the piranha's own scale.</summary>
+        public static Sprite PiranhaDefeat() => ImportMatching("WatermillVillage/WaterRobot_Defeat.png", PiranhaFile, true);
+
+        /// <summary>
+        /// Imports a robot's defeat frame (Sprites/UI/...) at the same pixels-per-unit as the robot's own frame
+        /// (already imported), so a frame drawn at the robot's pixel scale comes out the robot's size; centred for a
+        /// flyer, otherwise feet on its lowest visible row. Returns null when either file is missing.
+        /// </summary>
+        public static Sprite ImportMatching(string file, string reference, bool centred)
+        {
+            if (!File.Exists($"{UIDir}/{reference}") || !(AssetImporter.GetAtPath($"{UIDir}/{reference}") is TextureImporter refImporter)) { return null; }
+            var importer = BeginImport(file);
+            if (importer == null) { return null; }
+            importer.spritePixelsPerUnit = refImporter.spritePixelsPerUnit;
+            SetPivot(importer, centred ? new Vector2(0.5f, 0.5f) : new Vector2(0.5f, BottomPaddingFraction($"{UIDir}/{file}")));
+            FinishImport(importer);
+            return Load(file);
+        }
 
         /// <summary>
         /// Watermill Village's props in the farm-prop roles. Meadow's corn fields and fences are Meadow-only (removed
