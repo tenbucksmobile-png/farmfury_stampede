@@ -78,6 +78,7 @@ namespace FarmFuryStampede.Movement
 
         private float _invulnerableUntil;
         private float _dyingUntil;
+        private float _powerUntil;   // the cherry power-up (CherryPickup)
 
         private CharacterAbility _ability;
         private bool _abilityQueued;
@@ -105,6 +106,14 @@ namespace FarmFuryStampede.Movement
         /// <summary>Seconds since the character last stood on the ground (0 while grounded).</summary>
         public float AirTime { get; private set; }
         public bool IsInvulnerable => Time.time < _invulnerableUntil;
+
+        /// <summary>
+        /// The cherry power-up is running: robots touched are defeated instead of costing a life (the boss is only
+        /// made harmless). Pits, water and hazards still count. Scaled time, so it waits while paused or swapping.
+        /// </summary>
+        public bool IsPoweredUp => Time.time < _powerUntil;
+        public float PowerUpRemaining => Mathf.Max(0f, _powerUntil - Time.time);
+        public SpriteRenderer Visual => visual;
 
         /// <summary>True during the short defeat pose before a respawn: the character is frozen and harmless to touch.</summary>
         public bool IsDying => Time.time < _dyingUntil;
@@ -181,6 +190,11 @@ namespace FarmFuryStampede.Movement
 
             _position = _body.position;
             RecalculateJump();
+
+            if (GetComponent<CherrySwirl>() == null)
+            {
+                gameObject.AddComponent<CherrySwirl>();
+            }
         }
 
         private void Start()
@@ -311,6 +325,7 @@ namespace FarmFuryStampede.Movement
             _waterTime = 0f;
             _dyingUntil = 0f;
             _invulnerableUntil = 0f;   // a respawn re-grants it; a fresh start must not inherit the failed attempt's 60s
+            _powerUntil = 0f;          // a death or a new attempt ends the cherry power
             _ability?.Reset(this);
             transform.position = position;
             _body.position = position;
@@ -353,6 +368,13 @@ namespace FarmFuryStampede.Movement
             _abilityQueued = false;
             _ability?.Reset(this);
             GrantInvulnerability(seconds + 0.25f);
+            _powerUntil = 0f;
+        }
+
+        /// <summary>The cherry power-up (CherryPickup): invincible to robots for the given seconds (a new cherry restarts it).</summary>
+        public void StartPowerUp(float seconds)
+        {
+            _powerUntil = Time.time + seconds;
         }
 
         /// <summary>Called every physics step by an UpdraftZone while the player is inside it: carried up at liftSpeed.</summary>

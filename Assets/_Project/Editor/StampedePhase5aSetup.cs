@@ -382,6 +382,7 @@ namespace FarmFuryStampede.EditorTools
                 bridgeSprite = StampedeUIArt.Bridge(),
                 coinSprite = StampedeUIArt.Coin(),
                 rarePelletSprite = StampedeUIArt.RarePellet(),
+                cherrySprite = StampedeUIArt.Cherry(),
                 secretSignSprite = StampedeUIArt.SecretSign(),
                 ledgeSprite = StampedeUIArt.LedgeStone(),
                 invisibleTile = AssetDatabase.LoadAssetAtPath<Tile>(InvisibleTilePath),

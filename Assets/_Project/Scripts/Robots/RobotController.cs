@@ -207,6 +207,17 @@ namespace FarmFuryStampede.Robots
                 return;
             }
 
+            // The cherry power-up: run straight through. Any robot that could hurt the player right now is defeated;
+            // the boss is only made harmless, so it is still beaten by its own pattern.
+            if (player.IsPoweredUp)
+            {
+                if (this is not CommanderBoss && CanHurtPlayer)
+                {
+                    TakeHit();
+                }
+                return;
+            }
+
             // Percy's dash and Bessie's pound hit whatever they touch.
             if (player.ContactAttacking)
             {

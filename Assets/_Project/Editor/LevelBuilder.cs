@@ -55,6 +55,8 @@ namespace FarmFuryStampede.EditorTools
         public Sprite coinSprite;
         /// <summary>The rare pellet (crystal apple) placed by RarePellet(); null places none.</summary>
         public Sprite rarePelletSprite;
+        /// <summary>The cherry power-up (CherryPickup), placed automatically before each level's busiest stretch of robots; null places none.</summary>
+        public Sprite cherrySprite;
         /// <summary>SecretSign.png (feet-pivoted): marks both ends of a SecretPassage(); null leaves the doors invisible.</summary>
         public Sprite secretSignSprite;
 
@@ -1197,6 +1199,7 @@ namespace FarmFuryStampede.EditorTools
                 errorsOut.AddRange(_errors);
                 return null;
             }
+            if (assets.cherrySprite != null) { PlanCherry(); }
 
             int endX = _x;
             int maxTop = Mathf.Max(_surfaces.Max(s => s.top), _chambers.Count > 0 ? _chambers.Max(c => c.floorTop + 4) : 0);
@@ -1351,6 +1354,7 @@ namespace FarmFuryStampede.EditorTools
             RemoveCropsPastGoal();
             RemoveOverlappingCrops();
             PlaceRarePellet(root.transform, assets);
+            PlaceCherry(root.transform, assets);
 
             var markers = new GameObject("Markers");
             markers.transform.SetParent(root.transform, false);
@@ -1527,6 +1531,104 @@ namespace FarmFuryStampede.EditorTools
 
         /// <summary>Where this level's rare pellet was placed (after Build), or null when it has none.</summary>
         public Vector2? RarePelletPosition { get; private set; }
+
+        // Cherry power-up (see CherryPickup): one per non-boss level, chosen here rather than authored. It goes on flat
+        // main-path ground a few units before the level's busiest stretch of robots - the most of them inside one
+        // CherryReach (what the 3 s power covers at running speed) - so eating it lets the player run through them.
+        // Only stretches of at least CherryMinRobots count; a level without one gets no cherry.
+        private const float CherryRadius = 0.55f;
+        private const float CherryReach = 22f;
+        private const int CherryMinRobots = 3;
+        private const float CherryLookBack = 24f;   // how far before a stretch the cherry may sit
+        private const int CherrySortingOrder = 6;   // over the crops (5), like the rare pellet
+        private Vector2? _cherry;
+
+        /// <summary>Where this level's cherry was placed (after Build), or null when it has none.</summary>
+        public Vector2? CherryPosition => _cherry;
+
+        private void PlanCherry()
+        {
+            if (IsBoss) { return; }
+
+            var robots = _robots.Where(r => r.wave == 0 && r.type != RobotType.Piranha && r.type != RobotType.Commander).ToList();
+            // Each robot's patrol start opens a stretch; best first (most robots, then the later one). Stretches
+            // of CherryMinRobots are tried first, then pairs (busy levels leave little open ground before them).
+            var stretches = robots
+                .Select(r => r.x - r.patrol)
+                .Select(lead => (lead, count: robots.Count(o => o.x >= lead && o.x <= lead + CherryReach)))
+                .OrderByDescending(t => Mathf.Min(t.count, CherryMinRobots)).ThenByDescending(t => t.count).ThenByDescending(t => t.lead)
+                .Where(t => t.count >= 2)
+                .ToList();
+
+            foreach (var (lead, count) in stretches)
+            {
+                // The closest open spot before the stretch.
+                for (float x = Mathf.Floor(lead) - 2.5f; x >= lead - CherryLookBack; x -= 0.5f)
+                {
+                    if (IsCherrySpotClear(x, out int top))
+                    {
+                        _cherry = new Vector2(x, top + CropRestHeight);
+                        Debug.Log($"[LevelBuilder] {Id}: cherry at x {x} before {count} robots from x {lead:0.#}.");
+                        return;
+                    }
+                }
+            }
+            Debug.Log($"[LevelBuilder] {Id}: no cherry (no open spot before 2+ robots).");
+        }
+
+        private bool IsCherrySpotClear(float x, out int top)
+        {
+            top = 0;
+            if (!_surfaces.Any(s => s.kind != Kind.Floating && !s.secret && x >= s.x0 + 1f && x < s.x1 - 1f)) { return false; }
+            top = GroundTopAt(x, out _);
+            int at = top;
+            foreach (float dx in new[] { -1f, -0.5f, 0.5f, 1f })
+            {
+                if (GroundTopAt(x + dx, out bool found) != at || !found) { return false; }
+            }
+
+            bool Near(Vector2? p, float range) => p.HasValue && Mathf.Abs(p.Value.x - x) < range;
+            if (Near(_playerStart, 8f) || Near(_goal, 6f) || Near(_rarePellet, 3f)) { return false; }
+            if (_passage.HasValue && Mathf.Abs(_passage.Value.x - x) < 3f) { return false; }   // the passage sign
+            if (_checkpoints.Any(c => Mathf.Abs(c.x - x) < 2f)) { return false; }
+            if (_robots.Any(r => Mathf.Abs(r.x - x) < r.patrol + 1.5f)) { return false; }
+            if (_breakables.Any(b => x > b.x - 1f && x < b.x + b.length + 1f)) { return false; }
+            if (_crushers.Concat(_lasers).Any(h => Mathf.Abs(h.x - x) < 3f)) { return false; }
+            if (_quicksand.Any(q => x > q.x0 - 1f && x < q.x1 + 1f)) { return false; }
+            if (_tumbleweeds.Any(t => x > t.x0 - 1f && x < t.x1 + 1f)) { return false; }
+            if (_updrafts.Any(u => Mathf.Abs(u.x - x) < 2.5f)) { return false; }
+            if (_pyramids.Any(p => Mathf.Abs(p.x - x) < 4f) || _haystacks.Any(h => Mathf.Abs(h.at.x - x) < 4f)) { return false; }
+            // Nothing low overhead to hide it under, and well clear of the secrets.
+            if (_surfaces.Any(s => s.kind == Kind.Floating && x > s.x0 - 1f && x < s.x1 + 1f && s.top - at < 4)) { return false; }
+            if (_surfaces.Any(s => s.secret && x > s.x0 - 3f && x < s.x1 + 3f)) { return false; }
+            return true;
+        }
+
+        private void PlaceCherry(Transform root, LevelAssets assets)
+        {
+            if (!_cherry.HasValue || assets.cherrySprite == null) { return; }
+
+            var spot = _cherry.Value;
+            // No crop hidden behind the cherry.
+            _crops.RemoveAll(c => !c.passage && Vector2.Distance(new Vector2(c.x, c.y), spot) < MinCropSpacing);
+
+            var cherry = new GameObject("Cherry");
+            cherry.transform.SetParent(root, false);
+            cherry.transform.position = new Vector3(spot.x, spot.y, 0f);
+            var trigger = cherry.AddComponent<CircleCollider2D>();
+            trigger.isTrigger = true;
+            trigger.radius = CherryRadius;
+            trigger.offset = new Vector2(0f, 0.25f);   // the icon's pivot is near its bottom (crop import)
+            var art = new GameObject("Art");
+            art.transform.SetParent(cherry.transform, false);
+            var renderer = art.AddComponent<SpriteRenderer>();
+            renderer.sprite = assets.cherrySprite;
+            renderer.sortingOrder = CherrySortingOrder;
+            var pickup = cherry.AddComponent<CherryPickup>();
+            var so = new SerializedObject(pickup);
+            so.FindProperty("visual").objectReferenceValue = renderer;
+            so.ApplyModifiedPropertiesWithoutUndo();
+        }
 
         // Nothing to collect past the finish flag: the level ends on touching it, so crops (and coins) there are
         // unreachable and spoil the 75%-of-crops star. Secret-passage rooms (built past the level end) and gated
@@ -3204,6 +3306,7 @@ namespace FarmFuryStampede.EditorTools
             bool Near(Vector2? p, float range) => p.HasValue && Mathf.Abs(p.Value.x - x) < range;
             if (Near(_playerStart, 6f) || Near(_goal, 4f)) { return false; }
             if (Near(_rarePellet, ObstacleWidth * 0.5f + 2f)) { return false; }   // the pellet floats over open ground
+            if (Near(_cherry, ObstacleWidth * 0.5f + 2f)) { return false; }       // so does the cherry
             if (_passage.HasValue && Mathf.Abs(_passage.Value.x - x) < ObstacleWidth * 0.5f + 2f) { return false; }   // passage sign
             if (_checkpoints.Any(c => Mathf.Abs(c.x - x) < 3f)) { return false; }
             if (_robots.Any(r => Mathf.Abs(r.x - x) < r.patrol + ObstacleWidth * 0.5f + 1.2f)) { return false; }

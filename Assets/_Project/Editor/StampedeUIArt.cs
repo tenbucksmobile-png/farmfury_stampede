@@ -66,6 +66,7 @@ namespace FarmFuryStampede.EditorTools
             { CoinFile, 0.9f },
             { "CornCob.png", 1.2f },
             { RarePelletFile, 1.3f },            // the rare pellet: bigger than any crop, so it reads as special
+            { CherryFile, 1.1f },                // the cherry power-up: a little bigger than a crop
             { TundraCropFile, 1.6f },            // the berry fills ~56% of its 500px frame: ~0.9 visible, like the kernel
             { WatermillCropFile, 1f },
             { SkyCropFile, 1.1f },
@@ -81,6 +82,8 @@ namespace FarmFuryStampede.EditorTools
         };
         // The rare pellet (RarePelletPickup): a glowing crystal apple at the end of each gated secret.
         private const string RarePelletFile = "RarePellets_apple.png";
+        // The cherry power-up (CherryPickup): 3 s of running through robots.
+        private const string CherryFile = "Cherry.png";
 
         // Framed Character Select cards (name baked into the art).
         private const float CardPixelsPerUnit = 100f; // UI-only; the Image sizes it
@@ -298,6 +301,7 @@ namespace FarmFuryStampede.EditorTools
             foreach (string file in SecretCropFiles) { ImportCropIcon(file); }
             ImportCropIcon(CoinFile);
             ImportCropIcon(RarePelletFile);
+            ImportCropIcon(CherryFile);
             ImportCropIcon(TundraCropFile);
             ImportCropIcon(WatermillCropFile);
             ImportCropIcon(SkyCropFile);
@@ -1246,6 +1250,7 @@ namespace FarmFuryStampede.EditorTools
         public static Sprite SunkenSecretCrop() => Load(SunkenSecretCropFile);
         public static Sprite MothershipCrop() => Load(MothershipCropFile);
         public static Sprite RarePellet() => Load(RarePelletFile);
+        public static Sprite Cherry() => Load(CherryFile);
 
         /// <summary>The character's Character Select card, or null if it has none.</summary>
         public static Sprite CharacterCard(CharacterType type) =>

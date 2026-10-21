@@ -38,17 +38,30 @@ namespace FarmFuryStampede.UI
 
             var save = SaveManager.Instance;
             var world = GameFlow.Instance.CurrentWorld;
-            var rect = new Rect(Screen.width - 330, 90, 320, 712);
+            var rect = new Rect(Screen.width - 330, 90, 320, 784);
             GUI.Box(rect, $"DEBUG (world: {world})");
             float y = rect.y + 28;
 
             Row(ref y, rect.x, $"Complete {world} levels 1-8", () => save.DebugCompleteWorldLevels(world));
             Row(ref y, rect.x, $"Flip {world} boss cleared ({save.IsWorldBossCleared(world)})", () => save.SetWorldBossCleared(world, !save.IsWorldBossCleared(world)));
             Row(ref y, rect.x, "Unlock all worlds", () => { foreach (WorldType w in System.Enum.GetValues(typeof(WorldType))) save.SetWorldBossCleared(w, true); });
+            Row(ref y, rect.x, "Unlock paid worlds (as if bought)", () =>
+            {
+                foreach (WorldType w in System.Enum.GetValues(typeof(WorldType)))
+                {
+                    var data = DataManager.Instance != null ? DataManager.Instance.GetWorldData(w) : null;
+                    if (data != null && data.purchaseRequired) { save.SetWorldPurchased(w); }
+                }
+            });
             Row(ref y, rect.x, "Levels cleared +5", () => save.DebugSetCompletedLevelCount(save.CompletedLevelCount + 5));
             Row(ref y, rect.x, "Levels cleared = 40", () => save.DebugSetCompletedLevelCount(40));
             Row(ref y, rect.x, $"Coins +1000 ({save.CoinBalance})", () => save.DebugAddCoins(1000));
             Row(ref y, rect.x, $"Rare pellet +1 ({save.RarePelletCount})", () => save.DebugAddRarePellet());
+            Row(ref y, rect.x, $"Cherry power ({CherryPickup.PowerSeconds:0}s)", () =>
+            {
+                var p = LevelLoader.Instance != null ? LevelLoader.Instance.Player : null;
+                if (p != null) { p.StartPowerUp(CherryPickup.PowerSeconds); }
+            });
             Row(ref y, rect.x, "RESET SAVE", () => save.DebugResetProgress());
             GUI.Label(new Rect(rect.x + 10, y, 300, 22), $"Levels cleared: {save.CompletedLevelCount}");
             y += 26;
