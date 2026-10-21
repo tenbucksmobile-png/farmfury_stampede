@@ -6,12 +6,14 @@ using FarmFuryStampede.LevelSystem;
 using FarmFuryStampede.Characters;
 using FarmFuryStampede.Utilities;
 using UnityEngine;
-using UnityEngine.Purchasing;
 
 namespace FarmFuryStampede.Core
 {
     /// <summary>
-    /// Real-money purchases through Unity IAP 5 (StoreController), ported from Farm Fury: Arcade's IAPManager with
+    /// WEB DEMO (branch web-demo): Unity IAP is removed in this branch, so nothing can be bought for money - every
+    /// purchase fails at once and the shop is not reachable. The coin and cosmetic helpers below are the main game's.
+    ///
+    /// Main game: real-money purchases through Unity IAP 5 (StoreController), ported from Farm Fury: Arcade's IAPManager with
     /// the same catalog, prices and grant rules (GDD Section 11): Remove Ads ($4.99, +100 bonus coins), four coin
     /// packs, hats and trails ($1.99, or 2500 coins), machines ($3.99) and purchase-gated worlds ($3.99). What
     /// Stampede changes: worlds are WorldTypes, and "the active character" (who a new hat is put on) is the one
@@ -71,39 +73,6 @@ namespace FarmFuryStampede.Core
         public event Action<string, string> OnPurchaseFailed;
         public event Action OnProductsReady;
 
-        private StoreController _storeController;
-        private readonly Dictionary<string, Product> _products = new();
-
-        private async void Start()
-        {
-            _storeController = UnityIAPServices.StoreController();
-            _storeController.OnStoreConnected += HandleStoreConnected;
-            _storeController.OnStoreDisconnected += HandleStoreDisconnected;
-            _storeController.OnProductsFetched += HandleProductsFetched;
-            _storeController.OnProductsFetchFailed += HandleProductsFetchFailed;
-            _storeController.OnPurchasePending += HandlePurchasePending;
-            _storeController.OnPurchaseFailed += HandlePurchaseFailed;
-
-            try
-            {
-                await _storeController.Connect();
-            }
-            catch (Exception e)
-            {
-                Debug.LogWarning($"[IAPManager] Store connect failed (expected until the Stampede products exist in App Store Connect / Play Console): {e.Message}");
-            }
-        }
-
-        private void HandleStoreConnected()
-        {
-            var definitions = new List<ProductDefinition> { new(StoreProducts.RemoveAds, ProductType.NonConsumable) };
-            definitions.AddRange(StoreProducts.CoinPacks.Select(id => new ProductDefinition(id, ProductType.Consumable)));
-            definitions.AddRange(StoreProducts.Hats.Concat(StoreProducts.Trails).Concat(StoreProducts.Machines)
-                .Select(id => new ProductDefinition(id, ProductType.NonConsumable)));
-            definitions.AddRange(PurchasableWorlds().Select(w => new ProductDefinition(StoreProducts.World(w), ProductType.NonConsumable)));
-            _storeController.FetchProducts(definitions);
-        }
-
         /// <summary>
         /// Worlds sold in the shop: only those marked purchaseRequired. The six story worlds are all free (decided
         /// 2026-09-29, replacing the GDD's paid Worlds 4-6); the paid worlds will be new ones added after them.
@@ -114,140 +83,19 @@ namespace FarmFuryStampede.Core
             return worlds.Where(w => w.purchaseRequired).Select(w => w.worldType).OrderBy(w => w).ToList();
         }
 
-        private void HandleStoreDisconnected(StoreConnectionFailureDescription description)
-        {
-            Debug.LogWarning($"[IAPManager] Store disconnected: {description.message}");
-        }
-
-        private void HandleProductsFetched(List<Product> products)
-        {
-            foreach (var product in products)
-            {
-                _products[product.definition.id] = product;
-            }
-            IsInitialized = true;
-            OnProductsReady?.Invoke();
-        }
-
-        private void HandleProductsFetchFailed(ProductFetchFailed failure)
-        {
-            Debug.LogWarning($"[IAPManager] Product fetch failed for {failure.FailedFetchProducts.Count} products: {failure.FailureReason}");
-        }
-
         public string GetPriceString(string productId)
         {
-            if (_products.TryGetValue(productId, out var product) && product.metadata != null &&
-                !string.IsNullOrEmpty(product.metadata.localizedPriceString))
-            {
-                return product.metadata.localizedPriceString;
-            }
             return FallbackPrices.TryGetValue(productId, out var fallback) ? fallback : string.Empty;
         }
 
         public void PurchaseProduct(string productId)
         {
-            if (_storeController == null)
-            {
-                Debug.LogWarning("[IAPManager] Store not connected - can't purchase yet.");
-                OnPurchaseFailed?.Invoke(productId, "StoreNotConnected");
-                return;
-            }
-
-            try
-            {
-                if (_products.TryGetValue(productId, out var product))
-                {
-                    _storeController.PurchaseProduct(product);
-                }
-                else
-                {
-                    _storeController.PurchaseProduct(productId);
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[IAPManager] PurchaseProduct({productId}) threw: {e}");
-                OnPurchaseFailed?.Invoke(productId, e.Message);
-            }
+            OnPurchaseFailed?.Invoke(productId, "WebDemo");
         }
 
         public void RestorePurchases(Action<bool> callback)
         {
-            if (_storeController == null)
-            {
-                callback?.Invoke(false);
-                return;
-            }
-
-            try
-            {
-                _storeController.RestoreTransactions((success, error) =>
-                {
-                    if (!success && !string.IsNullOrEmpty(error))
-                    {
-                        Debug.LogWarning($"[IAPManager] Restore failed: {error}");
-                    }
-                    callback?.Invoke(success);
-                });
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[IAPManager] RestoreTransactions threw: {e}");
-                callback?.Invoke(false);
-            }
-        }
-
-        private void HandlePurchasePending(PendingOrder order)
-        {
-            try
-            {
-                HandlePurchasePendingInner(order);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[IAPManager] HandlePurchasePending threw: {e}");
-            }
-        }
-
-        private void HandlePurchasePendingInner(PendingOrder order)
-        {
-            var product = order.CartOrdered.Items().FirstOrDefault()?.Product;
-            if (product == null)
-            {
-                Debug.LogWarning("[IAPManager] Could not find product in pending order.");
-                return;
-            }
-
-            string productId = product.definition.id;
-            var save = SaveManager.Instance;
-
-            if (productId == StoreProducts.RemoveAds)
-            {
-                if (save != null)
-                {
-                    save.AdsRemoved = true;
-                    save.AddCoins(RemoveAdsBonusCoins);
-                    save.SaveProgress();
-                }
-                AdManager.Instance?.HideBanner();
-            }
-            else if (CoinPackAmounts.TryGetValue(productId, out int amount))
-            {
-                save?.AddCoins(amount);
-                save?.SaveProgress();
-            }
-            else if (TryGetWorld(productId, out var world))
-            {
-                save?.SetWorldPurchased(world);
-            }
-            else if (!GrantCosmeticEffect(productId))
-            {
-                Debug.LogWarning($"[IAPManager] Unrecognized product id in pending order: {productId}");
-            }
-
-            _storeController.ConfirmPurchase(order);
-            AnalyticsManager.Instance?.LogPurchase(productId, GetPriceString(productId));
-            OnPurchaseSucceeded?.Invoke(productId);
+            callback?.Invoke(false);
         }
 
         private static bool TryGetWorld(string productId, out WorldType world)
@@ -395,12 +243,5 @@ namespace FarmFuryStampede.Core
             }
         }
 
-        private void HandlePurchaseFailed(FailedOrder order)
-        {
-            var product = order.CartOrdered.Items().FirstOrDefault()?.Product;
-            string productId = product?.definition.id ?? "unknown";
-            Debug.LogWarning($"[IAPManager] Purchase failed - Product: '{productId}', Reason: {order.FailureReason}, Details: {order.Details}");
-            OnPurchaseFailed?.Invoke(productId, order.FailureReason.ToString());
-        }
     }
 }

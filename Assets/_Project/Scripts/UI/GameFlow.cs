@@ -60,14 +60,21 @@ namespace FarmFuryStampede.UI
 
             Landing = new LandingScreen(canvas.transform, EnterWorldSelect, ExitGame, OpenMenuHub, menuArt);
             Hud = new HudScreen(canvas.transform, OpenPause, OpenLocker, OpenSwap, menuArt, shopArt);
-            Worlds = new WorldSelectScreen(canvas.transform, EnterLevelSelect, OpenWorldShop, EnterLanding, menuArt, shopArt);
+            Worlds = new WorldSelectScreen(canvas.transform, EnterLevelSelect, w => FullGame?.ShowLockedWorld(w), EnterLanding, menuArt, shopArt);
             Levels = new LevelSelectScreen(canvas.transform, PickLevel, EnterWorldSelect, menuArt);
             _canvasTransform = canvas.transform;
             Results = new ResultsScreen(canvas.transform, PlayNextLevel, RestartLevel, LeaveResults, EnterLanding, OpenMenuHub, menuArt, shopArt);
             Pause = new PauseScreen(canvas.transform, ResumeFromPause, OpenSettings, RestartLevel, QuitToLevelSelect, EnterLanding, menuArt);
             Swap = new SwapCharacterScreen(canvas.transform, menuArt);
             PelletCelebration = RarePelletCelebration.Create(canvas.transform, menuArt);
+
+            // Web demo: no Exit (a browser tab can't quit) and no Locker (no cosmetics).
+            Landing.ExitButton.gameObject.SetActive(false);
+            Hud.LockerButton.gameObject.SetActive(false);
         }
+
+        /// <summary>Web demo: the "in the full game" panel (other worlds, and after the Meadow Ruins boss).</summary>
+        public FullGameScreen FullGame { get; private set; }
 
         /// <summary>The HUD's swap button (and Tab): the character picker, over a frozen level.</summary>
         public void OpenSwap()
@@ -124,6 +131,7 @@ namespace FarmFuryStampede.UI
             ShopHub = Add(new ShopScreen(c, menuArt, shopArt, Gate, coins.Show, worldShop.Show, chooser.Show));
             Settings = Add(new SettingsScreen(c, menuArt, shopArt, leaderboards.Show, story.Show, legal.Show));
             MenuHub = Add(new MenuHubScreen(c, menuArt, shopArt, Settings.Show, ShopHub.Show));
+            FullGame = Add(new FullGameScreen(c, menuArt, shopArt));
         }
 
         private ItemPurchaseScreen _worldShop;
@@ -263,7 +271,7 @@ namespace FarmFuryStampede.UI
         /// <summary>The settings cog (landing, Level Complete): the menu hub over that screen; Back returns to it.</summary>
         public void OpenMenuHub()
         {
-            MenuHub.Show();
+            Settings.Show();   // web demo: no shop or merch, so the cog goes straight to Settings
         }
 
         /// <summary>The HUD's Locker button: equip owned cosmetics mid-level (pauses while open).</summary>
@@ -355,6 +363,11 @@ namespace FarmFuryStampede.UI
         public void PlayNextLevel()
         {
             var level = _gm.CurrentLevel;
+            if (level != null && level.isBossLevel && FullGame != null)
+            {
+                FullGame.ShowDemoComplete(EnterWorldSelect);   // web demo: the end of the demo
+                return;
+            }
             if (level != null && level.isBossLevel && WorldCleared != null
                 && WorldCleared.ShowFor(level.worldType, _gm.RunState.worldUnlocked, EnterWorldSelect))
             {

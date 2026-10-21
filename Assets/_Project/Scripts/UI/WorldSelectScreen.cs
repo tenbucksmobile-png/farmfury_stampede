@@ -56,14 +56,14 @@ namespace FarmFuryStampede.UI
         private static readonly Rect PriceSignBox = new(0.3f, 0.02f, 0.4f, 0.26f);
 
         private readonly Action<WorldType> _onEnter;
-        private readonly Action _onBuyWorld;
+        private readonly Action<WorldType> _onLockedWorld;   // web demo: the Full Game panel
 
-        public WorldSelectScreen(Transform canvas, Action<WorldType> onEnter, Action onBuyWorld, Action onHome, MenuArt art, ShopArt shop)
+        public WorldSelectScreen(Transform canvas, Action<WorldType> onEnter, Action<WorldType> onLockedWorld, Action onHome, MenuArt art, ShopArt shop)
         {
             art ??= new MenuArt();
             shop ??= new ShopArt();
             _onEnter = onEnter;
-            _onBuyWorld = onBuyWorld;
+            _onLockedWorld = onLockedWorld;
             var root = UIKit.NewRect("WorldSelect", canvas);
             UIKit.Stretch(root);
             Root = root.gameObject;
@@ -141,7 +141,7 @@ namespace FarmFuryStampede.UI
             if (index < 0 || index >= _cards.Count) { return; }
             var card = _cards[index];
             if (card.unlocked) { _onEnter?.Invoke(card.world); }
-            else if (card.forSale) { _onBuyWorld?.Invoke(); }
+            else { _onLockedWorld?.Invoke(card.world); }
         }
 
         /// <summary>Keyboard while showing: Left/Right (or A/D) move the carousel, Enter/Space opens the centred world.</summary>
@@ -167,7 +167,7 @@ namespace FarmFuryStampede.UI
                 var card = _cards[i];
                 var data = DataManager.Instance.GetWorldData(card.world);
                 card.unlocked = save.IsWorldUnlocked(card.world);
-                card.forSale = !card.unlocked && data != null && data.purchaseRequired;
+                card.forSale = false;   // web demo: nothing is sold; a locked world opens the Full Game panel
                 if (card.unlocked && (data == null || !data.purchaseRequired)) { furthest = i; }
 
                 // The badge has the world name baked in; a locked story world's is greyed out, a paid world on sale

@@ -19,9 +19,9 @@ namespace FarmFuryStampede.UI
         {
             HeaderSign(Shop.settingsSign, "SETTINGS");
 
-            var row = Row("SettingsGrid", 4, new Vector2(IconSize, IconSize), IconSpacing, -183f);
+            // Web demo: no Leaderboards (they list the paid worlds and open the world shop).
+            var row = Row("SettingsGrid", 3, new Vector2(IconSize, IconSize), IconSpacing, -183f);
             _music = IconButton(row, "MusicCell", Shop.musicIcon, "MUSIC", ToggleMusic);
-            IconButton(row, "LeaderboardCell", Shop.leaderboardIcon, "LEADERBOARDS", onLeaderboards);
             IconButton(row, "CharacterStoryCell", Shop.characterStoryIcon, "STORY", onCharacterStory);
             IconButton(row, "PoliciesCell", Shop.policiesIcon, "POLICIES", onPolicies);
         }

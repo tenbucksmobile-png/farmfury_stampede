@@ -328,8 +328,8 @@ namespace FarmFuryStampede.Core
                     RunState.bossCleared = true;
                     // Only a story world's boss opens the next world (the finale's next worlds are the paid ones).
                     var next = DataManager.Instance != null ? DataManager.Instance.GetWorldData(CurrentLevel.worldType + 1) : null;
-                    RunState.worldUnlocked = next != null && !next.purchaseRequired
-                        && !SaveManager.Instance.IsWorldBossCleared(CurrentLevel.worldType);
+                    // Web demo: no next world opens (GameFlow shows the Full Game panel instead).
+                    RunState.worldUnlocked = false;
                     SaveManager.Instance.SetWorldBossCleared(CurrentLevel.worldType, true);
                 }
                 SaveManager.Instance.SaveProgress();

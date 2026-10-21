@@ -328,7 +328,7 @@ namespace FarmFuryStampede.UI
                 {
                     if (found.TryGetValue(type, out var art)) { robots.Add((type, art)); }
                 }
-                _robotWorlds.Add((world.worldType, world.displayName, robots));
+                if (robots.Count > 0) { _robotWorlds.Add((world.worldType, world.displayName, robots)); }   // web demo: only Meadow Ruins has levels
             }
         }
 

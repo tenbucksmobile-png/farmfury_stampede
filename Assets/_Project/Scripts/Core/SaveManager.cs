@@ -440,12 +440,16 @@ namespace FarmFuryStampede.Core
         /// </summary>
         public bool IsWorldUnlocked(WorldType world)
         {
+            // Web demo: Meadow Ruins only; every other world opens the Full Game panel instead.
+            return WebDemo.IsPlayable(world);
+#pragma warning disable CS0162
             var data = DataManager.Instance != null ? DataManager.Instance.GetWorldData(world) : null;
             if (data != null && data.purchaseRequired)
             {
                 return IsWorldPurchased(world);   // the paid post-finale worlds: buying one opens it, no boss needed
             }
             return world == WorldType.MeadowRuins || IsWorldBossCleared(world - 1);
+#pragma warning restore CS0162
         }
 
         /// <summary>
