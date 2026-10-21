@@ -110,7 +110,7 @@ namespace FarmFuryStampede.EditorTools
             PlayerSettings.WebGL.template = "PROJECT:StampedeEmbed";
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
             PlayerSettings.WebGL.decompressionFallback = true;
-            PlayerSettings.WebGL.nameFilesAsHashes = true;
+            PlayerSettings.WebGL.nameFilesAsHashes = false;   // true loops "Backend has requested a buildprogram run 6 times" on 6000.5.6f1
             PlayerSettings.runInBackground = false;
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
 
@@ -122,12 +122,31 @@ namespace FarmFuryStampede.EditorTools
                 options = BuildOptions.None,
             });
             var summary = report.summary;
+            if (summary.result == BuildResult.Succeeded)
+            {
+                StampVersion();
+                string burst = Path.Combine(OutputPath, PlayerSettings.productName + "_BurstDebugInformation_DoNotShip");
+                if (Directory.Exists(burst)) { Directory.Delete(burst, true); }   // not for upload
+            }
             Debug.Log($"[WebDemoBuilder] Build {summary.result} -> {OutputPath}: {summary.totalSize / (1024f * 1024f):F1} MB, " +
                       $"{summary.totalErrors} error(s), {summary.totalTime}.");
             if (summary.result != BuildResult.Succeeded && Application.isBatchMode)
             {
                 EditorApplication.Exit(1);
             }
+        }
+
+        // Hashed file names (nameFilesAsHashes) loop Unity 6000.5.6f1's WebGL build ("Backend has requested a
+        // buildprogram run 6 times"), so the files keep fixed names and index.html asks for them with ?v=<build time>
+        // instead: the host caches files for a day, and a new query string makes browsers fetch the new build.
+        private static void StampVersion()
+        {
+            string index = Path.Combine(OutputPath, "index.html");
+            string version = System.DateTime.UtcNow.ToString("yyyyMMddHHmm");
+            string html = File.ReadAllText(index);
+            html = System.Text.RegularExpressions.Regex.Replace(html, @"(Build/[^""?]+\.(?:js|unityweb))""", $"$1?v={version}\"");
+            File.WriteAllText(index, html);
+            Debug.Log($"[WebDemoBuilder] index.html file links stamped ?v={version}.");
         }
 
         // ---- download size (Arcade's numbers) ------------------------------------------------------------------

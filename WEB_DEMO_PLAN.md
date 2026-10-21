@@ -26,7 +26,9 @@ boss, every character (the seven Meadow Ruins rare pellets unlock all six locked
   backdrops 2048; crunched DXT5 or ASTC; AAC audio), splash off, stripping High, IL2CPP optimise for size. "Build
   Website" does both, then builds into `Builds/Website` with the `StampedeEmbed` template (full-window page for an
   iframe, loading bar, "turn your phone sideways" hint, postMessage `{source:"farmfury-stampede", ...}`), gzip +
-  decompression fallback, hashed file names.
+  decompression fallback. **No hashed file names:** on 6000.5.6f1 they loop the build ("Backend has requested a
+  buildprogram run 6 times"); instead the build stamps `?v=<UTC build time>` on every `Build/` link in index.html,
+  so a new upload is fetched past the host's one-day cache. It also deletes the Burst debug folder (not for upload).
 
 ## Working rules
 
@@ -36,11 +38,16 @@ boss, every character (the seven Meadow Ruins rare pellets unlock all six locked
 
 ## Upload (cPanel, domains.co.za - same host as Arcade's demo)
 
-Zip the *contents* of `Builds/Website` (index.html, Build/, TemplateData/ if any), upload to `public_html/play/`,
+`Builds/farmfury-stampede-web.zip` holds the *contents* of `Builds/Website` (index.html + Build/). Upload to `public_html/play/`,
 Extract into `public_html/play/stampede/`, delete the zip. Check `https://www.farmfurygames.com/play/stampede/` and one
 file under `Build/` return 200. The page caches for a day: hard-refresh (Ctrl+F5). See Arcade's CLAUDE.md "Website &
 legal pages" for the host's gotchas (a zip is not unpacked on upload, only `index.html` is served for a folder).
 
 ## Progress
 
-- 2026-10-21: branch, stubs, Meadow-only flow, Full Game panel, trim/build tools, embed template written.
+- 2026-10-21: branch, stubs, Meadow-only flow, Full Game panel, trim/build tools, embed template written. Compiles;
+  website build 20.9 MB (data 14.6 MB + wasm 7.1 MB gzipped). Tested in headless Edge from a local server
+  (`ThreadingHTTPServer`; plain `python -m http.server` failed the wasm download, as Arcade found): boots in ~3 s,
+  landing (no Exit), World Select, Full Game panel on Frozen Tundra, Level Select, Meadow Ruins 1 played (run,
+  jump, a Scout costs a life), Pause. Headless testing needs `Emulation.setFocusEmulationEnabled` - with
+  runInBackground off the game pauses in an unfocused page. Not yet uploaded.
