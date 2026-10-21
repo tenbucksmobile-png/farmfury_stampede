@@ -569,6 +569,19 @@ namespace FarmFuryStampede.Core
         /// <summary>DEBUG: adds coins (F1 panel), for testing revives and coin purchases.</summary>
         public void DebugAddCoins(int amount) => AddCoins(amount);
 
+        /// <summary>DEBUG (F1): marks a paid world bought or not bought, so the world shop's purchase can be tested again.</summary>
+        public void DebugSetWorldPurchased(WorldType world, bool bought)
+        {
+            if (bought)
+            {
+                SetWorldPurchased(world);
+                return;
+            }
+            PlayerPrefs.DeleteKey(WorldPurchasedKeyPrefix + world);
+            PlayerPrefs.DeleteKey(WorldPurchasedKeyPrefix + world + "_chk");
+            PlayerPrefs.Save();
+        }
+
         /// <summary>DEBUG: wipes all progress (completions, stars, unlocks) back to a fresh save. Purchases and coins are kept.</summary>
         /// <summary>DEBUG: grants (or takes back) one cosmetic. Taking it back also unequips it everywhere.</summary>
         public void DebugSetCosmeticOwned(CosmeticData item, bool owned)

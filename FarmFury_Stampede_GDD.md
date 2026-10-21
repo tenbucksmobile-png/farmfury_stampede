@@ -1,6 +1,6 @@
 # FARM FURY: STAMPEDE — Game Design Document
 
-**v1.5** · "Charge In. Break Through. Take It Back." · A Farm Fury Universe Game
+**v1.6** · "Charge In. Break Through. Take It Back." · A Farm Fury Universe Game
 Side-Scrolling Platformer · Mobile · Free-to-Play
 
 ---
@@ -160,6 +160,8 @@ All eight animals return. Each has exactly one platforming-relevant ability, tra
 - **Energy Drink** — brief invincibility
 - **Golden Egg** — an extra life
 
+**Cherry power-up (as built, v1.6; replaces the planned Energy Drink).** A cherry on the main path, just before a level's busiest stretch of robots, makes the character invincible to robots for **3 seconds**: every robot it touches is knocked out, and the boss is only made harmless (it is still beaten by its own pattern). Pits, water and hazards still cost a life, and a death ends it. The character's own ability art whirls round it the whole time - Cluck's eggs, Horace's horseshoes, Billy's mud, Woolly's wool, Ducky's water, Gerald's feathers (Bessie's slam burst and Percy's roll pose stand in until they get small pieces of their own) - and blinks for the last moment; swapping character mid-power keeps the time and changes the swirl. It is not a rare pellet and not a crop: no stars, score or coins, and it is back on every replay. Placed automatically: 94 of the 99 regular levels have one; boss levels have none.
+
 **Secret passages (as built, v1.3).** The platformer's Mario-style bonus rooms: a SecretSign post (an apple bursting through a wooden sign) stands on an optional spot every character can reach - a high ledge, a perch, a stone-block top level. Walking into it takes the player down automatically (a short fade) into an underground cellar with stone-block steps, 16 coins (1 coin each, re-paid on every replay; they are not crops, so they never affect stars) and the level's rare pellet on the tallest step. A second sign at the far end brings the player back up **on the entrance sign itself** (v1.4; until then it came up further along the level, which skipped part of it), and the entrance ignores them until they step off it. At most one per level; dying always returns the player to their last checkpoint on the surface.
 
 **Ice (Frozen Tundra, as built v1.3).** Frozen ground stretches are slippery: grounded acceleration and deceleration drop to 18%, so characters are slow to get going, slide on past where they let go and turn round late. Platforms and ordinary ground keep normal traction. (Until v1.4 a THIN ICE sign marked where each stretch began; the sign is now the Tundra's checkpoint marker instead, which glows gold once reached.)
@@ -293,6 +295,10 @@ Reusing Arcade's exact, store-registered price points isn't just convenient — 
 
 **Backend:** plan for the same shared Supabase account as Rush and the franchise's stated cross-game intent — but build it the way Arcade actually proved out (Unity IAP's async `UnityIAPServices`/`StoreController` API, LevelPlay ad mediation), not the way Rush has only *planned* but not yet reached in its six-phase build order. Don't inherit Rush's unverified backend assumptions; inherit Arcade's verified ones.
 
+**Store identity (v1.6):** package name / bundle id **`com.farmfury.stampede`** (Android and iOS, after Arcade's `com.farmfury.arcade`), product name "Farm Fury Stampede", company "Tenbucks Mobile". The package name cannot change once the first build is on Google Play.
+
+**Website demo (v1.6, live):** a free Meadow Ruins-only build (11 levels + the Commander, all eight characters via its rare pellets, the cherry, coins for revives and skips; no ads, purchases, shop, Locker or Leaderboards) at **www.farmfurygames.com/play/stampede/**, reached from the home page's Stampede slide; Arcade's demo moved to /play/arcade/. Other worlds show on World Select and say they are in the full game, coming to Google Play and the App Store. Built from a separate `web-demo` branch (Unity WebGL, ~21 MB), as Arcade's web demo is.
+
 **Object pooling** for robots, crops, and particle effects — a platformer with several enemies and pickups on screen per level needs this from early on, not as a later optimisation pass.
 
 ---
@@ -344,3 +350,4 @@ Mirrors the phase structure that's already worked for Rush (see its `CLAUDE.md`)
 - v1.3 — Character Select before a level replaced by a mid-level character swap; rare pellets unlock the next character; Cluck's ability is Egg Launch; Mario-style secret passages (automatic entry, coins, the rare pellet); leaderboard records and score; the as-built HUD; all six story worlds free, with three new paid post-finale worlds (Dustbowl Canyon, Harvest Fairground, Crop Factory) on a 3x3 World Select; Frozen Tundra built (Phase 5b) with slippery ice.
 - v1.5 — Sky Islands, Sunken City and the Robot Mothership recorded as built; the three paid worlds built - Crop Factory (conveyors, rhythm crushers, laser gates; Harvester Prime), Dustbowl Canyon (quicksand, tumbleweeds, sandstorms; the Drill Rig) and Harvest Fairground (trampolines, ferris wheels, conveyor rides; the Ringmaster Bot) - with art made in Kling from layout sketches; abilities now all deal with robots (Ducky's Water Spout, Horace's lobbed horseshoe, Gerald's Feather Blow, Woolly's wool tuft, Billy's Mud Sling replacing Charge Break); new Woolly, Percy and Gerald frames; a defeat frame for every robot; corn only in Meadow Ruins; the Mothership's moving ledges are steel girders; World Select a badge carousel with no price sign on the paid badges; the Robots page a ring per world; music slots for the paid worlds.
 - v1.4 — Watermill Village built (Phase 5c) around Mario-style moving ledges (sliding, meeting, bobbing, lifts) and rope bridges, with its own ground, parallax and menu art; moving ledges and bridges added to Frozen Tundra 1, 2, 3, 6 and 8; secret passages return the player to the entrance; the remaining Billy chambers removed; the THIN ICE sign became the Tundra's checkpoint; the character swap became a carousel; the boss victory goes straight to World Unlocked; the HUD ability countdown and skip-price text removed.
+- v1.6 — Cherry power-up (3 s of running through robots, the character's ability art swirling round it) replacing the planned Energy Drink; website demo of Meadow Ruins live at farmfurygames.com/play/stampede/; store identity set (com.farmfury.stampede).

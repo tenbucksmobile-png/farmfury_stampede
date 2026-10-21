@@ -36,42 +36,54 @@ namespace FarmFuryStampede.UI
                 return;
             }
 
-            var save = SaveManager.Instance;
-            var world = GameFlow.Instance.CurrentWorld;
             var rect = new Rect(Screen.width - 330, 90, 320, 784);
-            GUI.Box(rect, $"DEBUG (world: {world})");
+            GUI.Box(rect, $"DEBUG (world: {GameFlow.Instance.CurrentWorld})");
             float y = rect.y + 28;
+            DrawRows(
+                (text, action) => { if (GUI.Button(new Rect(rect.x + 10, y, 300, 30), text)) { Run(action); } y += 36; },
+                text => { GUI.Label(new Rect(rect.x + 10, y, 300, 22), text); y += 24; });
+        }
 
-            Row(ref y, rect.x, $"Complete {world} levels 1-8", () => save.DebugCompleteWorldLevels(world));
-            Row(ref y, rect.x, $"Flip {world} boss cleared ({save.IsWorldBossCleared(world)})", () => save.SetWorldBossCleared(world, !save.IsWorldBossCleared(world)));
-            Row(ref y, rect.x, "Unlock all worlds", () => { foreach (WorldType w in System.Enum.GetValues(typeof(WorldType))) save.SetWorldBossCleared(w, true); });
-            Row(ref y, rect.x, "Unlock paid worlds (as if bought)", () =>
+        /// <summary>
+        /// Every debug control, shared by the F1 overlay and the editor's Test Panel tab (Farm Fury Stampede > Debug >
+        /// Test Panel): row(text, action) draws a button, label(text) a heading. Needs Play mode (the save and data
+        /// managers). Each action is run through <see cref="Run"/> by the caller so the current screen refreshes.
+        /// </summary>
+        public static void DrawRows(System.Action<string, System.Action> row, System.Action<string> label)
+        {
+            var save = SaveManager.Instance;
+            if (save == null || GameFlow.Instance == null) { return; }
+            var world = GameFlow.Instance.CurrentWorld;
+
+            row($"Complete {world} levels 1-8", () => save.DebugCompleteWorldLevels(world));
+            row($"Flip {world} boss cleared ({save.IsWorldBossCleared(world)})", () => save.SetWorldBossCleared(world, !save.IsWorldBossCleared(world)));
+            row("Unlock all worlds", () => { foreach (WorldType w in System.Enum.GetValues(typeof(WorldType))) save.SetWorldBossCleared(w, true); });
+            // Paid worlds: all bought <-> none bought, to test the world shop's purchase again.
+            var paid = System.Enum.GetValues(typeof(WorldType)).Cast<WorldType>()
+                .Where(w => DataManager.Instance != null && DataManager.Instance.GetWorldData(w) is { purchaseRequired: true }).ToList();
+            bool allBought = paid.Count > 0 && paid.All(save.IsWorldPurchased);
+            row(allBought ? "Paid worlds: BOUGHT (tap to re-lock)" : "Paid worlds: locked (tap to unlock)", () =>
             {
-                foreach (WorldType w in System.Enum.GetValues(typeof(WorldType)))
-                {
-                    var data = DataManager.Instance != null ? DataManager.Instance.GetWorldData(w) : null;
-                    if (data != null && data.purchaseRequired) { save.SetWorldPurchased(w); }
-                }
+                foreach (var w in paid) { save.DebugSetWorldPurchased(w, !allBought); }
             });
-            Row(ref y, rect.x, "Levels cleared +5", () => save.DebugSetCompletedLevelCount(save.CompletedLevelCount + 5));
-            Row(ref y, rect.x, "Levels cleared = 40", () => save.DebugSetCompletedLevelCount(40));
-            Row(ref y, rect.x, $"Coins +1000 ({save.CoinBalance})", () => save.DebugAddCoins(1000));
-            Row(ref y, rect.x, $"Rare pellet +1 ({save.RarePelletCount})", () => save.DebugAddRarePellet());
-            Row(ref y, rect.x, $"Cherry power ({CherryPickup.PowerSeconds:0}s)", () =>
+            row("Levels cleared +5", () => save.DebugSetCompletedLevelCount(save.CompletedLevelCount + 5));
+            row("Levels cleared = 40", () => save.DebugSetCompletedLevelCount(40));
+            row($"Coins +1000 ({save.CoinBalance})", () => save.DebugAddCoins(1000));
+            row($"Rare pellet +1 ({save.RarePelletCount})", () => save.DebugAddRarePellet());
+            row($"Cherry power ({CherryPickup.PowerSeconds:0}s)", () =>
             {
                 var p = LevelLoader.Instance != null ? LevelLoader.Instance.Player : null;
                 if (p != null) { p.StartPowerUp(CherryPickup.PowerSeconds); }
             });
-            Row(ref y, rect.x, "RESET SAVE", () => save.DebugResetProgress());
-            GUI.Label(new Rect(rect.x + 10, y, 300, 22), $"Levels cleared: {save.CompletedLevelCount}");
-            y += 26;
+            row("RESET SAVE", () => save.DebugResetProgress());
+            label($"Levels cleared: {save.CompletedLevelCount}");
 
-            CosmeticRows(ref y, rect.x, save);
+            CosmeticRows(row, label, save);
         }
 
         // ------------------------------------------------------------ cosmetics
 
-        private static void CosmeticRows(ref float y, float x, SaveManager save)
+        private static void CosmeticRows(System.Action<string, System.Action> row, System.Action<string> label, SaveManager save)
         {
             var dm = DataManager.Instance;
             if (dm == null)
@@ -82,12 +94,11 @@ namespace FarmFuryStampede.UI
             var all = dm.GetAllCosmetics();
             var player = LevelLoader.Instance != null ? LevelLoader.Instance.Player : null;
             CharacterType who = player != null && player.Data != null ? player.Data.characterType : save.LastCharacter;
-            GUI.Label(new Rect(x + 10, y, 300, 22), $"COSMETICS - {who}");
-            y += 24;
+            label($"COSMETICS - {who}");
 
             var hats = all.Where(c => c.cosmeticType == CosmeticType.Hat && c.FitsCharacter(who)).ToList();
             string hat = save.GetEquippedCosmetic(CosmeticType.Hat, who);
-            Row(ref y, x, $"Hat: {NameOf(dm, hat)}  >", () =>
+            row($"Hat: {NameOf(dm, hat)}  >", () =>
             {
                 var next = Next(hats, hat);
                 save.SetEquippedCosmetic(CosmeticType.Skin, who, string.Empty);   // a machine hides the hat
@@ -96,7 +107,7 @@ namespace FarmFuryStampede.UI
 
             var machines = all.Where(c => c.cosmeticType == CosmeticType.Skin && c.FitsCharacter(who)).ToList();
             string machine = save.GetEquippedCosmetic(CosmeticType.Skin, who);
-            Row(ref y, x, machines.Count == 0 ? $"Machine: none made for {who}" : $"Machine: {NameOf(dm, machine)}  >", () =>
+            row(machines.Count == 0 ? $"Machine: none made for {who}" : $"Machine: {NameOf(dm, machine)}  >", () =>
             {
                 if (machines.Count > 0)
                 {
@@ -106,13 +117,13 @@ namespace FarmFuryStampede.UI
 
             var trails = all.Where(c => c.cosmeticType == CosmeticType.Trail).ToList();
             string trail = save.GetEquippedTrail();
-            Row(ref y, x, $"Trail: {NameOf(dm, trail)}  >", () => Wear(save, Next(trails, trail), save.SetEquippedTrail));
+            row($"Trail: {NameOf(dm, trail)}  >", () => Wear(save, Next(trails, trail), save.SetEquippedTrail));
 
-            Row(ref y, x, $"Own all cosmetics ({all.Count(c => save.IsCosmeticOwned(c.cosmeticId))}/{all.Count})", () =>
+            row($"Own all cosmetics ({all.Count(c => save.IsCosmeticOwned(c.cosmeticId))}/{all.Count})", () =>
             {
                 foreach (var item in all) save.DebugSetCosmeticOwned(item, true);
             });
-            Row(ref y, x, "Remove all cosmetics", () =>
+            row("Remove all cosmetics", () =>
             {
                 foreach (var item in all) save.DebugSetCosmeticOwned(item, false);
             });
@@ -141,17 +152,14 @@ namespace FarmFuryStampede.UI
             return item != null ? (string.IsNullOrEmpty(item.displayName) ? item.cosmeticId : item.displayName) : "none";
         }
 
-        private static void Row(ref float y, float x, string label, System.Action action)
+        /// <summary>Runs a debug action, then refreshes whatever screen is showing.</summary>
+        public static void Run(System.Action action)
         {
-            if (GUI.Button(new Rect(x + 10, y, 300, 30), label))
+            action();
+            if (GameFlow.Instance != null)
             {
-                action();
-                if (GameFlow.Instance != null)
-                {
-                    GameFlow.Instance.RefreshCurrentScreen();
-                }
+                GameFlow.Instance.RefreshCurrentScreen();
             }
-            y += 36;
         }
 #endif
     }
