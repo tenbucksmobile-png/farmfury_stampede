@@ -5,7 +5,7 @@ at `52298fb`). The mobile game stays on `main` in `Desktop\FarmFury_Stampede`; n
 main-game fix over with `git cherry-pick <sha>`. Modelled on Farm Fury: Arcade's web demo
 (`Desktop\FarmFury_Technical\FarmFury_Arcade_Web`, its `WEB_DEMO_PLAN.md`), website build only (no YouTube Playable).
 
-Goal: a free demo for marketing at **www.farmfurygames.com/play/stampede/** - Meadow Ruins' 11 levels and the Commander
+Goal: a free demo for marketing at **www.farmfurygames.com/play/Stampede/** - Meadow Ruins' 11 levels and the Commander
 boss, every character (the seven Meadow Ruins rare pellets unlock all six locked ones), the cherry power-up.
 
 ## What this branch changes
@@ -39,11 +39,11 @@ boss, every character (the seven Meadow Ruins rare pellets unlock all six locked
 ## Upload (cPanel, domains.co.za - same host as Arcade's demo)
 
 `Builds/farmfury-stampede-web.zip` holds the *contents* of `Builds/Website` (index.html + Build/). Create
-`public_html/play/stampede/`, upload the zip **into that folder**, Extract there, delete the zip. **Never extract it in
+`public_html/play/Stampede/`, upload the zip **into that folder**, Extract there, delete the zip. **Never extract it in
 `public_html/play/`** - that is Arcade's demo (its index.html + hashed `Build/` files); on 2026-10-21 the first upload
 landed there and replaced Arcade's index.html (fix kit: `Desktop\FarmFury_Technicalarmfurygames-website\stampede-fix\`).
 The home page's Stampede slide (`RushStage` in the site's index.html) has its own Play button, patched to
-`/play/stampede/` in that kit; a new Claude Design export of the site will undo it. Check `https://www.farmfurygames.com/play/stampede/` and one
+`/play/Stampede/` in that kit; a new Claude Design export of the site will undo it. Check `https://www.farmfurygames.com/play/Stampede/` and one
 file under `Build/` return 200. The page caches for a day: hard-refresh (Ctrl+F5). See Arcade's CLAUDE.md "Website &
 legal pages" for the host's gotchas (a zip is not unpacked on upload, only `index.html` is served for a folder).
 
@@ -55,3 +55,8 @@ legal pages" for the host's gotchas (a zip is not unpacked on upload, only `inde
   landing (no Exit), World Select, Full Game panel on Frozen Tundra, Level Select, Meadow Ruins 1 played (run,
   jump, a Scout costs a life), Pause. Headless testing needs `Emulation.setFocusEmulationEnabled` - with
   runInBackground off the game pauses in an unfocused page. Not yet uploaded.
+- 2026-10-21 (later): **live at https://www.farmfurygames.com/play/Stampede/** (capital S; the server is
+  case-sensitive). The user moved Arcade's demo to `public_html/play/Arcade/`, so `/play/` itself is a forward to
+  `/play/Arcade/`, and the home page's Play buttons point at `/play/Arcade/` except the Stampede slide's
+  (`/play/Stampede/`) - files in `Desktop\FarmFury_Technical\farmfurygames-website\stampede-fix\`. Live build
+  checked in headless Edge: boots in ~5 s, Meadow Ruins 1 starts.

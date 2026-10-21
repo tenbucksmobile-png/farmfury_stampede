@@ -92,7 +92,7 @@ namespace FarmFuryStampede.EditorTools
                       $"{music} world music track(s); cleared the menu art of {worldArt} world(s).");
         }
 
-        /// <summary>Website build into Builds/Website, for farmfurygames.com/play/stampede/: gzip with Unity's
+        /// <summary>Website build into Builds/Website, for farmfurygames.com/play/Stampede/: gzip with Unity's
         /// decompression fallback (the cPanel host needs no special headers), hashed file names (it caches for a day).</summary>
         [MenuItem("Farm Fury Stampede/Web Demo/Build Website")]
         public static void BuildWebsite()
