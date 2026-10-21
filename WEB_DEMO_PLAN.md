@@ -38,8 +38,12 @@ boss, every character (the seven Meadow Ruins rare pellets unlock all six locked
 
 ## Upload (cPanel, domains.co.za - same host as Arcade's demo)
 
-`Builds/farmfury-stampede-web.zip` holds the *contents* of `Builds/Website` (index.html + Build/). Upload to `public_html/play/`,
-Extract into `public_html/play/stampede/`, delete the zip. Check `https://www.farmfurygames.com/play/stampede/` and one
+`Builds/farmfury-stampede-web.zip` holds the *contents* of `Builds/Website` (index.html + Build/). Create
+`public_html/play/stampede/`, upload the zip **into that folder**, Extract there, delete the zip. **Never extract it in
+`public_html/play/`** - that is Arcade's demo (its index.html + hashed `Build/` files); on 2026-10-21 the first upload
+landed there and replaced Arcade's index.html (fix kit: `Desktop\FarmFury_Technicalarmfurygames-website\stampede-fix\`).
+The home page's Stampede slide (`RushStage` in the site's index.html) has its own Play button, patched to
+`/play/stampede/` in that kit; a new Claude Design export of the site will undo it. Check `https://www.farmfurygames.com/play/stampede/` and one
 file under `Build/` return 200. The page caches for a day: hard-refresh (Ctrl+F5). See Arcade's CLAUDE.md "Website &
 legal pages" for the host's gotchas (a zip is not unpacked on upload, only `index.html` is served for a folder).
 
