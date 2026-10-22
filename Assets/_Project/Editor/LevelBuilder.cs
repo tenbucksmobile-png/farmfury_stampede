@@ -53,6 +53,12 @@ namespace FarmFuryStampede.EditorTools
         public Sprite cropSprite;
         /// <summary>Art for BonusCoin() crops (CropSpawnPoint.visualOverride).</summary>
         public Sprite coinSprite;
+        /// <summary>
+        /// Crop centre above what it rests on, for a world whose surface art barely rises over its walkable top (the
+        /// paid worlds' flat decks and dirt); null keeps CropRestHeight, which clears Meadow's tall grass overhang.
+        /// Every crop, coin and the cherry is moved down by the difference when the prefab is written.
+        /// </summary>
+        public float? cropRestHeight;
         /// <summary>The rare pellet (crystal apple) placed by RarePellet(); null places none.</summary>
         public Sprite rarePelletSprite;
         /// <summary>The cherry power-up (CherryPickup), placed automatically before each level's busiest stretch of robots; null places none.</summary>
@@ -1385,9 +1391,10 @@ namespace FarmFuryStampede.EditorTools
                 }
             }
 
+            float cropDrop = CropRestHeight - (assets.cropRestHeight ?? CropRestHeight);
             for (int i = 0; i < _crops.Count; i++)
             {
-                var crop = AddMarker<CropSpawnPoint>(markers.transform, _crops[i].coin ? $"Crop_{i:00}_Coin" : $"Crop_{i:00}", new Vector2(_crops[i].x, _crops[i].y));
+                var crop = AddMarker<CropSpawnPoint>(markers.transform, _crops[i].coin ? $"Crop_{i:00}_Coin" : $"Crop_{i:00}", new Vector2(_crops[i].x, _crops[i].y - cropDrop));
                 crop.secretCluster = _crops[i].secret;
                 if (_crops[i].coin)
                 {
@@ -1614,7 +1621,7 @@ namespace FarmFuryStampede.EditorTools
 
             var cherry = new GameObject("Cherry");
             cherry.transform.SetParent(root, false);
-            cherry.transform.position = new Vector3(spot.x, spot.y, 0f);
+            cherry.transform.position = new Vector3(spot.x, spot.y - (CropRestHeight - (assets.cropRestHeight ?? CropRestHeight)), 0f);
             var trigger = cherry.AddComponent<CircleCollider2D>();
             trigger.isTrigger = true;
             trigger.radius = CherryRadius;

@@ -118,8 +118,8 @@ namespace FarmFuryStampede.EditorTools
         // as Watermill's middle layer is (a script, 2026-10-17).
         private static readonly string[] CropFactoryLayers = { "CF_Parallax_Far.png", "CF_Parallax_Mid.png" };
 
-        // ---- Dustbowl Canyon (World 7): one opaque layer, the canyon at sunset (a copy of Environment/DustbowlCanyon.png,
-        // the Level Select painting, which has no title on it).
+        // ---- Dustbowl Canyon (World 7): one opaque layer, the canyon at sunset (an untitled copy of
+        // Environment/DustbowlCanyon.png, the Level Select painting, which has had its title on it since 2026-10-22).
         private static readonly string[] DustbowlLayers = { "DC_Parallax_Far.png" };
 
         /// <summary>Dustbowl Canyon's parallax layers, far to near (missing ones left out).</summary>

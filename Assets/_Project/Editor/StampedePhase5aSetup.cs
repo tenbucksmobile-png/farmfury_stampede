@@ -972,6 +972,7 @@ namespace FarmFuryStampede.EditorTools
             factory.laserBeamSprite = StampedeUIArt.CropFactory("LaserBeam.png");
             factory.cropSprite = StampedeUIArt.CropFactoryCrop();
             factory.secretCropSprite = StampedeUIArt.CropFactorySecretCrop();
+            factory.cropRestHeight = 0.42f;   // the deck's top is flat, 0.09 over the cell: crops stand on it instead of floating
             factory.checkpointSprite = StampedeUIArt.CropFactory("SignalPost.png");
             factory.barrelSprite = StampedeUIArt.CropFactory("ChemDrum.png") ?? meadow.barrelSprite;
             factory.obstacleSprites = new[] { StampedeUIArt.CropFactory("CropCrate.png"), StampedeUIArt.CropFactory("Gearbox.png") }
@@ -1032,6 +1033,7 @@ namespace FarmFuryStampede.EditorTools
             desert.sandstormSprite = StampedeUIArt.Dustbowl("SandstormDust.png");
             desert.cropSprite = StampedeUIArt.DustbowlCrop();
             desert.secretCropSprite = StampedeUIArt.DustbowlSecretCrop();
+            desert.cropRestHeight = 0.4f;     // the dirt rises only ~0.07 over the cell (tufts to 0.14): crops stand on it
             desert.checkpointSprite = StampedeUIArt.Dustbowl("SignPost.png");
             desert.barrelSprite = StampedeUIArt.Dustbowl("WaterBarrel.png") ?? meadow.barrelSprite;
             desert.obstacleSprites = new[] { StampedeUIArt.Dustbowl("Boulder.png"), StampedeUIArt.Dustbowl("Crate.png") }
@@ -1098,6 +1100,7 @@ namespace FarmFuryStampede.EditorTools
             fair.ferrisWheelSprite = StampedeUIArt.Fairground("FerrisWheel.png");
             fair.cropSprite = StampedeUIArt.FairgroundCrop();
             fair.secretCropSprite = StampedeUIArt.FairgroundSecretCrop();
+            fair.cropRestHeight = 0.33f;      // the straw top is flush with the cell: crops stand on it
             fair.checkpointSprite = StampedeUIArt.Fairground("LampPost.png");
             fair.barrelSprite = StampedeUIArt.Fairground("StripedBarrel.png") ?? meadow.barrelSprite;
             fair.obstacleSprites = new[] { StampedeUIArt.Fairground("Pumpkin.png"), StampedeUIArt.Fairground("PrizeCrates.png") }

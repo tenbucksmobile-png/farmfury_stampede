@@ -1,0 +1,13 @@
+<dependencies>
+  <unityversion>9.5.0</unityversion>
+  <!-- iOS only for now: LevelPlay's iOS bridge imports <IronSource/...>, so the Xcode project doesn't compile without
+       this pod. The Android part (mediation-sdk + play-services-ads-identifier, see Arcade's copy) is left out until
+       ads are switched on, as the ad-identifier library matters for the Families declarations. -->
+  <iosPods>
+    <iosPod name="IronSourceSDK" version="9.5.0.0">
+      <sources>
+        <source>https://github.com/CocoaPods/Specs</source>
+      </sources>
+    </iosPod>
+  </iosPods>
+</dependencies>

@@ -173,20 +173,24 @@ namespace FarmFuryStampede.EditorTools
         private const string MothershipNewCharacterSourcePath = EnvironmentDir + "/RM_NewCharacter_Canvas.png";
         private const string MothershipCharacterSourcePath = EnvironmentDir + "/RM_Character_Canvas.png";
         // The Crop Factory's (2026-10-17): its far parallax (UI/CropFactory/FarParallax.png) at 1280x720 with the
-        // Mothership canvases' logo, lettering and stars lifted off them by a diff against RobotMothership.png (an exact
-        // resize, so the overlay comes out clean; a script, not in the repo). Widened the same way.
+        // canvases' logo, lettering and stars laid over it. Since 2026-10-22 that overlay is solved per pixel from the
+        // Mothership, Sky Islands and Sunken City canvases (each = its exact-resized parallax + the same overlay; least
+        // squares over the three gives colour and alpha), so the lettering keeps its dark outline (the first version
+        // diffed against the Mothership's dark sky alone, which dropped the outline and left a grey fringe; a script,
+        // not in the repo). Widened the same way.
         private const string CropFactoryCompleteSourcePath = EnvironmentDir + "/CF_LevelComplete_Canvas.png";
         private const string CropFactoryFailedSourcePath = EnvironmentDir + "/CF_LevelFailed_Canvas.png";
         private const string CropFactoryNewCharacterSourcePath = EnvironmentDir + "/CF_NewCharacter_Canvas.png";
         private const string CropFactoryCharacterSourcePath = EnvironmentDir + "/CF_Character_Canvas.png";
-        // Dustbowl Canyon's (2026-10-17): its Level Select painting (Environment/DustbowlCanyon.png, no title on it) made
-        // the same way.
+        // Dustbowl Canyon's (2026-10-17): its Level Select painting made the same way, from the untitled copy
+        // DC_Parallax_Far.png (Environment/DustbowlCanyon.png has had the UI/DustbowlCanyon.png title on it since
+        // 2026-10-22, like the free worlds' painted titles; HarvestFairground.png and CropFactory.png likewise).
         private const string DustbowlCompleteSourcePath = EnvironmentDir + "/DC_LevelComplete_Canvas.png";
         private const string DustbowlFailedSourcePath = EnvironmentDir + "/DC_LevelFailed_Canvas.png";
         private const string DustbowlNewCharacterSourcePath = EnvironmentDir + "/DC_NewCharacter_Canvas.png";
         private const string DustbowlCharacterSourcePath = EnvironmentDir + "/DC_Character_Canvas.png";
-        // Harvest Fairground's (2026-10-17): its Level Select painting (Environment/HarvestFairground.png, the fair at
-        // night, no title on it) made the same way.
+        // Harvest Fairground's (2026-10-17): its Level Select painting (the fair at night; untitled copy
+        // HF_Parallax_Far.png) made the same way.
         private const string FairgroundCompleteSourcePath = EnvironmentDir + "/HF_LevelComplete_Canvas.png";
         private const string FairgroundFailedSourcePath = EnvironmentDir + "/HF_LevelFailed_Canvas.png";
         private const string FairgroundNewCharacterSourcePath = EnvironmentDir + "/HF_NewCharacter_Canvas.png";
