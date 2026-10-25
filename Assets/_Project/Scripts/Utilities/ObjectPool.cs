@@ -24,6 +24,11 @@ namespace FarmFuryStampede.Utilities
         /// <summary>Takes an instance from the pool (or instantiates one) and places it at the position.</summary>
         public GameObject Get(GameObject prefab, Vector3 position, Transform parent = null)
         {
+            if (prefab == null)
+            {
+                Debug.LogError("[ObjectPool] Get called with no prefab.");
+                return null;
+            }
             if (!prefab.TryGetComponent(out PooledObject pooled))
             {
                 Debug.LogError($"[ObjectPool] Prefab '{prefab.name}' has no PooledObject component.");
@@ -56,6 +61,10 @@ namespace FarmFuryStampede.Utilities
         /// <summary>Deactivates the object and parks it in the pool for reuse.</summary>
         public void Release(GameObject instance)
         {
+            if (instance == null)
+            {
+                return;
+            }
             if (!instance.TryGetComponent(out PooledObject pooled))
             {
                 Debug.LogWarning($"[ObjectPool] '{instance.name}' has no PooledObject; destroying instead.");
@@ -97,6 +106,19 @@ namespace FarmFuryStampede.Utilities
                 }
             }
             active.Clear();
+        }
+
+        /// <summary>
+        /// Returns every active pooled object of every kind to the pool: everything pooled belongs to a level attempt
+        /// (robots, crops, ability projectiles, mud piles, splashes, the boss's dazed stars), so nothing may run on
+        /// into the next level.
+        /// </summary>
+        public void ReleaseAllActive()
+        {
+            foreach (var key in new List<string>(_active.Keys))
+            {
+                ReleaseAll(key);
+            }
         }
 
         public int PooledCount(string poolKey)

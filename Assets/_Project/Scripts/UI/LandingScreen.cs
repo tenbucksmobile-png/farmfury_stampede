@@ -74,6 +74,9 @@ namespace FarmFuryStampede.UI
                 new Vector2(1f, 0f), new Vector2(-EdgeMargin, BottomMargin), new Vector2(ButtonSize, ButtonSize));
             ExitButton = ArtButton(safe, "ExitButton", art.exitButton, "EXIT", onExit,
                 new Vector2(0f, 0f), new Vector2(LeftMargin + ButtonSize + ButtonGap, BottomMargin), ExitSize);
+            // No Exit on iOS: Apple's guidelines say an app never quits itself (Application.Quit there reads as a crash
+            // to the player and to App Review); players leave with the home gesture.
+            ExitButton.gameObject.SetActive(Application.platform != RuntimePlatform.IPhonePlayer);
 
             Root.SetActive(false);
         }

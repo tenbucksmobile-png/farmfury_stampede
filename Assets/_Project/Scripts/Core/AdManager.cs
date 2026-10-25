@@ -221,15 +221,21 @@ namespace FarmFuryStampede.Core
 
         public bool IsRewardedAdReady => _rewardedAd != null && _rewardedAd.IsAdReady();
 
-        /// <summary>Seconds to wait for LevelPlay's OnAdRewarded/OnAdClosed callbacks before giving
-        /// up on a shown rewarded ad. Audit finding F5.6: without this, a hung SDK callback (rare,
-        /// but a real network/SDK edge case) left onResult never firing at all — and two of the
-        /// three call sites pre-disabled their own button before calling this method, so a single
-        /// hung callback permanently disabled that button (the skip-cooldown one, for the rest of
-        /// the session, since nothing ever re-enables it). This timeout guarantees onResult always
-        /// fires, so any caller that reacts to it (re-enabling its button in the false case) can no
-        /// longer get stuck.</summary>
-        private const float RewardedAdTimeoutSeconds = 8f;
+        /// <summary>
+        /// Ad watchdogs (audit 2026-10-25). Callers freeze the game around an ad and wait for its result, so a hung
+        /// SDK callback must never leave them waiting (Arcade's finding F5.6). But the old single 8 s timeout also ran
+        /// while the ad was on screen: a 15-30 s rewarded video timed out mid-play and the reward was never given, and
+        /// an interstitial un-froze the game behind itself. Now: an ad gets AdOpenTimeoutSeconds to start showing
+        /// (OnAdDisplayed); once showing it gets AdMaxShowSeconds to close. LevelPlay doesn't promise OnAdRewarded
+        /// arrives before OnAdClosed, so a rewarded close waits LateRewardGraceSeconds for the reward.
+        /// </summary>
+        private const float AdOpenTimeoutSeconds = 8f;
+        private const float AdMaxShowSeconds = 150f;
+        private const float LateRewardGraceSeconds = 1.5f;
+
+        /// <summary>True from showing a rewarded ad or an interstitial until its result is in (the app is paused
+        /// behind it on Android; GameFlow doesn't auto-pause the level for that).</summary>
+        public bool IsShowingAd { get; private set; }
 
         /// <summary>Shows a rewarded ad if one's ready. onResult fires exactly once, always — true
         /// only if LevelPlay actually granted the reward (OnAdRewarded); false if the ad was closed
@@ -246,8 +252,15 @@ namespace FarmFuryStampede.Core
             }
 
             bool rewarded = false;
+            bool closed = false;
             bool resolved = false;
             Coroutine timeoutRoutine = null;
+
+            void Watch(float seconds)
+            {
+                if (timeoutRoutine != null) { StopCoroutine(timeoutRoutine); }
+                timeoutRoutine = StartCoroutine(AdTimeoutFallback(() => Resolve(rewarded), seconds));
+            }
 
             void Resolve(bool result)
             {
@@ -256,8 +269,11 @@ namespace FarmFuryStampede.Core
                     return;
                 }
                 resolved = true;
+                IsShowingAd = false;
                 _rewardedAd.OnAdRewarded -= HandleRewarded;
                 _rewardedAd.OnAdClosed -= HandleClosed;
+                _rewardedAd.OnAdDisplayed -= HandleDisplayed;
+                _rewardedAd.OnAdDisplayFailed -= HandleDisplayFailed;
                 if (timeoutRoutine != null)
                 {
                     StopCoroutine(timeoutRoutine);
@@ -271,27 +287,40 @@ namespace FarmFuryStampede.Core
                 onResult?.Invoke(result);
             }
 
-            void HandleRewarded(LevelPlayAdInfo info, LevelPlayReward reward) => rewarded = true;
-            void HandleClosed(LevelPlayAdInfo info) => Resolve(rewarded);
+            void HandleRewarded(LevelPlayAdInfo info, LevelPlayReward reward)
+            {
+                rewarded = true;
+                if (closed) { Resolve(true); }   // the reward came after the close
+            }
+            void HandleClosed(LevelPlayAdInfo info)
+            {
+                closed = true;
+                if (rewarded) { Resolve(true); } else { Watch(LateRewardGraceSeconds); }
+            }
+            void HandleDisplayed(LevelPlayAdInfo info) => Watch(AdMaxShowSeconds);
+            void HandleDisplayFailed(LevelPlayAdInfo info, LevelPlayAdError error) => Resolve(false);
 
             _rewardedAd.OnAdRewarded += HandleRewarded;
             _rewardedAd.OnAdClosed += HandleClosed;
-            timeoutRoutine = StartCoroutine(RewardedAdTimeoutFallback(() => Resolve(false)));
+            _rewardedAd.OnAdDisplayed += HandleDisplayed;
+            _rewardedAd.OnAdDisplayFailed += HandleDisplayFailed;
+            IsShowingAd = true;
+            Watch(AdOpenTimeoutSeconds);
             try
             {
                 _rewardedAd.ShowAd(placementName: placementName);
             }
             catch (System.Exception e)
             {
-                // C8.2 — the timeout coroutine already started above still resolves this call
-                // correctly (false) if ShowAd throws instead of calling back normally.
                 Debug.LogError($"[AdManager] ShowRewardedAd threw: {e}");
+                Resolve(false);
             }
         }
 
-        private System.Collections.IEnumerator RewardedAdTimeoutFallback(System.Action onTimeout)
+        // Real time: the game is frozen (timeScale 0) behind the ad.
+        private System.Collections.IEnumerator AdTimeoutFallback(System.Action onTimeout, float seconds)
         {
-            yield return new WaitForSecondsRealtime(RewardedAdTimeoutSeconds);
+            yield return new WaitForSecondsRealtime(seconds);
             onTimeout?.Invoke();
         }
 
@@ -364,6 +393,12 @@ namespace FarmFuryStampede.Core
             bool resolved = false;
             Coroutine timeoutRoutine = null;
 
+            void Watch(float seconds)
+            {
+                if (timeoutRoutine != null) { StopCoroutine(timeoutRoutine); }
+                timeoutRoutine = StartCoroutine(AdTimeoutFallback(Resolve, seconds));
+            }
+
             void Resolve()
             {
                 if (resolved)
@@ -371,8 +406,10 @@ namespace FarmFuryStampede.Core
                     return;
                 }
                 resolved = true;
+                IsShowingAd = false;
                 _interstitialAd.OnAdClosed -= HandleClosed;
                 _interstitialAd.OnAdDisplayFailed -= HandleDisplayFailed;
+                _interstitialAd.OnAdDisplayed -= HandleDisplayed;
                 if (timeoutRoutine != null)
                 {
                     StopCoroutine(timeoutRoutine);
@@ -388,9 +425,12 @@ namespace FarmFuryStampede.Core
                 Resolve();
             }
             void HandleDisplayFailed(LevelPlayAdInfo info, LevelPlayAdError error) => Resolve();
+            void HandleDisplayed(LevelPlayAdInfo info) => Watch(AdMaxShowSeconds);
 
             _interstitialAd.OnAdClosed += HandleClosed;
             _interstitialAd.OnAdDisplayFailed += HandleDisplayFailed;
+            _interstitialAd.OnAdDisplayed += HandleDisplayed;
+            IsShowingAd = true;
             // Same class of gap ShowRewardedAd's own RewardedAdTimeoutSeconds already closed
             // (found 2026-09-08 while investigating an Editor Play-mode report that an interstitial
             // "won't let me close it") — mediation SDKs generally have no real native ad surface to
@@ -399,7 +439,7 @@ namespace FarmFuryStampede.Core
             // (which wraps this whole call) never lifts and the game is stuck with nothing to
             // click, indistinguishable from "the ad won't close." This guarantees onReady always
             // fires within InterstitialAdTimeoutSeconds regardless of what the SDK does.
-            timeoutRoutine = StartCoroutine(InterstitialAdTimeoutFallback(Resolve));
+            Watch(AdOpenTimeoutSeconds);   // to start showing; then AdMaxShowSeconds to close (HandleDisplayed)
             try
             {
                 _interstitialAd.ShowAd();
@@ -414,13 +454,6 @@ namespace FarmFuryStampede.Core
             }
         }
 
-        private const float InterstitialAdTimeoutSeconds = 8f;
-
-        private System.Collections.IEnumerator InterstitialAdTimeoutFallback(System.Action onTimeout)
-        {
-            yield return new WaitForSecondsRealtime(InterstitialAdTimeoutSeconds);
-            onTimeout?.Invoke();
-        }
 
         // ---- Banner ------------------------------------------------------------------------------
 

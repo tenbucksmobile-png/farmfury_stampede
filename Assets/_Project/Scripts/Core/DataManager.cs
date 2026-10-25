@@ -32,17 +32,34 @@ namespace FarmFuryStampede.Core
             LoadAllData();
         }
 
+        // A duplicate id (two assets for one character, level or world) keeps the first and logs an error instead of
+        // throwing: ToDictionary would have thrown in Awake and left every manager after it without data (audit).
         private void LoadAllData()
         {
-            _characters = allCharacters.Where(c => c != null).ToDictionary(c => c.characterType, c => c);
-            _robots = allRobots.Where(r => r != null).ToDictionary(r => r.robotType, r => r);
-            _levels = allLevels.Where(l => l != null).ToDictionary(l => l.levelId, l => l);
-            _worlds = allWorlds.Where(w => w != null).ToDictionary(w => w.worldType, w => w);
-            _cosmetics = allCosmetics.Where(c => c != null && !string.IsNullOrEmpty(c.cosmeticId))
-                .GroupBy(c => c.cosmeticId).ToDictionary(g => g.Key, g => g.First());
+            _characters = FirstOfEach(allCharacters, c => c.characterType, "character");
+            _robots = FirstOfEach(allRobots, r => r.robotType, "robot");
+            _levels = FirstOfEach(allLevels.Where(l => l == null || !string.IsNullOrEmpty(l.levelId)), l => l.levelId, "level");
+            _worlds = FirstOfEach(allWorlds, w => w.worldType, "world");
+            _cosmetics = FirstOfEach(allCosmetics.Where(c => c == null || !string.IsNullOrEmpty(c.cosmeticId)), c => c.cosmeticId, "cosmetic");
 
             Debug.Log($"[DataManager] Loaded {_characters.Count} characters, {_robots.Count} robots, " +
                       $"{_levels.Count} levels, {_worlds.Count} worlds, {_cosmetics.Count} cosmetics.");
+        }
+
+        private static Dictionary<TKey, TValue> FirstOfEach<TKey, TValue>(IEnumerable<TValue> items, System.Func<TValue, TKey> key, string kind)
+            where TValue : Object
+        {
+            var map = new Dictionary<TKey, TValue>();
+            foreach (var item in items)
+            {
+                if (item == null) { continue; }
+                var k = key(item);
+                if (!map.TryAdd(k, item))
+                {
+                    Debug.LogError($"[DataManager] Duplicate {kind} '{k}' ({item.name}); keeping {map[k].name}.");
+                }
+            }
+            return map;
         }
 
         /// <summary>Looks up a character's data by type. Returns null if not found.</summary>
@@ -60,7 +77,7 @@ namespace FarmFuryStampede.Core
         /// <summary>Looks up a level's data by its id. Returns null if not found.</summary>
         public LevelData GetLevelData(string levelId)
         {
-            return _levels.TryGetValue(levelId, out var data) ? data : null;
+            return !string.IsNullOrEmpty(levelId) && _levels.TryGetValue(levelId, out var data) ? data : null;
         }
 
         /// <summary>Returns every loaded world, in WorldType order (Meadow Ruins ... Robot Mothership).</summary>

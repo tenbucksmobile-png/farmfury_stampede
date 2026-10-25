@@ -188,19 +188,43 @@ namespace FarmFuryStampede.Core
         private static string EquippedKeyPrefix(CosmeticType type) =>
             type == CosmeticType.Skin ? EquippedSkinKeyPrefix : EquippedHatKeyPrefix;
 
-        // Arcade's tamper check for purchased/earned values: each int is stored with a checksum salted by the device
-        // id, so hand-editing the prefs file resets the value instead of granting coins or items. A value saved
+        // Tamper check for purchased/earned values (coins, Remove Ads, worlds, cosmetics): each int is stored with a
+        // checksum, so hand-editing the prefs file resets the value instead of granting coins or items. A value saved
         // before its checksum existed is adopted rather than wiped.
-        private static string ProtectedSalt => SystemInfo.deviceUniqueIdentifier;
+        //
+        // Since 2026-10-25 (audit) the checksum is a fixed FNV-1a hash with an app salt. Arcade's version hashed with
+        // string.GetHashCode (not guaranteed stable between runtime versions) salted by
+        // SystemInfo.deviceUniqueIdentifier, which changes when the prefs move to another device (iCloud / Google
+        // backup restore, a new phone): every protected value - bought coins included - then failed the check and was
+        // reset to nothing. A value carrying the old checksum is still accepted once and re-signed.
+        private const string ChecksumSalt = "FarmFuryStampede|save|v2";
 
-        private static int ComputeChecksum(string key, int value)
+        private static int ComputeChecksum(string key, int value) => StableHash($"{ChecksumSalt}|{key}|{value}");
+
+        // FNV-1a over the UTF-16 code units: the same answer on every device, platform and Unity version.
+        private static int StableHash(string text)
+        {
+            unchecked
+            {
+                uint hash = 2166136261;
+                foreach (char c in text)
+                {
+                    hash ^= c;
+                    hash *= 16777619;
+                }
+                return (int)hash;
+            }
+        }
+
+        // The pre-2026-10-25 checksum, only to accept values saved with it (see above).
+        private static int LegacyChecksum(string key, int value)
         {
             unchecked
             {
                 int hash = 17;
                 hash = hash * 31 + key.GetHashCode();
                 hash = hash * 31 + value;
-                hash = hash * 31 + ProtectedSalt.GetHashCode();
+                hash = hash * 31 + SystemInfo.deviceUniqueIdentifier.GetHashCode();
                 return hash;
             }
         }
@@ -221,13 +245,20 @@ namespace FarmFuryStampede.Core
                 return value;
             }
 
-            if (PlayerPrefs.GetInt(checksumKey) != ComputeChecksum(key, value))
+            int stored = PlayerPrefs.GetInt(checksumKey);
+            if (stored == ComputeChecksum(key, value))
             {
-                Debug.LogWarning($"[SaveManager] Integrity check failed for '{key}' - resetting to default.");
-                SetProtectedInt(key, defaultValue);
-                return defaultValue;
+                return value;
             }
-            return value;
+            if (stored == LegacyChecksum(key, value))
+            {
+                SetProtectedInt(key, value);   // re-signed with the stable checksum
+                return value;
+            }
+
+            Debug.LogWarning($"[SaveManager] Integrity check failed for '{key}' - resetting to default.");
+            SetProtectedInt(key, defaultValue);
+            return defaultValue;
         }
 
         private static bool GetProtectedBool(string key, bool defaultValue) => GetProtectedInt(key, defaultValue ? 1 : 0) == 1;

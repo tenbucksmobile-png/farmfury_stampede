@@ -67,7 +67,50 @@ namespace FarmFuryStampede.Core
         private void ChangeState(GameState state)
         {
             CurrentState = state;
+            // The screen never dims mid-level (no touches while waiting on a moving ledge); menus follow the system.
+            Screen.sleepTimeout = state == GameState.Playing ? SleepTimeout.NeverSleep : SleepTimeout.SystemSetting;
             StateChanged?.Invoke(state);
+        }
+
+        /// <summary>Frames per second asked of the device: mobile platforms otherwise default to 30, which makes the
+        /// platforming judder.</summary>
+        public const int TargetFrameRate = 60;
+
+        protected override void Awake()
+        {
+            base.Awake();
+            if (Instance != this) { return; }
+            Application.targetFrameRate = TargetFrameRate;
+        }
+
+        // ------------------------------------------------------------ app lifecycle (audit 2026-10-25)
+
+        // Leaving the app (home, a call, the notification shade, the app switcher) flushes the save - iOS and Android
+        // may kill a backgrounded app without OnApplicationQuit - and pauses a level in progress, so the player
+        // doesn't come back mid-jump. Not while something already froze the game (an ad, the swap or Locker
+        // screen, the revive prompt): those show their own UI and resume themselves.
+        private void OnApplicationPause(bool paused)
+        {
+            if (paused) { LeaveApp(); }
+        }
+
+        // Focus too (Android's notification shade and call overlays only take focus), on devices only: in the editor,
+        // clicking the Inspector would pause the level every time.
+        private void OnApplicationFocus(bool focused)
+        {
+#if !UNITY_EDITOR
+            if (!focused) { LeaveApp(); }
+#endif
+        }
+
+        private void LeaveApp()
+        {
+            PlayerPrefs.Save();
+            bool adShowing = AdManager.Instance != null && AdManager.Instance.IsShowingAd;
+            if (CurrentState == GameState.Playing && !adShowing && Time.timeScale > 0f)
+            {
+                PauseGame();
+            }
         }
 
         /// <summary>

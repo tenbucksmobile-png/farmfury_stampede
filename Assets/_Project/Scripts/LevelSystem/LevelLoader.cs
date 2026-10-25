@@ -201,11 +201,12 @@ namespace FarmFuryStampede.LevelSystem
             _spawned.Clear();
             _pendingWaveMarkers.Clear();
 
-            // Ability-spawned objects belong to the attempt too: nothing may leak into the next load.
+            // Ability-spawned objects belong to the attempt too: nothing may leak into the next load. Every kind (was
+            // only clouds and horseshoes, so an egg, mud ball/pile, water spout or gust in flight ran on into the next
+            // level).
             if (ObjectPool.Instance != null)
             {
-                ObjectPool.Instance.ReleaseAll("CloudPlatform");
-                ObjectPool.Instance.ReleaseAll("Horseshoe");
+                ObjectPool.Instance.ReleaseAllActive();
             }
 
             if (_levelInstance != null)

@@ -86,17 +86,27 @@ namespace FarmFuryStampede.Core
             {
                 if (id != productId) { return; }
                 Unhook();
-                onDone?.Invoke(false, "Purchase failed.");
+                onDone?.Invoke(false, reason == "StoreNotConnected" ? "Store unavailable - check your connection."
+                    : reason != null && reason.Contains("Cancel") ? "Purchase cancelled." : "Purchase failed.");
+            }
+
+            void Deferred(string id)
+            {
+                if (id != productId) { return; }
+                Unhook();
+                onDone?.Invoke(false, "Waiting for approval.");   // granted later if approved
             }
 
             void Unhook()
             {
                 iap.OnPurchaseSucceeded -= Succeeded;
                 iap.OnPurchaseFailed -= Failed;
+                iap.OnPurchaseDeferred -= Deferred;
             }
 
             iap.OnPurchaseSucceeded += Succeeded;
             iap.OnPurchaseFailed += Failed;
+            iap.OnPurchaseDeferred += Deferred;
             iap.PurchaseProduct(productId);
         }
 

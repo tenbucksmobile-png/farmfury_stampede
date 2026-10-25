@@ -75,8 +75,13 @@ namespace FarmFuryStampede.Core
 
         private StoreController _storeController;
         private readonly Dictionary<string, Product> _products = new();
+        private bool _connected, _connecting;
 
-        private async void Start()
+        /// <summary>A purchase is waiting for someone else (Ask to Buy, a pending payment method): it is granted
+        /// later, through the normal pending-order path, if it is approved.</summary>
+        public event Action<string> OnPurchaseDeferred;
+
+        private void Start()
         {
             _storeController = UnityIAPServices.StoreController();
             _storeController.OnStoreConnected += HandleStoreConnected;
@@ -87,7 +92,19 @@ namespace FarmFuryStampede.Core
             _storeController.OnPurchaseFailed += HandlePurchaseFailed;
             _storeController.OnPurchasesFetched += HandlePurchasesFetched;
             _storeController.OnPurchasesFetchFailed += HandlePurchasesFetchFailed;
+            _storeController.OnPurchaseDeferred += HandlePurchaseDeferred;
+            Connect();
+        }
 
+        // Connects to the store; called again by a purchase or restore attempted while not connected (no network at
+        // launch, Play services updating), so one failed launch connect doesn't close the shop for the session (audit).
+        private async void Connect()
+        {
+            if (_storeController == null || _connected || _connecting)
+            {
+                return;
+            }
+            _connecting = true;
             try
             {
                 await _storeController.Connect();
@@ -96,10 +113,23 @@ namespace FarmFuryStampede.Core
             {
                 Debug.LogWarning($"[IAPManager] Store connect failed (expected until the Stampede products exist in App Store Connect / Play Console): {e.Message}");
             }
+            finally
+            {
+                _connecting = false;
+            }
+        }
+
+        private void HandlePurchaseDeferred(DeferredOrder order)
+        {
+            var product = order?.CartOrdered?.Items().FirstOrDefault()?.Product;
+            string productId = product?.definition.id ?? "unknown";
+            Debug.Log($"[IAPManager] Purchase deferred (awaiting approval): {productId}");
+            OnPurchaseDeferred?.Invoke(productId);
         }
 
         private void HandleStoreConnected()
         {
+            _connected = true;
             // The game's ids stay the products' ids; the stores know them by StoreProducts.StoreId (prefixed).
             static ProductDefinition Define(string id, ProductType type) => new(id, StoreProducts.StoreId(id), type);
             var definitions = new List<ProductDefinition> { Define(StoreProducts.RemoveAds, ProductType.NonConsumable) };
@@ -122,6 +152,7 @@ namespace FarmFuryStampede.Core
 
         private void HandleStoreDisconnected(StoreConnectionFailureDescription description)
         {
+            _connected = false;
             Debug.LogWarning($"[IAPManager] Store disconnected: {description.message}");
         }
 
@@ -231,23 +262,19 @@ namespace FarmFuryStampede.Core
 
         public void PurchaseProduct(string productId)
         {
-            if (_storeController == null)
+            // Not connected, or the store never returned this product: fail now (the caller's UI says so) and try
+            // connecting again for the next attempt, rather than handing the store an order it can't take.
+            if (_storeController == null || !_connected || !_products.TryGetValue(productId, out var product))
             {
-                Debug.LogWarning("[IAPManager] Store not connected - can't purchase yet.");
+                Debug.LogWarning($"[IAPManager] Store not ready - can't purchase {productId} yet.");
+                Connect();
                 OnPurchaseFailed?.Invoke(productId, "StoreNotConnected");
                 return;
             }
 
             try
             {
-                if (_products.TryGetValue(productId, out var product))
-                {
-                    _storeController.PurchaseProduct(product);
-                }
-                else
-                {
-                    _storeController.PurchaseProduct(productId);
-                }
+                _storeController.PurchaseProduct(product);
             }
             catch (Exception e)
             {
@@ -258,8 +285,9 @@ namespace FarmFuryStampede.Core
 
         public void RestorePurchases(Action<bool> callback)
         {
-            if (_storeController == null)
+            if (_storeController == null || !_connected)
             {
+                Connect();
                 callback?.Invoke(false);
                 return;
             }
