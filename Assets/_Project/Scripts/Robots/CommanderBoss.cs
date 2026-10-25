@@ -23,9 +23,10 @@ namespace FarmFuryStampede.Robots
     ///  * It needs <see cref="hitsToDefeat"/> hits (stomps, or Percy/Bessie ability contact, or an egg, horseshoe, water spout or feather gust).
     ///  * Each hit that lands staggers it for <see cref="staggerSeconds"/>: it stops, flashes, cannot be hit again
     ///    and cannot hurt the player, so it can't be chain-stomped and the player can safely reposition.
-    ///  * After every hit it speeds up (<see cref="speedUpPerHit"/>) and reinforcement waves spawn: every
-    ///    RobotSpawnPoint with wave = N spawns when the Nth hit lands (wave 0 is there from the start).
-    ///    Waves use the world's ordinary robots (Harvester/Scout/Drone), so the boss is never a bare 1-on-1.
+    ///  * After every hit it speeds up (<see cref="speedUpPerHit"/>). The arena's own robots (wave 0) are there
+    ///    from the start and stay down once beaten. Reinforcement waves (RobotSpawnPoint wave = N, spawned when the
+    ///    Nth hit lands) are off since 2026-10-25 (<see cref="spawnReinforcements"/>): with the boss fighting back,
+    ///    robots reappearing mid-fight read as defeated robots respawning. The wave markers stay in the levels.
     ///  * Hit counter only, no health bar: <see cref="Active"/> exposes the counts to the HUD.
     ///  * It fights back with this world's <see cref="Attacks"/> (BossAttack flags, set per spawn from the level's
     ///    RobotSpawnPoint, since 2026-10-25): every <see cref="AttackInterval"/> seconds while the player is in the
@@ -42,6 +43,8 @@ namespace FarmFuryStampede.Robots
         [SerializeField] private int hitsToDefeat = 3;
         [SerializeField] private float staggerSeconds = 1.5f;
         [SerializeField] private float speedUpPerHit = 0.35f;
+        [Tooltip("Spawn the wave-N robots on the Nth hit. Off: only the arena's own robots fight beside the boss.")]
+        [SerializeField] private bool spawnReinforcements = false;
 
         /// <summary>The boss currently in the level (for the HUD hit counter). Null when there is none.</summary>
         public static CommanderBoss Active { get; private set; }
@@ -223,7 +226,7 @@ namespace FarmFuryStampede.Robots
             AudioManager.Play(a => a.bossHit);
             _staggerLeft = staggerSeconds;
             SpeedScale = 1f + speedUpPerHit * Hits;
-            if (LevelLoader.Instance != null)
+            if (spawnReinforcements && LevelLoader.Instance != null)
             {
                 LevelLoader.Instance.SpawnWave(Hits);
             }
