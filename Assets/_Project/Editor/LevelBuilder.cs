@@ -81,6 +81,12 @@ namespace FarmFuryStampede.EditorTools
         public float bossArtScale = 0f;
         /// <summary>The boss walks on the ground instead of hovering (RobotSpawnPoint.grounded).</summary>
         public bool bossGrounded;
+        /// <summary>The attacks the boss fights back with (RobotSpawnPoint.bossAttacks); None = it only patrols.</summary>
+        public BossAttack bossAttacks = BossAttack.None;
+        /// <summary>Seconds between the boss's attacks at the start of the fight (RobotSpawnPoint.bossAttackInterval).</summary>
+        public float bossAttackInterval = 4.5f;
+        /// <summary>The boss's orb and shockwave art (RobotSpawnPoint.bossShotArt / bossShockwaveArt); null = a glow.</summary>
+        public Sprite bossShotSprite, bossShockwaveSprite;
         /// <summary>This world's checkpoint art (one frame, feet-pivoted), written onto every checkpoint marker; null keeps the signpost.</summary>
         public Sprite checkpointSprite;
         /// <summary>River() water (Watermill: Props/River.png, top-pivoted, full-rect mesh so it tiles sideways); null draws no water.</summary>
@@ -1358,6 +1364,7 @@ namespace FarmFuryStampede.EditorTools
             pit.AddComponent<PitDeathZone>();
 
             RemoveCropsPastGoal();
+            RemoveCropsAtTrampolines();
             RemoveOverlappingCrops();
             PlaceRarePellet(root.transform, assets);
             PlaceCherry(root.transform, assets);
@@ -1426,6 +1433,13 @@ namespace FarmFuryStampede.EditorTools
                     robot.artScale = _robots[i].type == RobotType.Commander && assets.bossArtScale > 0f
                         ? assets.bossArtScale : assets.robotArtScale;
                     robot.grounded = _robots[i].type == RobotType.Commander && assets.bossGrounded;
+                }
+                if (_robots[i].type == RobotType.Commander)
+                {
+                    robot.bossAttacks = assets.bossAttacks;
+                    robot.bossAttackInterval = assets.bossAttackInterval;
+                    robot.bossShotArt = assets.bossShotSprite;
+                    robot.bossShockwaveArt = assets.bossShockwaveSprite;
                 }
             }
 
@@ -1648,6 +1662,24 @@ namespace FarmFuryStampede.EditorTools
             if (removed > 0)
             {
                 Debug.Log($"[LevelBuilder] {Id}: removed {removed} crop(s) past the goal flag.");
+            }
+        }
+
+        // A crop inside or pressed against a trampoline bale can't be picked up: the bale is solid, and touching its top
+        // launches the player straight past it. Path corn doesn't follow trampolines (they aren't path surfaces), so it
+        // and any hand-placed crop there would otherwise sit in the bale or right at its edge. Drop them.
+        private void RemoveCropsAtTrampolines()
+        {
+            const float clear = TrampolineWidth * 0.5f + 0.6f;   // half the bale plus a kernel's half-width and a margin
+            int removed = 0;
+            foreach (var u in _updrafts.Where(u => u.trampoline))
+            {
+                removed += _crops.RemoveAll(c => !c.passage && Mathf.Abs(c.x - u.x) < clear
+                    && c.y > u.baseTop - 0.5f && c.y < u.baseTop + TrampolineHeight + 1.2f);
+            }
+            if (removed > 0)
+            {
+                Debug.Log($"[LevelBuilder] {Id}: removed {removed} crop(s) at trampolines.");
             }
         }
 

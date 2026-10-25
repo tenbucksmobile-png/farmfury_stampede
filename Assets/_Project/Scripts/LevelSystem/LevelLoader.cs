@@ -426,6 +426,10 @@ namespace FarmFuryStampede.LevelSystem
             if (robot is CommanderBoss boss)
             {
                 boss.Hovers = !marker.grounded;
+                boss.Attacks = marker.bossAttacks;
+                boss.AttackInterval = marker.bossAttackInterval;
+                boss.ShotArt = marker.bossShotArt;
+                boss.ShockwaveArt = marker.bossShockwaveArt;
             }
             robot.Initialize(marker.patrolDistance);
             return true;

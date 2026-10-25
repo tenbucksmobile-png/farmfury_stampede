@@ -306,6 +306,7 @@ namespace FarmFuryStampede.EditorTools
             ImportCropIcon(CoinFile);
             ImportCropIcon(RarePelletFile);
             ImportCropIcon(CherryFile);
+            foreach (string name in BossAttackFiles) { ImportCentered($"{BossAttackDir}{name}.png", BossAttackPixelsPerUnit); }
             ImportCropIcon(TundraCropFile);
             ImportCropIcon(WatermillCropFile);
             ImportCropIcon(SkyCropFile);
@@ -1255,6 +1256,16 @@ namespace FarmFuryStampede.EditorTools
         public static Sprite MothershipCrop() => Load(MothershipCropFile);
         public static Sprite RarePellet() => Load(RarePelletFile);
         public static Sprite Cherry() => Load(CherryFile);
+
+        // ---- Boss attack art (CommanderBoss Shot / Slam), in Sprites/UI/BossAttacks: one Kling sheet 2026-10-25
+        // (gpt-image2 image-to-image from a layout sketch, the game's egg/horseshoe/mud ball as the style), cut by a
+        // script. Centre-pivoted; BossHazard draws each at its own width, so the pixels-per-unit only sets the import.
+        private const string BossAttackDir = "BossAttacks/";
+        private const float BossAttackPixelsPerUnit = 256f;
+        private static readonly string[] BossAttackFiles = { "SeaMine", "PlasmaOrb", "HotCog", "DesertRock", "CircusBall", "Shockwave" };
+
+        /// <summary>A boss attack sprite by name (BossAttackFiles), or null when the file is missing.</summary>
+        public static Sprite BossAttack(string name) => Load($"{BossAttackDir}{name}.png");
 
         /// <summary>The character's Character Select card, or null if it has none.</summary>
         public static Sprite CharacterCard(CharacterType type) =>

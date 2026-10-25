@@ -23,6 +23,13 @@ namespace FarmFuryStampede.LevelSystem
         public float artScale = 1f;
         [Tooltip("Boss only: walks on the ground instead of hovering (Frozen Tundra's Glacier Harvester).")]
         public bool grounded;
+        [Tooltip("Boss only: the attacks it fights back with (CommanderBoss); None = it only patrols (Meadow Ruins).")]
+        public BossAttack bossAttacks;
+        [Tooltip("Boss only: seconds between attacks at the start of the fight.")]
+        public float bossAttackInterval = 4.5f;
+        [Tooltip("Boss only: its orb (Shot) and shockwave (Slam) art, centre-pivoted; empty = a coloured glow.")]
+        public Sprite bossShotArt;
+        public Sprite bossShockwaveArt;
 
         private void OnDrawGizmos()
         {

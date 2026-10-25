@@ -70,6 +70,8 @@ namespace FarmFuryStampede.Core
         public event Action<string> OnPurchaseSucceeded;
         public event Action<string, string> OnPurchaseFailed;
         public event Action OnProductsReady;
+        /// <summary>Owned purchases came back from the store (reinstall, new device, Restore Purchases).</summary>
+        public event Action OnPurchasesRestored;
 
         private StoreController _storeController;
         private readonly Dictionary<string, Product> _products = new();
@@ -83,6 +85,8 @@ namespace FarmFuryStampede.Core
             _storeController.OnProductsFetchFailed += HandleProductsFetchFailed;
             _storeController.OnPurchasePending += HandlePurchasePending;
             _storeController.OnPurchaseFailed += HandlePurchaseFailed;
+            _storeController.OnPurchasesFetched += HandlePurchasesFetched;
+            _storeController.OnPurchasesFetchFailed += HandlePurchasesFetchFailed;
 
             try
             {
@@ -96,11 +100,13 @@ namespace FarmFuryStampede.Core
 
         private void HandleStoreConnected()
         {
-            var definitions = new List<ProductDefinition> { new(StoreProducts.RemoveAds, ProductType.NonConsumable) };
-            definitions.AddRange(StoreProducts.CoinPacks.Select(id => new ProductDefinition(id, ProductType.Consumable)));
+            // The game's ids stay the products' ids; the stores know them by StoreProducts.StoreId (prefixed).
+            static ProductDefinition Define(string id, ProductType type) => new(id, StoreProducts.StoreId(id), type);
+            var definitions = new List<ProductDefinition> { Define(StoreProducts.RemoveAds, ProductType.NonConsumable) };
+            definitions.AddRange(StoreProducts.CoinPacks.Select(id => Define(id, ProductType.Consumable)));
             definitions.AddRange(StoreProducts.Hats.Concat(StoreProducts.Trails).Concat(StoreProducts.Machines)
-                .Select(id => new ProductDefinition(id, ProductType.NonConsumable)));
-            definitions.AddRange(PurchasableWorlds().Select(w => new ProductDefinition(StoreProducts.World(w), ProductType.NonConsumable)));
+                .Select(id => Define(id, ProductType.NonConsumable)));
+            definitions.AddRange(PurchasableWorlds().Select(w => Define(StoreProducts.World(w), ProductType.NonConsumable)));
             _storeController.FetchProducts(definitions);
         }
 
@@ -127,6 +133,85 @@ namespace FarmFuryStampede.Core
             }
             IsInitialized = true;
             OnProductsReady?.Invoke();
+            FetchOwnedPurchases();
+        }
+
+        // ------------------------------------------------------------ owned purchases (reinstall / new device)
+
+        // Asks the store what this account already owns, so Remove Ads, paid worlds and cosmetics come back after a
+        // reinstall without the player pressing Restore (Google Play has no restore flow of its own; on iOS it also
+        // picks up purchases made on another device that the App Store already reports). Answered by
+        // HandlePurchasesFetched.
+        private void FetchOwnedPurchases()
+        {
+            try
+            {
+                _storeController.FetchPurchases();
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning($"[IAPManager] FetchPurchases threw: {e.Message}");
+            }
+        }
+
+        private void HandlePurchasesFetched(Orders orders)
+        {
+            int restored = 0;
+            foreach (var order in orders.ConfirmedOrders)
+            {
+                foreach (var item in order.CartOrdered.Items())
+                {
+                    if (item?.Product != null && RestoreOwnership(item.Product.definition.id)) { restored++; }
+                }
+            }
+            if (restored > 0)
+            {
+                SaveManager.Instance?.SaveProgress();
+                Debug.Log($"[IAPManager] Restored {restored} owned purchase(s).");
+                OnPurchasesRestored?.Invoke();
+            }
+        }
+
+        private void HandlePurchasesFetchFailed(PurchasesFetchFailureDescription failure)
+        {
+            Debug.LogWarning($"[IAPManager] Fetching owned purchases failed: {failure.FailureReason} {failure.Message}");
+        }
+
+        /// <summary>
+        /// Marks a non-consumable the store says is owned as owned here, without the first-purchase extras (no Remove
+        /// Ads bonus coins, nothing equipped). Coin packs are consumables and never come back. True if anything changed.
+        /// </summary>
+        private static bool RestoreOwnership(string productId)
+        {
+            var save = SaveManager.Instance;
+            if (save == null) { return false; }
+
+            if (productId == StoreProducts.RemoveAds)
+            {
+                if (save.AdsRemoved) { return false; }
+                save.AdsRemoved = true;
+                AdManager.Instance?.HideBanner();
+                return true;
+            }
+            if (TryGetWorld(productId, out var world))
+            {
+                if (save.IsWorldPurchased(world)) { return false; }
+                save.SetWorldPurchased(world);
+                return true;
+            }
+            if (!StoreProducts.Hats.Concat(StoreProducts.Trails).Concat(StoreProducts.Machines).Contains(productId)) { return false; }
+
+            bool changed = false;
+            foreach (CharacterType character in Enum.GetValues(typeof(CharacterType)))
+            {
+                string id = CosmeticIdFor(productId, character);   // per character for caps / cowboy hats, else one id
+                if (!save.IsCosmeticOwned(id))
+                {
+                    save.SetCosmeticOwned(id);
+                    changed = true;
+                }
+            }
+            return changed;
         }
 
         private void HandleProductsFetchFailed(ProductFetchFailed failure)
@@ -187,6 +272,7 @@ namespace FarmFuryStampede.Core
                     {
                         Debug.LogWarning($"[IAPManager] Restore failed: {error}");
                     }
+                    FetchOwnedPurchases();   // grants whatever the restore brought back (HandlePurchasesFetched)
                     callback?.Invoke(success);
                 });
             }
@@ -225,8 +311,9 @@ namespace FarmFuryStampede.Core
             {
                 if (save != null)
                 {
+                    // The bonus only once: a store can re-deliver an owned non-consumable (restore, new device).
+                    if (!save.AdsRemoved) { save.AddCoins(RemoveAdsBonusCoins); }
                     save.AdsRemoved = true;
-                    save.AddCoins(RemoveAdsBonusCoins);
                     save.SaveProgress();
                 }
                 AdManager.Instance?.HideBanner();

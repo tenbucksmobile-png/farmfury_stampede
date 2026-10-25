@@ -26,7 +26,7 @@ Transform:
   m_GameObject: {fileID: 5497679384886804}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 71, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 73.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -100,6 +100,10 @@ MonoBehaviour:
   artDefeat: {fileID: 21300000, guid: cfbf46928c1126747bcab51e0c0cd1d6, type: 3}
   artScale: 1
   grounded: 0
+  bossAttacks: 0
+  bossAttackInterval: 4.5
+  bossShotArt: {fileID: 0}
+  bossShockwaveArt: {fileID: 0}
 --- !u!1 &60427103734092514
 GameObject:
   m_ObjectHideFlags: 0
@@ -174,7 +178,7 @@ Transform:
   m_GameObject: {fileID: 254634888765054339}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 88.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 91, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -318,7 +322,7 @@ Transform:
   m_GameObject: {fileID: 527754366956446649}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 86, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 88.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -437,6 +441,10 @@ MonoBehaviour:
   artDefeat: {fileID: 21300000, guid: f48899e09fc6ac34688c4bdb0da306c9, type: 3}
   artScale: 1
   grounded: 0
+  bossAttacks: 0
+  bossAttackInterval: 4.5
+  bossShotArt: {fileID: 0}
+  bossShockwaveArt: {fileID: 0}
 --- !u!1 &1016190235567055366
 GameObject:
   m_ObjectHideFlags: 0
@@ -555,7 +563,7 @@ Transform:
   m_GameObject: {fileID: 1231188999542437977}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 83.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 86, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -651,7 +659,7 @@ Transform:
   m_GameObject: {fileID: 1411396559965373242}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 78.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 81, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -699,7 +707,7 @@ Transform:
   m_GameObject: {fileID: 1453021541410755729}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 73.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 76, y: 2.3300002, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -887,7 +895,7 @@ Transform:
   m_GameObject: {fileID: 1654764637695324960}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 106, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 108.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1049,54 +1057,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
---- !u!1 &1864924892552045020
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 9196550704905321124}
-  - component: {fileID: 1229960503746766512}
-  m_Layer: 0
-  m_Name: Crop_53
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &9196550704905321124
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1864924892552045020}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 66, y: 2.03, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 8629405886990772752}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1229960503746766512
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1864924892552045020}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1746a1624280dea4c880010da485d6f7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FarmFuryStampede.LevelSystem.CropSpawnPoint
-  secretCluster: 0
-  visualOverride: {fileID: 21300000, guid: 29741fc5e207595449fbb0847943c34d, type: 3}
-  coinValue: 0
-  passageCoin: 0
 --- !u!1 &1989110430735657184
 GameObject:
   m_ObjectHideFlags: 0
@@ -1432,7 +1392,7 @@ Transform:
   m_GameObject: {fileID: 2078084962057189973}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 118.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 121, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1504,8 +1464,12 @@ MonoBehaviour:
   artRight: {fileID: 21300000, guid: 0406f9bd29569044fabb203a40a4c99c, type: 3}
   artLeft: {fileID: 21300000, guid: 4b02989e2177e774f9371eaaba3d9bf9, type: 3}
   artDefeat: {fileID: 21300000, guid: 6a3c66d9e73ac9e4b90341f88b5593ed, type: 3}
-  artScale: 1.8
+  artScale: 1.4
   grounded: 1
+  bossAttacks: 7
+  bossAttackInterval: 3.2
+  bossShotArt: {fileID: 21300000, guid: d1bacfcb6d0c1ce418a4523f198f3aff, type: 3}
+  bossShockwaveArt: {fileID: 21300000, guid: d3073547176da9449916235c74af6ae7, type: 3}
 --- !u!1 &2113738601184301895
 GameObject:
   m_ObjectHideFlags: 0
@@ -1810,7 +1774,7 @@ Transform:
   m_GameObject: {fileID: 2923135279589993355}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 113.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 116, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1858,7 +1822,7 @@ Transform:
   m_GameObject: {fileID: 2954454734060785081}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 108.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 111, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1906,7 +1870,7 @@ Transform:
   m_GameObject: {fileID: 3042594250037448036}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 68.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 71, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1954,7 +1918,7 @@ Transform:
   m_GameObject: {fileID: 3087563958344289079}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 101, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 103.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2050,7 +2014,7 @@ Transform:
   m_GameObject: {fileID: 3198251310463504937}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 63.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 68.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2124,6 +2088,10 @@ MonoBehaviour:
   artDefeat: {fileID: 21300000, guid: f48899e09fc6ac34688c4bdb0da306c9, type: 3}
   artScale: 1
   grounded: 0
+  bossAttacks: 0
+  bossAttackInterval: 4.5
+  bossShotArt: {fileID: 0}
+  bossShockwaveArt: {fileID: 0}
 --- !u!1 &3349513349812407191
 GameObject:
   m_ObjectHideFlags: 0
@@ -2176,6 +2144,10 @@ MonoBehaviour:
   artDefeat: {fileID: 21300000, guid: 680220c78fda412428f93fbdcdedf1ab, type: 3}
   artScale: 1
   grounded: 0
+  bossAttacks: 0
+  bossAttackInterval: 4.5
+  bossShotArt: {fileID: 0}
+  bossShockwaveArt: {fileID: 0}
 --- !u!1 &3563678637702656343
 GameObject:
   m_ObjectHideFlags: 0
@@ -2202,7 +2174,7 @@ Transform:
   m_GameObject: {fileID: 3563678637702656343}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 51, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 53.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2624,7 +2596,7 @@ Transform:
   m_GameObject: {fileID: 3725966553280012270}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 116, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 118.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2837,6 +2809,10 @@ MonoBehaviour:
   artDefeat: {fileID: 21300000, guid: f48899e09fc6ac34688c4bdb0da306c9, type: 3}
   artScale: 1
   grounded: 0
+  bossAttacks: 0
+  bossAttackInterval: 4.5
+  bossShotArt: {fileID: 0}
+  bossShockwaveArt: {fileID: 0}
 --- !u!1 &4286786039372844577
 GameObject:
   m_ObjectHideFlags: 0
@@ -2889,6 +2865,10 @@ MonoBehaviour:
   artDefeat: {fileID: 21300000, guid: 680220c78fda412428f93fbdcdedf1ab, type: 3}
   artScale: 1
   grounded: 0
+  bossAttacks: 0
+  bossAttackInterval: 4.5
+  bossShotArt: {fileID: 0}
+  bossShockwaveArt: {fileID: 0}
 --- !u!1 &4497864778924537563
 GameObject:
   m_ObjectHideFlags: 0
@@ -3033,6 +3013,10 @@ MonoBehaviour:
   artDefeat: {fileID: 21300000, guid: 680220c78fda412428f93fbdcdedf1ab, type: 3}
   artScale: 1
   grounded: 0
+  bossAttacks: 0
+  bossAttackInterval: 4.5
+  bossShotArt: {fileID: 0}
+  bossShockwaveArt: {fileID: 0}
 --- !u!1 &4655146688479144358
 GameObject:
   m_ObjectHideFlags: 0
@@ -3247,7 +3231,7 @@ Transform:
   m_GameObject: {fileID: 4784339067625141592}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 48.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 51, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3321,6 +3305,10 @@ MonoBehaviour:
   artDefeat: {fileID: 21300000, guid: cfbf46928c1126747bcab51e0c0cd1d6, type: 3}
   artScale: 1
   grounded: 0
+  bossAttacks: 0
+  bossAttackInterval: 4.5
+  bossShotArt: {fileID: 0}
+  bossShockwaveArt: {fileID: 0}
 --- !u!1 &5156358880327696566
 GameObject:
   m_ObjectHideFlags: 0
@@ -3395,7 +3383,7 @@ Transform:
   m_GameObject: {fileID: 5262517002850582352}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 93.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 96, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3443,7 +3431,7 @@ Transform:
   m_GameObject: {fileID: 5592506268585936754}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 61, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 63.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3491,7 +3479,7 @@ Transform:
   m_GameObject: {fileID: 5593566751510119519}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 58.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 61, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -11946,6 +11934,10 @@ MonoBehaviour:
   artDefeat: {fileID: 21300000, guid: cfbf46928c1126747bcab51e0c0cd1d6, type: 3}
   artScale: 1
   grounded: 0
+  bossAttacks: 0
+  bossAttackInterval: 4.5
+  bossShotArt: {fileID: 0}
+  bossShockwaveArt: {fileID: 0}
 --- !u!1 &6169417658497260541
 GameObject:
   m_ObjectHideFlags: 0
@@ -11972,7 +11964,7 @@ Transform:
   m_GameObject: {fileID: 6169417658497260541}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 76, y: 2.3300002, z: 0}
+  m_LocalPosition: {x: 78.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -12344,7 +12336,7 @@ Transform:
   m_GameObject: {fileID: 6968325855473136833}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 56, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 58.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -12544,7 +12536,7 @@ Transform:
   m_GameObject: {fileID: 7310404180617829206}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 111, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 113.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -12629,7 +12621,7 @@ Transform:
   m_GameObject: {fileID: 7909145948466218028}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 96, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 98.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -12751,6 +12743,10 @@ MonoBehaviour:
   artDefeat: {fileID: 21300000, guid: 680220c78fda412428f93fbdcdedf1ab, type: 3}
   artScale: 1
   grounded: 0
+  bossAttacks: 0
+  bossAttackInterval: 4.5
+  bossShotArt: {fileID: 0}
+  bossShockwaveArt: {fileID: 0}
 --- !u!1 &7956211108598005205
 GameObject:
   m_ObjectHideFlags: 0
@@ -12777,7 +12773,7 @@ Transform:
   m_GameObject: {fileID: 7956211108598005205}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 123.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 126, y: 2.3300002, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -12825,7 +12821,7 @@ Transform:
   m_GameObject: {fileID: 8162471428946091537}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 46, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 48.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -12932,7 +12928,6 @@ Transform:
   - {fileID: 6524968608863721109}
   - {fileID: 2169960789865444895}
   - {fileID: 1776104022205653438}
-  - {fileID: 9196550704905321124}
   - {fileID: 6698358397750106097}
   - {fileID: 7950324531789583635}
   - {fileID: 5065729294833677592}
@@ -12972,7 +12967,7 @@ Transform:
   m_GameObject: {fileID: 8337327987056032701}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 103.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 106, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13020,7 +13015,7 @@ Transform:
   m_GameObject: {fileID: 8499080005827647699}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 128.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 66, y: 2.03, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13116,7 +13111,7 @@ Transform:
   m_GameObject: {fileID: 8643810899580290281}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 53.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 56, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13164,7 +13159,7 @@ Transform:
   m_GameObject: {fileID: 8833276802570907727}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 121, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 123.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13212,7 +13207,7 @@ Transform:
   m_GameObject: {fileID: 8985568448527537055}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 81, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 83.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13260,7 +13255,7 @@ Transform:
   m_GameObject: {fileID: 9039063001212261160}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 91, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 93.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13308,7 +13303,7 @@ Transform:
   m_GameObject: {fileID: 9063884137897726603}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 126, y: 2.3300002, z: 0}
+  m_LocalPosition: {x: 128.5, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13356,7 +13351,7 @@ Transform:
   m_GameObject: {fileID: 9089604079256940988}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 98.5, y: 0.33000004, z: 0}
+  m_LocalPosition: {x: 101, y: 0.33000004, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

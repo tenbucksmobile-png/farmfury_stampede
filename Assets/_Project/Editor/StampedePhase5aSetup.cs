@@ -133,6 +133,7 @@ namespace FarmFuryStampede.EditorTools
         {
             { CharacterType.Bessie, 1.3f },   // the cow reads bigger than the chicken
             { CharacterType.Horace, 1.4f },   // the horse is the biggest of the Squad
+            { CharacterType.Billy, 1.2f },    // the goat read too small beside the others
         };
 
         // Identical for every character by design (GDD/Phase 4 Section 1).
@@ -397,6 +398,18 @@ namespace FarmFuryStampede.EditorTools
             var cropFactoryAssets = CropFactoryAssets(assets);
             var dustbowlAssets = DustbowlAssets(assets);
             var fairgroundAssets = FairgroundAssets(assets);
+
+            // The bosses fight back (CommanderBoss attacks), more with every world; Meadow Ruins' stays gentle and
+            // only patrols. Each opens with its first attack and adds the next per hit (Charge, then Slam, then Shot).
+            // Orb art per world (Sprites/UI/BossAttacks); every slam throws up the same dust shockwave.
+            BossFights(tundraAssets, BossAttack.Charge, 4.5f, null);
+            BossFights(watermillAssets, BossAttack.Charge | BossAttack.Slam, 4.5f, null);
+            BossFights(skyAssets, BossAttack.Charge | BossAttack.Slam, 4f, null);
+            BossFights(sunkenAssets, BossAttack.Charge | BossAttack.Slam | BossAttack.Shot, 4f, "SeaMine");
+            BossFights(mothershipAssets, BossAttack.Charge | BossAttack.Slam | BossAttack.Shot, 3.5f, "PlasmaOrb");
+            BossFights(cropFactoryAssets, BossAttack.Charge | BossAttack.Slam | BossAttack.Shot, 3.2f, "HotCog");
+            BossFights(dustbowlAssets, BossAttack.Charge | BossAttack.Slam | BossAttack.Shot, 3.2f, "DesertRock");
+            BossFights(fairgroundAssets, BossAttack.Charge | BossAttack.Slam | BossAttack.Shot, 3.2f, "CircusBall");
 
             var harvesterRobot = AssetDatabase.LoadAssetAtPath<GameObject>(HarvesterPrefabPath);
             var droneRobot = AssetDatabase.LoadAssetAtPath<GameObject>(DronePrefabPath);
@@ -1059,7 +1072,7 @@ namespace FarmFuryStampede.EditorTools
             var rigLeft = ImportBossArt("Assets/_Project/Sprites/UI/DustbowlCanyon/DrillRig_Left.png");
             var rigDown = ImportBossArt("Assets/_Project/Sprites/UI/DustbowlCanyon/DrillRig_Defeated.png");
             if (rigRight != null && rigLeft != null) { desert.robotArt[RobotType.Commander] = (rigRight, rigLeft, rigDown); }
-            desert.bossArtScale = CropFactoryBossScale;   // 768px frames as Harvester Prime's: ~4.1 wide
+            desert.bossArtScale = CropFactoryBossScale;   // 768px frames as Harvester Prime's: ~3.2 wide
             desert.bossGrounded = true;
             return desert;
         }
@@ -1125,14 +1138,22 @@ namespace FarmFuryStampede.EditorTools
             var bossLeft = ImportBossArt("Assets/_Project/Sprites/UI/HarvestFairground/Ringmaster_Left.png");
             var bossDown = ImportBossArt("Assets/_Project/Sprites/UI/HarvestFairground/Ringmaster_Defeated.png");
             if (bossRight != null && bossLeft != null) { fair.robotArt[RobotType.Commander] = (bossRight, bossLeft, bossDown); }
-            fair.bossArtScale = CropFactoryBossScale;   // 768px frames as the other paid bosses: ~4.1 wide
+            fair.bossArtScale = CropFactoryBossScale;   // 768px frames as the other paid bosses: ~3.2 wide
             fair.bossGrounded = true;
             return fair;
         }
 
-        // Harvester Prime's frames are 768px wide at the Commander's 500px-frame scale (~2.3 units), so it is drawn 1.8x
-        // (~4.1 wide, ~3.4 tall) with its contact zones grown to match (CommanderBoss.OnWorldArtScale).
-        private const float CropFactoryBossScale = 1.8f;
+        // Harvester Prime's frames are 768px wide at the Commander's 500px-frame scale (~2.3 units), so it is drawn 1.4x
+        // (~3.2 wide, ~2.6 tall; was 1.8x, too big beside the 1.5-unit characters) with its contact zones grown to match (CommanderBoss.OnWorldArtScale).
+        private const float CropFactoryBossScale = 1.4f;
+
+        private static void BossFights(LevelAssets assets, BossAttack attacks, float interval, string shotArt)
+        {
+            assets.bossAttacks = attacks;
+            assets.bossAttackInterval = interval;
+            assets.bossShotSprite = shotArt != null ? StampedeUIArt.BossAttack(shotArt) : null;
+            assets.bossShockwaveSprite = (attacks & BossAttack.Slam) != 0 ? StampedeUIArt.BossAttack("Shockwave") : null;
+        }
 
         // Watermill Village's boss frames (Sprites/UI/WatermillVillage, 500px like the Commander's): MileStoneMauler.png
         // faces right, MilestoneMaulerLeft.png left (renamed by the user 2026-10-04; it was MilestoneMaulerRight.png).

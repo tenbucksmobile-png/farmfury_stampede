@@ -8,6 +8,17 @@ namespace FarmFuryStampede.Core
     /// </summary>
     public static class StoreProducts
     {
+        /// <summary>
+        /// Prefix of every product's id in App Store Connect and Play Console (since 2026-10-25): Apple product ids
+        /// must be unique across the whole developer account, and Arcade's (same account) already use the bare
+        /// names. The game itself keeps the bare ids below (save keys, cosmetic ids, analytics); IAPManager maps
+        /// them to store ids in its ProductDefinitions, so create the products as e.g. "stampede_remove_ads".
+        /// </summary>
+        public const string StoreIdPrefix = "stampede_";
+
+        /// <summary>The id a product has in the stores (StoreIdPrefix + the game's id).</summary>
+        public static string StoreId(string productId) => StoreIdPrefix + productId;
+
         public const string RemoveAds = "remove_ads";
 
         public static readonly string[] CoinPacks = { "coins_100", "coins_500", "coins_5000", "coins_15000" };
