@@ -1,0 +1,12 @@
+<dependencies>
+  <unityversion>5.24.0.0</unityversion>
+  <!-- iOS only: the Android AdMob SDK crashes at launch without its APPLICATION_ID in the Android manifest, and
+       Stampede has no Android AdMob app yet. The iOS app id goes into Info.plist via StampedeIosBuild. -->
+  <iosPods>
+    <iosPod name="IronSourceAdMobAdapter" version="5.12.0.0">
+      <sources>
+        <source>https://github.com/CocoaPods/Specs</source>
+      </sources>
+    </iosPod>
+  </iosPods>
+</dependencies>
