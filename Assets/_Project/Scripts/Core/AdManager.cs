@@ -102,9 +102,11 @@ namespace FarmFuryStampede.Core
 
         private void Start()
         {
-            if (string.IsNullOrEmpty(androidAppKey) && string.IsNullOrEmpty(iosAppKey))
+            // Only this platform's key counts: iOS has its key before Android does, and LevelPlay.Init with an
+            // empty key fails on the other platform.
+            if (string.IsNullOrEmpty(AppKey))
             {
-                Debug.LogWarning("[AdManager] No LevelPlay app key configured for either platform — " +
+                Debug.LogWarning("[AdManager] No LevelPlay app key configured for this platform — " +
                                  "ads disabled until real IDs are wired in (see CLAUDE.md's monetisation plan).");
                 return;
             }

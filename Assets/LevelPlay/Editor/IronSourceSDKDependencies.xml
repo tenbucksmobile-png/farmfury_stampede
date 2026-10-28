@@ -1,8 +1,16 @@
 <dependencies>
-  <unityversion>9.5.0</unityversion>
-  <!-- iOS only for now, at Arcade's versions (its TestFlight builds run on these pods). The Android part
-       (mediation-sdk + play-services-ads-identifier, see Arcade's copy) is left out until Android ads are set up,
-       as the ad-identifier library matters for the Families declarations. -->
+  <unityversion>9.6.0</unityversion>
+  <androidPackages>
+    <androidPackage spec="com.unity3d.ads-mediation:mediation-sdk:9.6.0">
+    </androidPackage>
+  </androidPackages>
+  <androidPackages>
+    <androidPackage spec="com.google.android.gms:play-services-ads-identifier:18.1.0">
+      <repositories>
+        <repository>https://maven.google.com/</repository>
+      </repositories>
+    </androidPackage>
+  </androidPackages>
   <iosPods>
     <iosPod name="IronSourceSDK" version="9.6.0.0">
       <sources>
