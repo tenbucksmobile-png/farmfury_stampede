@@ -53,7 +53,7 @@ namespace FarmFuryStampede.LevelSystem
 
             _eaten = true;
             player.StartPowerUp(PowerSeconds);
-            AudioManager.Play(a => a.rarePelletPickup);
+            AudioManager.Play(a => a.powerUp);
             gameObject.SetActive(false);
         }
     }

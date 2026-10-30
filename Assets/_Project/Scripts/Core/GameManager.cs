@@ -354,6 +354,10 @@ namespace FarmFuryStampede.Core
             {
                 AnalyticsManager.Instance?.LogLevelFailed(LevelIndex(CurrentLevel), Elapsed);
             }
+            if (completed)
+            {
+                AudioManager.Play(a => a.levelComplete);
+            }
             if (completed && CurrentLevel != null && SaveManager.Instance != null)
             {
                 RunState.coinsEarned = LevelPayout(!SaveManager.Instance.IsLevelCompleted(CurrentLevel.levelId),

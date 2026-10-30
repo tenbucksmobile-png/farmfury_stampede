@@ -50,6 +50,12 @@ namespace FarmFuryStampede.Core
         public AudioClip playerDeath;
         [Tooltip("The ability has finished recharging.")]
         public AudioClip abilityReady;
+        [Tooltip("Every jump, the double jump included.")]
+        public AudioClip jump;
+        [Tooltip("The cherry power-up is eaten.")]
+        public AudioClip powerUp;
+        [Tooltip("A level is completed (the boss's last hit plays bossDefeated first).")]
+        public AudioClip levelComplete;
         [Tooltip("Played when each character uses their ability.")]
         public CharacterSound[] abilitySounds = new CharacterSound[0];
         [Range(0f, 1f)] public float sfxVolume = 1f;

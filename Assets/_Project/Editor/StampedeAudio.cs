@@ -75,6 +75,9 @@ namespace FarmFuryStampede.EditorTools
             so.FindProperty("bossDefeated").objectReferenceValue = Sfx("Boss_Death.mp3");
             so.FindProperty("playerDeath").objectReferenceValue = Sfx("Animal_death.mp3");
             so.FindProperty("abilityReady").objectReferenceValue = Sfx("PowerReady.mp3");
+            so.FindProperty("jump").objectReferenceValue = Sfx("jump.mp3");
+            so.FindProperty("powerUp").objectReferenceValue = Sfx("power-up.mp3");   // the cherry (was the rare-pellet sound)
+            so.FindProperty("levelComplete").objectReferenceValue = Sfx("levelcomplete.mp3");
 
             var abilities = so.FindProperty("abilitySounds");
             var abilityClips = AbilityFiles.Select(kv => (kv.Key, clip: Sfx(kv.Value))).Where(a => a.clip != null).ToList();

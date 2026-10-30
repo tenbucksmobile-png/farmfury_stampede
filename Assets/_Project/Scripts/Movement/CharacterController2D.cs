@@ -518,6 +518,7 @@ namespace FarmFuryStampede.Movement
                 _coyoteTimer = 0f;
                 _isJumping = true;
                 _grounded = false;
+                AudioManager.Play(a => a.jump);
             }
             else if (_jumpBufferTimer > 0f && !_grounded && _airJumpsLeft > 0 && !InputLocked)
             {
@@ -526,6 +527,7 @@ namespace FarmFuryStampede.Movement
                 _jumpBufferTimer = 0f;
                 _airJumpsLeft--;
                 _isJumping = true;
+                AudioManager.Play(a => a.jump);
             }
 
             // Variable jump height: releasing early caps the rise at the tap velocity.
