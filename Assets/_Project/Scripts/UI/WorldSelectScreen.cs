@@ -46,6 +46,7 @@ namespace FarmFuryStampede.UI
         // Same size as every other round menu button.
         private const float HomeButtonSize = UIKit.RoundButtonSize;
         private const float EdgeMargin = 40f;
+        private const float HomeMargin = 16f;   // Level Select's back-button margin
         // Space kept for the banner above the carousel (from the top of the safe area), and below it.
         private const float CarouselTop = 215f, CarouselBottom = 24f;
         // Arcade's world carousel proportions: 580-wide badges 430 apart on a 2800 arc, side badges at 72%.
@@ -130,7 +131,8 @@ namespace FarmFuryStampede.UI
                 HomeButton.image.color = Color.white;
                 HomeButton.image.preserveAspect = true;
             }
-            UIKit.Place(HomeButton.image.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(EdgeMargin, -EdgeMargin),
+            // Bottom-left of the safe area, where Level Select keeps its back button (was top-left until 2026-10-30).
+            UIKit.Place(HomeButton.image.rectTransform, Vector2.zero, Vector2.zero, new Vector2(HomeMargin, HomeMargin),
                 new Vector2(HomeButtonSize, HomeButtonSize));
 
             Root.SetActive(false);
