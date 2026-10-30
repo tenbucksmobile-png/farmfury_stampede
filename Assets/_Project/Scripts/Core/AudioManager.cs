@@ -130,6 +130,18 @@ namespace FarmFuryStampede.Core
             audio.PlayMusic(audio.menuMusic);
         }
 
+        /// <summary>
+        /// Stops the music and plays a sound effect on its own (the level complete jingle). The music stays off until the
+        /// next PlayMenuMusic / PlayWorldMusic: the menus' theme or the next level's track.
+        /// </summary>
+        public static void PlayJingle(Func<AudioManager, AudioClip> slot)
+        {
+            var audio = Instance;
+            if (audio == null) { return; }
+            audio.musicSource.Stop();
+            audio.PlaySfx(slot(audio));
+        }
+
         /// <summary>Settings' music toggle. Sound effects are unaffected.</summary>
         public void SetMusicMuted(bool muted)
         {

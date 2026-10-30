@@ -356,7 +356,7 @@ namespace FarmFuryStampede.Core
             }
             if (completed)
             {
-                AudioManager.Play(a => a.levelComplete);
+                AudioManager.PlayJingle(a => a.levelComplete);   // the level's music stops for it
             }
             if (completed && CurrentLevel != null && SaveManager.Instance != null)
             {
