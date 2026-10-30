@@ -16,7 +16,7 @@ namespace FarmFuryStampede.LevelSystem
     [RequireComponent(typeof(Collider2D))]
     public class CherryPickup : MonoBehaviour
     {
-        public const float PowerSeconds = 3f;
+        public const float PowerSeconds = 5f;   // was 3 until 2026-10-30
 
         [SerializeField] private SpriteRenderer visual;
 

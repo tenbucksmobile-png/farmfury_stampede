@@ -35,7 +35,12 @@ namespace FarmFuryStampede.UI
         private const float EdgeMargin = 40f;
         private const float LifeIconHeight = 96f;
         private const float LifeIconGap = 10f;
-        private const float ControlSize = 120f;      // every HUD button (was 150 until 2026-10-03: too big, it crowded the play area)
+        // Arcade's HUD sizes (same 1920x1080 canvas), since 2026-10-30 when 120 for every button read too small on an
+        // iPhone: move and pause = its D-pad/pause 140, swap and Locker = its cluster icons 180, ability and jump = its
+        // ability button 220.
+        private const float MoveSize = 140f;
+        private const float ClusterSize = 180f;
+        private const float ActionSize = 220f;
         private const float ControlGap = 20f;
         private readonly Sprite _defaultLife;
         private CharacterType? _lifeCharacter;
@@ -51,7 +56,7 @@ namespace FarmFuryStampede.UI
 
         /// <summary>Coins to skip the ability cooldown (Arcade's SkipCooldownCoinsCost).</summary>
         public const int SkipCooldownCoinsCost = 3;
-        private const float SkipBadgeSize = 68f;     // scaled with the buttons (84 at ControlSize 150)
+        private const float SkipBadgeSize = 64f;     // Arcade's skip button
         public bool SkipCoinShown => _skipCoinButton.gameObject.activeSelf;
         public bool SkipAdShown => _skipAdButton.gameObject.activeSelf;
         public Button SkipCoinButton => _skipCoinButton;
@@ -103,27 +108,28 @@ namespace FarmFuryStampede.UI
                 PauseButton.image.sprite = art.pauseButton;
                 PauseButton.image.preserveAspect = true;
             }
-            // One row along the bottom, every button the same size (ControlSize) and ControlGap apart:
+            // One row along the bottom, bottoms aligned and ControlGap apart:
             // left, right, pause bottom-left | swap, Locker centred | ability, jump bottom-right (jump in the corner).
-            const float pitch = ControlSize + ControlGap;
-            var left = HoldControl(safe, "MoveLeftButton", shop.moveLeftButton, "<", Vector2.zero, new Vector2(EdgeMargin, EdgeMargin));
+            const float movePitch = MoveSize + ControlGap;
+            const float actionPitch = ActionSize + ControlGap;
+            var left = HoldControl(safe, "MoveLeftButton", shop.moveLeftButton, "<", Vector2.zero, new Vector2(EdgeMargin, EdgeMargin), MoveSize);
             left.Pressed += () => PlayerInputReader.TouchLeftHeld = true;
             left.Released += () => PlayerInputReader.TouchLeftHeld = false;
             var right = HoldControl(safe, "MoveRightButton", shop.moveRightButton, ">", Vector2.zero,
-                new Vector2(EdgeMargin + pitch, EdgeMargin));
+                new Vector2(EdgeMargin + movePitch, EdgeMargin), MoveSize);
             right.Pressed += () => PlayerInputReader.TouchRightHeld = true;
             right.Released += () => PlayerInputReader.TouchRightHeld = false;
             UIKit.Place(PauseButton.image.rectTransform, Vector2.zero, Vector2.zero,
-                new Vector2(EdgeMargin + 2f * pitch, EdgeMargin), Vector2.one * ControlSize);
+                new Vector2(EdgeMargin + 2f * movePitch, EdgeMargin), Vector2.one * MoveSize);
 
-            var jump = HoldControl(safe, "JumpButton", shop.jumpButton, "^", Vector2.right, new Vector2(-EdgeMargin, EdgeMargin));
+            var jump = HoldControl(safe, "JumpButton", shop.jumpButton, "^", Vector2.right, new Vector2(-EdgeMargin, EdgeMargin), ActionSize);
             jump.Pressed += PlayerInputReader.PressTouchJump;
             jump.Released += () => PlayerInputReader.TouchJumpHeld = false;
             _controlRow = (RectTransform)jump.transform;
 
             // Ability: the played character's ability card, left of jump; dimmed once its uses are spent.
             _abilityIcons = shop.abilityIcons;
-            var ability = HoldControl(safe, "AbilityButton", null, "ABILITY", Vector2.right, new Vector2(-EdgeMargin - pitch, EdgeMargin));
+            var ability = HoldControl(safe, "AbilityButton", null, "ABILITY", Vector2.right, new Vector2(-EdgeMargin - actionPitch, EdgeMargin), ActionSize);
             ability.Pressed += PlayerInputReader.PressTouchAbility;
             _ability = ability.GetComponent<Image>();
             _abilityLabel = ability.GetComponentInChildren<Text>();
@@ -144,8 +150,9 @@ namespace FarmFuryStampede.UI
             _skipCoinButton.transform.Find("Label").gameObject.SetActive(false);
             _skipCoinButton.gameObject.SetActive(false);
 
-            // Skip for a rewarded ad: the Watch Ad art (512x214) just above the ability card.
-            float adHeight = ControlSize * 214f / 512f;
+            // Skip for a rewarded ad: the Watch Ad art (512x214) just above the ability card, Arcade's 170 wide.
+            const float adWidth = 170f;
+            float adHeight = adWidth * 214f / 512f;
             _skipAdButton = UIKit.MakeButton(safe, "WatchAdSkipCooldownButton", shop.watchAd != null ? "" : "WATCH AD",
                 shop.watchAd != null ? Color.white : new Color(0.2f, 0.25f, 0.38f, 0.95f), SkipWithAd, 24);
             if (shop.watchAd != null)
@@ -154,7 +161,8 @@ namespace FarmFuryStampede.UI
                 _skipAdButton.image.preserveAspect = true;
             }
             UIKit.Place(_skipAdButton.image.rectTransform, Vector2.right, Vector2.right,
-                new Vector2(-EdgeMargin - pitch, EdgeMargin + ControlSize + 10f), new Vector2(ControlSize, adHeight));
+                new Vector2(-EdgeMargin - actionPitch - (ActionSize - adWidth) * 0.5f, EdgeMargin + ActionSize + 10f),
+                new Vector2(adWidth, adHeight));
             _skipAdButton.gameObject.SetActive(false);
 
             LockerButton = UIKit.MakeButton(safe, "LockerButton", shop.lockerIcon != null ? "" : "LOCKER",
@@ -165,7 +173,7 @@ namespace FarmFuryStampede.UI
                 LockerButton.image.preserveAspect = true;
             }
             UIKit.Place(LockerButton.image.rectTransform, new Vector2(0.5f, 0f), new Vector2(0f, 0f),
-                new Vector2(ControlGap * 0.5f, EdgeMargin), Vector2.one * ControlSize);
+                new Vector2(ControlGap * 0.5f, EdgeMargin), Vector2.one * ClusterSize);
 
             // Swap character: bottom-centre, left of the Locker (the pair centred on the screen).
             SwapButton = UIKit.MakeButton(safe, "SwapButton", art.swapCharacterButton != null ? "" : "SWAP",
@@ -176,7 +184,7 @@ namespace FarmFuryStampede.UI
                 SwapButton.image.preserveAspect = true;
             }
             UIKit.Place(SwapButton.image.rectTransform, new Vector2(0.5f, 0f), new Vector2(1f, 0f),
-                new Vector2(-ControlGap * 0.5f, EdgeMargin), Vector2.one * ControlSize);
+                new Vector2(-ControlGap * 0.5f, EdgeMargin), Vector2.one * ClusterSize);
 
             // Coin balance, top-left (the lives have the top-right).
             const float coinSize = 72f;
@@ -227,13 +235,14 @@ namespace FarmFuryStampede.UI
         }
 
         // A hold-to-press control (no click action): its art, or a plain labelled square.
-        private static HoldButton HoldControl(Transform parent, string name, Sprite sprite, string fallback, Vector2 corner, Vector2 offset)
+        private static HoldButton HoldControl(Transform parent, string name, Sprite sprite, string fallback, Vector2 corner, Vector2 offset,
+            float size)
         {
             var image = UIKit.Panel(parent, name, sprite != null ? Color.white : new Color(0.2f, 0.25f, 0.38f, 0.8f));
             if (sprite != null)
             {
                 image.sprite = sprite;
-                // Fills the whole ControlSize box: left.png is 287x256, so keeping its aspect drew it ~11% smaller
+                // Fills the whole box: left.png is 287x256, so keeping its aspect drew it ~11% smaller
                 // than the (square) art of every other button in the row.
                 image.preserveAspect = false;
             }
@@ -242,7 +251,7 @@ namespace FarmFuryStampede.UI
                 var label = UIKit.Label(image.transform, "Label", fallback, 72);
                 UIKit.Stretch(label.rectTransform);
             }
-            UIKit.Place(image.rectTransform, corner, corner, offset, Vector2.one * ControlSize);
+            UIKit.Place(image.rectTransform, corner, corner, offset, Vector2.one * size);
             return image.gameObject.AddComponent<HoldButton>();
         }
 

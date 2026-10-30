@@ -114,7 +114,8 @@ namespace FarmFuryStampede.EditorTools
         private const float JumpFrameScale = 1.25f;
         // Jump frames whose body fills the canvas like the walk frames (no spread wings), so they keep the shared scale.
         private static readonly HashSet<string> FullSizeJumpFrames = new() { "Gerald_Jump.png", "Gerald_Jump_Left.png",
-            "Wooly_Jump.png", "Wooly_Jump_Left.png", "Percy_Jump.png", "Percy_Jump_Left.png" };   // tucked-up jumps, not spread wings
+            "Wooly_Jump.png", "Wooly_Jump_Left.png", "Percy_Jump.png", "Percy_Jump_Left.png",
+            "Bessie_Jump.png", "Bessie_Jump_Left.png" };   // tucked-up jumps, not spread wings (area-matched to the idle frame already)
 
         private const int ObstaclesPerLevel = 2;   // rock / haybale, placed at random (seeded) spots
         private static readonly Vector2 FeetPivot = new Vector2(0.5f, 0f);
@@ -1826,9 +1827,10 @@ namespace FarmFuryStampede.EditorTools
                 idleRight = "Cluck_right.png", runRight = new[] { "Cluck_right1.png", "Cluck_right2.png" }, jumpRight = "Cluck_Right_Jump.png",
                 idleLeft = "Clucky_Left_Stand.png", runLeft = new[] { "Clucky_Left1.png", "Clucky_Left2.png" }, jumpLeft = "Clucky_left_Jump.png",
                 defeat = "Clucky_Defeat.png" } },
+            // Bessie's leap (2026-10-30, one Kling job from Bessie_right); Bessie_Jump_Left is a script mirror.
             { CharacterType.Bessie, new ArtFrames {
-                idleRight = "Bessie_right.png", runRight = new[] { "Bessie_right.png", "Bessie_right2.png" },
-                idleLeft = "Bessie_left3.png", runLeft = new[] { "Bessie_left.png", "Bessie_left2.png" } } },   // left3 = thumbs-up idle
+                idleRight = "Bessie_right.png", runRight = new[] { "Bessie_right.png", "Bessie_right2.png" }, jumpRight = "Bessie_Jump.png",
+                idleLeft = "Bessie_left3.png", runLeft = new[] { "Bessie_left.png", "Bessie_left2.png" }, jumpLeft = "Bessie_Jump_Left.png" } },   // left3 = thumbs-up idle
             // Percy's and Woolly's jump and defeat frames and Woolly's second walk frame (2026-10-17): one Kling job from
             // their existing frames; the _Left files are script mirrors of the right-facing ones.
             { CharacterType.Percy, new ArtFrames {
