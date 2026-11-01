@@ -1,7 +1,11 @@
+using System.IO;
+using FarmFuryStampede.Core;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace FarmFuryStampede.EditorTools
 {
@@ -22,6 +26,9 @@ namespace FarmFuryStampede.EditorTools
 
         public int callbackOrder => -100;
 
+        private const string BootScenePath = "Assets/_Project/Scenes/Boot.unity";
+        private const string GameScenePath = "Assets/_Project/Scenes/Game.unity";
+
         public static void Apply()
         {
             if (PlayerSettings.GetScriptingBackend(NamedBuildTarget.Android) != ScriptingImplementation.IL2CPP)
@@ -38,6 +45,62 @@ namespace FarmFuryStampede.EditorTools
             {
                 PlayerSettings.SetScriptingBackend(NamedBuildTarget.iOS, ScriptingImplementation.IL2CPP);
             }
+        }
+
+        /// <summary>
+        /// Google Play release settings: an App Bundle, no development build, the art split into an asset pack (the
+        /// base module may be at most 200 MB; the APK is ~500), LZ4HC, public symbols for Play's crash reports. The
+        /// signing key stays the user's own step in Player Settings.
+        /// </summary>
+        [MenuItem("Farm Fury Stampede/Android/Set Up For Google Play AAB")]
+        public static void SetUpGooglePlay()
+        {
+            EditorUserBuildSettings.buildAppBundle = true;
+            EditorUserBuildSettings.development = false;
+            EditorUserBuildSettings.androidCreateSymbols = AndroidCreateSymbols.Public;
+            EditorUserBuildSettings.SetPlatformSettings("Android", "CompressionType", "LZ4HC");
+            PlayerSettings.Android.splitApplicationBinary = true;
+            EnsureBootScene();
+            AssetDatabase.SaveAssets();
+            Debug.Log("[BuildSettings] Android set up for a Google Play AAB. Set the keystore, then File > Build Profiles > Build.");
+        }
+
+        // Boot.unity first, then Game.unity (see BootLoader): a black camera and the loader, nothing else.
+        private static void EnsureBootScene()
+        {
+            if (!File.Exists(BootScenePath))
+            {
+                var previous = SceneManager.GetActiveScene().path;
+                var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                var camera = new GameObject("Camera").AddComponent<Camera>();
+                camera.clearFlags = CameraClearFlags.SolidColor;
+                camera.backgroundColor = Color.black;
+                new GameObject("BootLoader").AddComponent<BootLoader>();
+                EditorSceneManager.SaveScene(scene, BootScenePath);
+                if (!string.IsNullOrEmpty(previous)) { EditorSceneManager.OpenScene(previous); }
+            }
+            EditorBuildSettings.scenes = new[]
+            {
+                new EditorBuildSettingsScene(BootScenePath, true),
+                new EditorBuildSettingsScene(GameScenePath, true),
+            };
+        }
+
+        /// <summary>Headless check that the AAB builds (debug-signed unless a keystore is set): -executeMethod ...BuildTestAab -aabPath file.aab</summary>
+        public static void BuildTestAab()
+        {
+            SetUpGooglePlay();
+            string[] args = System.Environment.GetCommandLineArgs();
+            string path = args[System.Array.IndexOf(args, "-aabPath") + 1];
+            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            {
+                scenes = new[] { BootScenePath, GameScenePath },
+                locationPathName = path,
+                target = BuildTarget.Android,
+                options = BuildOptions.CompressWithLz4HC,
+            });
+            Debug.Log($"[BuildSettings] Test AAB: {report.summary.result}, {report.summary.totalErrors} errors, {report.summary.totalSize / (1024 * 1024)} MB, {report.summary.totalTime}");
+            EditorApplication.Exit(report.summary.result == BuildResult.Succeeded ? 0 : 1);
         }
 
         public void OnPreprocessBuild(BuildReport report)
