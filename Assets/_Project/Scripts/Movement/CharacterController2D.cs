@@ -45,7 +45,7 @@ namespace FarmFuryStampede.Movement
         [SerializeField] private float maxFallSpeed = 25f;
         [SerializeField] private float coyoteTime = 0.1f;
         [SerializeField] private float jumpBufferTime = 0.1f;
-        [Tooltip("Extra jumps allowed in mid-air before landing (1 = double jump). Each one relaunches at full jump velocity.")]
+        [Tooltip("Extra jumps allowed in mid-air before landing (1 = double jump). Each one is a full jump, however short the press.")]
         [SerializeField] private int airJumps = 1;
 
         [Header("Water (applies to everyone except water-immune characters)")]
@@ -522,11 +522,13 @@ namespace FarmFuryStampede.Movement
             }
             else if (_jumpBufferTimer > 0f && !_grounded && _airJumpsLeft > 0 && !InputLocked)
             {
-                // Double jump: a fresh full-velocity jump from wherever the player is, still variable-height.
+                // Double jump: always a full jump from wherever the player is. Not variable-height: a quick tap on a
+                // touch screen would otherwise cap the rise at the tap velocity, slowing a player already rising fast,
+                // so the double jump looked like it did nothing.
                 _velocity.y = _jumpVelocity;
                 _jumpBufferTimer = 0f;
                 _airJumpsLeft--;
-                _isJumping = true;
+                _isJumping = false;
                 AudioManager.Play(a => a.jump);
             }
 
