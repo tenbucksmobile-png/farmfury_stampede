@@ -94,7 +94,7 @@ namespace FarmFuryStampede.UI
             Revive = Add(new RevivePromptScreen(c, menuArt, shopArt));
             NewCharacter = Add(new NewCharacterScreen(c, menuArt, shopArt));
             WorldCleared = Add(new WorldClearedScreen(c, menuArt, shopArt));
-            var legal = Add(new LegalScreen(c, menuArt, shopArt));
+            var legal = Add(new LegalScreen(c, menuArt, shopArt, Gate));
             var story = Add(new CharacterStoryScreen(c, menuArt, shopArt));
             var worldDetail = Add(new WorldDetailScreen(c, menuArt, shopArt, leaderboardArt));
             var worldShop = Add(new ItemPurchaseScreen(c, "WorldPurchase", menuArt, shopArt, Gate, useCoins, null, menuArt.worldUnlockedSign,
@@ -135,7 +135,7 @@ namespace FarmFuryStampede.UI
 
             ShopHub = Add(new ShopScreen(c, menuArt, shopArt, Gate, coins.Show, worldShop.Show, chooser.Show));
             Settings = Add(new SettingsScreen(c, menuArt, shopArt, leaderboards.Show, story.Show, legal.Show));
-            MenuHub = Add(new MenuHubScreen(c, menuArt, shopArt, Settings.Show, ShopHub.Show));
+            MenuHub = Add(new MenuHubScreen(c, menuArt, shopArt, Gate, Settings.Show, ShopHub.Show));
         }
 
         private ItemPurchaseScreen _worldShop;
