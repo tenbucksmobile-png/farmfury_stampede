@@ -25,6 +25,12 @@ namespace FarmFuryStampede.Core
         public const int ReplayCoins = 3;
         public const int ReviveCoinsCost = 5;
 
+        // What a revive gives back at the checkpoint (2026-11-01): the coin revive, once per attempt, is one life; an ad
+        // (any number of times) or a Remove Ads owner's free revive (once per attempt) is a full set, so it always beats
+        // the free retry from the level start.
+        public const int CoinReviveLives = 1;
+        public const int FullReviveLives = LivesPerAttempt;
+
         /// <summary>Coins a completed attempt pays (see BaseCoinsPerLevel). Call before the result is saved.</summary>
         public static int LevelPayout(bool firstClear, int previousBestStars, int stars)
         {
@@ -230,15 +236,30 @@ namespace FarmFuryStampede.Core
             EndLevel(completed: false, stars: 0);
         }
 
-        /// <summary>Revive for <see cref="ReviveCoinsCost"/> coins. False (nothing happens) if they can't be afforded.</summary>
+        /// <summary>Revive for <see cref="ReviveCoinsCost"/> coins, once per attempt. False (nothing happens) if already
+        /// used or they can't be afforded.</summary>
         public bool AcceptRevive()
         {
-            if (!ReviveDecisionPending || SaveManager.Instance == null || !SaveManager.Instance.SpendCoins(ReviveCoinsCost))
+            if (!ReviveDecisionPending || RunState.coinReviveUsed || SaveManager.Instance == null || !SaveManager.Instance.SpendCoins(ReviveCoinsCost))
             {
                 return false;
             }
 
-            GrantRevive();
+            RunState.coinReviveUsed = true;
+            GrantRevive(CoinReviveLives);
+            return true;
+        }
+
+        /// <summary>A Remove Ads owner's revive in place of the ad, once per attempt. False if not owned or already used.</summary>
+        public bool AcceptFreeRevive()
+        {
+            if (!ReviveDecisionPending || RunState.freeReviveUsed || SaveManager.Instance == null || !SaveManager.Instance.AdsRemoved)
+            {
+                return false;
+            }
+
+            RunState.freeReviveUsed = true;
+            GrantRevive(FullReviveLives);
             return true;
         }
 
@@ -250,18 +271,18 @@ namespace FarmFuryStampede.Core
                 return false;
             }
 
-            GrantRevive();
+            GrantRevive(FullReviveLives);
             return true;
         }
 
-        // One more life, back at the last checkpoint.
-        private void GrantRevive()
+        // Back at the last checkpoint with this many lives.
+        private void GrantRevive(int lives)
         {
             ReviveDecisionPending = false;
             Time.timeScale = 1f;
-            RunState.livesRemaining = 1;
+            RunState.livesRemaining = lives;
             LevelLoader.Instance?.RespawnPlayer(RunState.respawnPosition);
-            Debug.Log("[GameManager] Revived with 1 life.");
+            Debug.Log($"[GameManager] Revived with {lives} lives.");
         }
 
         /// <summary>Level Complete's rewarded "Double Coins": pays the level's coins again, once.</summary>
@@ -373,6 +394,7 @@ namespace FarmFuryStampede.Core
                 if (CurrentLevel.isBossLevel)
                 {
                     RunState.bossCleared = true;
+                    RunState.firstBossClear = !SaveManager.Instance.IsWorldBossCleared(CurrentLevel.worldType);
                     // Only a story world's boss opens the next world (the finale's next worlds are the paid ones).
                     var next = DataManager.Instance != null ? DataManager.Instance.GetWorldData(CurrentLevel.worldType + 1) : null;
                     RunState.worldUnlocked = next != null && !next.purchaseRequired

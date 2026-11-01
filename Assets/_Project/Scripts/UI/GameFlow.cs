@@ -63,7 +63,7 @@ namespace FarmFuryStampede.UI
             Worlds = new WorldSelectScreen(canvas.transform, EnterLevelSelect, OpenWorldShop, EnterLanding, menuArt, shopArt);
             Levels = new LevelSelectScreen(canvas.transform, PickLevel, EnterWorldSelect, menuArt);
             _canvasTransform = canvas.transform;
-            Results = new ResultsScreen(canvas.transform, PlayNextLevel, RestartLevel, LeaveResults, EnterLanding, OpenMenuHub, menuArt, shopArt);
+            Results = new ResultsScreen(canvas.transform, PlayNextLevel, RestartLevel, LeaveResults, EnterLanding, OpenMenuHub, OpenPromo, OpenShopFromResults, menuArt, shopArt);
             Pause = new PauseScreen(canvas.transform, ResumeFromPause, OpenSettings, RestartLevel, QuitToLevelSelect, EnterLanding, menuArt);
             Swap = new SwapCharacterScreen(canvas.transform, menuArt);
             PelletCelebration = RarePelletCelebration.Create(canvas.transform, menuArt);
@@ -112,6 +112,18 @@ namespace FarmFuryStampede.UI
                 Items(StoreProducts.Trails, shopArt.trailItems, trailsFirst), itemCell, 50f));
             var machines = Add(new ItemPurchaseScreen(c, "CosmeticsMachines", menuArt, shopArt, Gate, useCoins, shopArt.machinesBanner, null, "MACHINES",
                 Items(StoreProducts.Machines, shopArt.machineItems, machinesFirst), itemCell, 100f));
+            _hatsPage = hats;
+            _trailsPage = trails;
+            _machinesPage = machines;
+            // The page after a first boss clear (ContinueAfterBoss): the paid worlds under the New Worlds board.
+            _worldPromo = Add(new ItemPurchaseScreen(c, "WorldPromo", menuArt, shopArt, Gate, useCoins, shopArt.promoNewWorlds, null,
+                "NEW WORLDS", WorldItems(), new Vector2(380f, 380f), 40f, shopArt.worldPrice));
+            _worldPromo.Closed += () =>
+            {
+                var then = _afterWorldPromo;
+                _afterWorldPromo = null;
+                then?.Invoke();
+            };
             var chooser = Add(new CosmeticsChooserScreen(c, menuArt, shopArt, hats.Show, trails.Show, machines.Show));
             Locker = Add(new LockerScreen(c, menuArt, shopArt, type => type switch
             {
@@ -127,6 +139,43 @@ namespace FarmFuryStampede.UI
         }
 
         private ItemPurchaseScreen _worldShop;
+        private ItemPurchaseScreen _hatsPage, _trailsPage, _machinesPage, _worldPromo;
+        private System.Action _afterWorldPromo;
+
+        /// <summary>Level Complete's shop card (ShopPromos): that item's page over the results; Back returns to them.</summary>
+        private void OpenPromo(ShopPromo promo)
+        {
+            AnalyticsManager.Instance?.LogPromoTapped(ShopPromos.Id(promo));
+            switch (promo)
+            {
+                case ShopPromo.Hats: _hatsPage?.Show(); break;
+                case ShopPromo.Trails: _trailsPage?.Show(); break;
+                case ShopPromo.Machines: _machinesPage?.Show(); break;
+                case ShopPromo.RemoveAds: ShopHub?.Show(); break;
+            }
+        }
+
+        /// <summary>Level Failed's Shop sign.</summary>
+        private void OpenShopFromResults()
+        {
+            AnalyticsManager.Instance?.LogPromoTapped("level_failed_shop");
+            ShopHub?.Show();
+        }
+
+        // After a boss's Level Complete (and World Unlocked page, if any): the first time this boss falls, the paid
+        // worlds not yet bought, then World Select. Replays go straight there.
+        private void ContinueAfterBoss()
+        {
+            bool anyUnbought = IAPManager.PurchasableWorlds().Any(w => !SaveManager.Instance.IsWorldPurchased(w));
+            if (_gm.RunState.firstBossClear && anyUnbought && _worldPromo != null)
+            {
+                AnalyticsManager.Instance?.LogPromoShown("new_worlds");
+                _afterWorldPromo = EnterWorldSelect;
+                _worldPromo.Show();
+                return;
+            }
+            EnterWorldSelect();
+        }
 
         /// <summary>A paid world's card on World Select: the world shop ($3.99 each).</summary>
         private void OpenWorldShop() => _worldShop?.Show();
@@ -356,13 +405,18 @@ namespace FarmFuryStampede.UI
         {
             var level = _gm.CurrentLevel;
             if (level != null && level.isBossLevel && WorldCleared != null
-                && WorldCleared.ShowFor(level.worldType, _gm.RunState.worldUnlocked, EnterWorldSelect))
+                && WorldCleared.ShowFor(level.worldType, _gm.RunState.worldUnlocked, ContinueAfterBoss))
             {
                 return;
             }
-            if (level == null || level.isBossLevel)
+            if (level == null)
             {
                 EnterWorldSelect();
+                return;
+            }
+            if (level.isBossLevel)
+            {
+                ContinueAfterBoss();
                 return;
             }
 

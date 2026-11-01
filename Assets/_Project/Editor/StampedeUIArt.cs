@@ -750,6 +750,7 @@ namespace FarmFuryStampede.EditorTools
             ("WeepingWillow.png", 0.02f, 9f),      // ~5.9 (the oak's)
             ("RiverReed.png", 0.04f, 2.4f),        // ~1.6 (the gnarled tree's)
             ("FlowerBasket.png", 0.02f, 1.3f),     // ~0.8 (the cart's, in front)
+            ("Millstone.png", 0.05f, 2.8f),        // ~1.8: secret room prop
             ("WoodenCrate.png", 0.05f, 3.2f),      // ~2.1: random obstacle on the 2.1x1.95 collider
             ("MossyLog.png", 0.06f, 2.6f),         // ~1.7: random obstacle
             ("Wooddock.png", 0.03f, 3.4f),         // ~2.2: the mooring post at each end of a River()
@@ -762,6 +763,26 @@ namespace FarmFuryStampede.EditorTools
         }
 
         public static Sprite Watermill(string file) => Load(WatermillDir + file);
+
+        /// <summary>A secret room's back wall (Environment/Rooms/Room_XX.png, a band of the world's painting), imported opaque and centred.</summary>
+        public static Sprite RoomWall(string world)
+        {
+            string path = $"{EnvironmentDir}/Rooms/Room_{world}.png";
+            var importer = AssetImporter.GetAtPath(path) as TextureImporter;
+            if (importer == null)
+            {
+                return null;
+            }
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spritePixelsPerUnit = 100f;
+            importer.mipmapEnabled = false;
+            importer.filterMode = FilterMode.Bilinear;
+            importer.alphaIsTransparency = false;
+            SetPivot(importer, new Vector2(0.5f, 0.5f));
+            importer.SaveAndReimport();
+            return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
 
         // ---- Rivers (LevelBuilder.River / Boat / Piranha). Props/River.png is River.png cropped to its waves, the see-
         // through foam band filled white (as the art reads on white) and deep water added below (a script, 2026-10-04;

@@ -392,6 +392,8 @@ namespace FarmFuryStampede.Core
                 return;
             }
 
+            SaveManager.Instance.InterstitialsSinceAdsCard++;   // paces the Remove Ads card (UI.ShopPromos)
+
             bool resolved = false;
             Coroutine timeoutRoutine = null;
 

@@ -36,7 +36,7 @@ namespace FarmFuryStampede.UI
                 return;
             }
 
-            var rect = new Rect(Screen.width - 330, 90, 320, 784);
+            var rect = new Rect(Screen.width - 330, 40, 320, 900);
             GUI.Box(rect, $"DEBUG (world: {GameFlow.Instance.CurrentWorld})");
             float y = rect.y + 28;
             DrawRows(
@@ -55,6 +55,7 @@ namespace FarmFuryStampede.UI
             if (save == null || GameFlow.Instance == null) { return; }
             var world = GameFlow.Instance.CurrentWorld;
 
+            row(save.DebugAllLevelsOpen ? "All levels: OPEN (tap for real locks)" : "All levels: locked (tap to open)", () => save.DebugAllLevelsOpen = !save.DebugAllLevelsOpen);
             row($"Complete {world} levels 1-8", () => save.DebugCompleteWorldLevels(world));
             row($"Flip {world} boss cleared ({save.IsWorldBossCleared(world)})", () => save.SetWorldBossCleared(world, !save.IsWorldBossCleared(world)));
             row("Unlock all worlds", () => { foreach (WorldType w in System.Enum.GetValues(typeof(WorldType))) save.SetWorldBossCleared(w, true); });
@@ -70,6 +71,12 @@ namespace FarmFuryStampede.UI
             row("Levels cleared = 40", () => save.DebugSetCompletedLevelCount(40));
             row($"Coins +1000 ({save.CoinBalance})", () => save.DebugAddCoins(1000));
             row($"Rare pellet +1 ({save.RarePelletCount})", () => save.DebugAddRarePellet());
+            row("Shop card on next clear", () => save.LevelsSincePromo = ShopPromos.LevelsBetweenCards);
+            row("Remove Ads card on next clear", () =>
+            {
+                save.LevelsSincePromo = ShopPromos.LevelsBetweenCards;
+                save.InterstitialsSinceAdsCard = ShopPromos.InterstitialsBeforeAdsCard;
+            });
             row($"Cherry power ({CherryPickup.PowerSeconds:0}s)", () =>
             {
                 var p = LevelLoader.Instance != null ? LevelLoader.Instance.Player : null;

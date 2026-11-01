@@ -399,6 +399,7 @@ namespace FarmFuryStampede.EditorTools
             var cropFactoryAssets = CropFactoryAssets(assets);
             var dustbowlAssets = DustbowlAssets(assets);
             var fairgroundAssets = FairgroundAssets(assets);
+            DressPassageRooms(tundraAssets, watermillAssets, skyAssets, sunkenAssets, mothershipAssets, cropFactoryAssets, dustbowlAssets, fairgroundAssets);
 
             // The bosses fight back (CommanderBoss attacks), more with every world; Meadow Ruins' stays gentle and
             // only patrols. Each opens with its first attack and adds the next per hit (Charge, then Slam, then Shot).
@@ -762,6 +763,65 @@ namespace FarmFuryStampede.EditorTools
         /// (Sprites/UI/WatermillVillage/Props) in the scenery roles and crates / mossy logs as the random obstacles.
         /// No hay, so no bale obstacles or the barns and windmills drawn behind them.
         /// </summary>
+        // Each world's secret rooms (LevelBuilder.DressPassage), from art it already has; Meadow Ruins stays a dirt
+        // cellar. Scenery roles as in each world's FarmBackdropArt.
+        private static void DressPassageRooms(LevelAssets tundra, LevelAssets village, LevelAssets sky, LevelAssets sea, LevelAssets ship,
+            LevelAssets factory, LevelAssets desert, LevelAssets fair)
+        {
+            Sprite First(Sprite[] sprites) => sprites != null && sprites.Length > 0 ? sprites[0] : null;
+            Sprite Last(Sprite[] sprites) => sprites != null && sprites.Length > 0 ? sprites[sprites.Length - 1] : null;
+
+            tundra.passageRoom = new PassageRoomArt   // an ice cave
+            {
+                wall = StampedeUIArt.RoomWall("FT"),
+                wallTint = new Color(0.55f, 0.65f, 0.8f, 1f),
+                props = new[] { tundra.farmArt.silo, tundra.farmArt.gnarledTree, tundra.farmArt.windmill, tundra.farmArt.waterWheel },
+            };
+            village.passageRoom = new PassageRoomArt   // the mill's cellar: the dark dirt wall and plain floor stay
+            {
+                surfaceFloor = false,
+                props = new[] { StampedeUIArt.Watermill("Millstone.png"), First(village.obstacleSprites), village.barrelSprite, village.farmArt.waterWheel, Last(village.obstacleSprites) },
+            };
+            sky.passageRoom = new PassageRoomArt   // a hidden cloud chamber
+            {
+                wall = StampedeUIArt.RoomWall("SI"),
+                wallTint = new Color(0.85f, 0.88f, 0.95f, 1f),
+                props = new[] { sky.farmArt.silo, sky.farmArt.oak, sky.farmArt.windmill },
+                propTint = new Color(0.88f, 0.88f, 0.92f, 1f),
+            };
+            sea.passageRoom = new PassageRoomArt   // a sunken grotto
+            {
+                wall = StampedeUIArt.RoomWall("SC"),
+                wallTint = new Color(0.55f, 0.65f, 0.75f, 1f),
+                props = new[] { sea.farmArt.silo, sea.farmArt.oak, sea.farmArt.cart, First(sea.obstacleSprites), sea.farmArt.waterWheel },
+                propTint = new Color(0.7f, 0.8f, 0.88f, 1f),
+            };
+            ship.passageRoom = new PassageRoomArt   // a cargo bay
+            {
+                wall = StampedeUIArt.RoomWall("RM"),
+                wallTint = new Color(0.55f, 0.55f, 0.65f, 1f),
+                props = new[] { ship.farmArt.silo, First(ship.obstacleSprites), ship.farmArt.barn, Last(ship.obstacleSprites), ship.farmArt.windmill },
+            };
+            factory.passageRoom = new PassageRoomArt   // a storeroom
+            {
+                wall = StampedeUIArt.RoomWall("CF"),
+                wallTint = new Color(0.55f, 0.58f, 0.62f, 1f),
+                props = new[] { First(factory.obstacleSprites), factory.farmArt.waterWheel, factory.barrelSprite, Last(factory.obstacleSprites) },
+            };
+            desert.passageRoom = new PassageRoomArt   // a mine tunnel
+            {
+                wall = StampedeUIArt.RoomWall("DC"),
+                wallTint = new Color(0.5f, 0.42f, 0.38f, 1f),
+                props = new[] { desert.farmArt.cart, Last(desert.obstacleSprites), desert.barrelSprite, desert.farmArt.waterWheel },
+            };
+            fair.passageRoom = new PassageRoomArt   // backstage
+            {
+                wall = StampedeUIArt.RoomWall("HF"),
+                wallTint = new Color(0.5f, 0.42f, 0.5f, 1f),
+                props = new[] { fair.checkpointSprite, Last(fair.obstacleSprites), fair.barrelSprite, fair.farmArt.waterWheel },
+            };
+        }
+
         private static LevelAssets WatermillAssets(LevelAssets meadow)
         {
             var village = meadow.Clone();

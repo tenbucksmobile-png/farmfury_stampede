@@ -129,6 +129,12 @@ namespace FarmFuryStampede.Core
         public void LogPurchase(string productId, string priceString) =>
             LogEvent("purchase", ("product_id", productId ?? string.Empty), ("price", priceString ?? string.Empty));
 
+        /// <summary>A shop card or the New Worlds page came up (UI.ShopPromos, GameFlow).</summary>
+        public void LogPromoShown(string promoId) => LogEvent("promo_shown", ("promo_id", promoId ?? string.Empty));
+
+        /// <summary>A shop card, or Level Failed's Shop sign, was tapped.</summary>
+        public void LogPromoTapped(string promoId) => LogEvent("promo_tapped", ("promo_id", promoId ?? string.Empty));
+
         /// <summary>AdManager — fires only on a confirmed-successful ad (a rewarded ad that
         /// actually granted its reward, or an interstitial that actually closed after showing) —
         /// never for a skipped/unready/failed attempt, so this tracks real ad exposure, not just

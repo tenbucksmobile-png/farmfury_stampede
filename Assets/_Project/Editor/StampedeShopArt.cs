@@ -52,6 +52,8 @@ namespace FarmFuryStampede.EditorTools
             { "lockerBanner", "LockerBanner.png" },
             { "lockerSuggestion", "LockerAd.png" },
             { "cardFrame", "Shop/PurchaseCardFrame.png" },
+            { "promoNewWorlds", "Shop/Promo_NewWorlds.png" },
+            { "promoNoAds", "Shop/Promo_NoAds.png" },
             { "moveLeftButton", "left.png" },
             { "moveRightButton", "right.png" },
             { "jumpButton", "up.png" },

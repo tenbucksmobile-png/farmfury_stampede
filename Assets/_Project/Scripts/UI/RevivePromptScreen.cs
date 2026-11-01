@@ -7,10 +7,12 @@ namespace FarmFuryStampede.UI
     /// <summary>
     /// Arcade's revive prompt, shown when the last life is lost (GameManager.ReviveOffered): the hanging sign with
     /// "Revive for 5 coins" painted in drops in from the top of the screen and sways to a stop mid-screen
-    /// (<see cref="HangingSignDrop"/>). On its planks, three stacked buttons: Yes (spend the coins; greyed when they
-    /// can't be afforded), Watch Ad (a rewarded ad; always shown, dimmed while no ad is loaded) and No (Level
-    /// Failed). The player's coins sit in the top-right corner of the safe area: a slowly spinning coin with the
-    /// count beside it. A revive gives one life back at the last checkpoint. Closing it any other way (Esc) counts as No.
+    /// (<see cref="HangingSignDrop"/>). On its planks, three stacked buttons: Yes (spend the coins for one life, once
+    /// per attempt; greyed when used or they can't be afforded), Watch Ad (a rewarded ad for three lives, any number of
+    /// times; always shown, dimmed while no ad is loaded) and No (Level Failed). A Remove Ads owner sees a Free
+    /// button instead of Watch Ad (three lives, once per attempt). The revive lands at the last checkpoint; what each
+    /// gives is written beside its button. The player's coins sit in the top-right corner of the safe area: a slowly
+    /// spinning coin with the count beside it. Closing it any other way (Esc) counts as No.
     /// </summary>
     public class RevivePromptScreen : OverlayScreen
     {
@@ -26,7 +28,7 @@ namespace FarmFuryStampede.UI
 
         private readonly RectTransform _sign;
         private readonly HangingSignDrop _drop;
-        private readonly Button _yes, _watchAd;
+        private readonly Button _yes, _watchAd, _free;
         private readonly Text _coins;
         private readonly RectTransform _coin;
         private readonly ConfettiBurst _confetti;
@@ -57,6 +59,14 @@ namespace FarmFuryStampede.UI
             var colors = _watchAd.colors;
             colors.disabledColor = AdNotReadyTint;
             _watchAd.colors = colors;
+
+            // Remove Ads owners: the same slot, on the wooden plaque (the Watch Ad art has its label baked in).
+            _free = PlaqueButton(_sign, "FreeReviveButton", "FREE", 40, AcceptFree);
+            UIKit.Place(_free.image.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, RowY(1)), new Vector2(width, ButtonHeight));
+            _free.colors = colors;
+
+            RewardLabel("YesReward", GameManager.CoinReviveLives, 0, width);
+            RewardLabel("AdReward", GameManager.FullReviveLives, 1, width);
 
             // The player's coins, top-right of the safe area: the count right-aligned, the spinning coin just left of it.
             var coin = Shop.coinIcon != null ? UIKit.Picture(Safe, "Coin", Shop.coinIcon) : UIKit.Panel(Safe, "Coin", UIKit.Accent);
@@ -139,16 +149,36 @@ namespace FarmFuryStampede.UI
         private Button StackedButton(string name, Sprite sprite, string fallback, int row, float width, System.Action onClick)
         {
             var button = IconButton(_sign, name, sprite, fallback, onClick);
-            float y = PlankCentreY + (1 - row) * (ButtonHeight + ButtonGap);
-            UIKit.Place(button.image.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, y), new Vector2(width, ButtonHeight));
+            UIKit.Place(button.image.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, RowY(row)), new Vector2(width, ButtonHeight));
             return button;
+        }
+
+        private static float RowY(int row)
+        {
+            return PlankCentreY + (1 - row) * (ButtonHeight + ButtonGap);
+        }
+
+        // "+3 lives" just right of a button, in the coin count's gold lettering.
+        private void RewardLabel(string name, int lives, int row, float buttonWidth)
+        {
+            var label = UIKit.Label(_sign, name, lives == 1 ? "+1 life" : $"+{lives} lives", 40, TextAnchor.MiddleLeft, CountGold);
+            label.fontStyle = FontStyle.Bold;
+            var outline = label.gameObject.AddComponent<Outline>();
+            outline.effectColor = CountOutline;
+            outline.effectDistance = new Vector2(2f, -2f);
+            UIKit.Place(label.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 0.5f), new Vector2(buttonWidth * 0.5f + 16f, RowY(row)), new Vector2(200f, ButtonHeight));
         }
 
         protected override void OnShow()
         {
             _deciding = true;
             var save = SaveManager.Instance;
-            _yes.interactable = save != null && save.CoinBalance >= GameManager.ReviveCoinsCost;
+            var run = GameManager.Instance != null ? GameManager.Instance.RunState : null;
+            _yes.interactable = save != null && run != null && !run.coinReviveUsed && save.CoinBalance >= GameManager.ReviveCoinsCost;
+            bool adsRemoved = save != null && save.AdsRemoved;
+            _free.gameObject.SetActive(adsRemoved);
+            _free.interactable = run != null && !run.freeReviveUsed;
+            _watchAd.gameObject.SetActive(!adsRemoved);
             _coins.text = save != null ? save.CoinBalance.ToString() : "0";
             // The spinning coin's pivot is its centre, so it turns in place.
             _coin.pivot = new Vector2(0.5f, 0.5f);
@@ -166,6 +196,14 @@ namespace FarmFuryStampede.UI
         private void Accept()
         {
             if (GameManager.Instance != null && GameManager.Instance.AcceptRevive())
+            {
+                Close();
+            }
+        }
+
+        private void AcceptFree()
+        {
+            if (GameManager.Instance != null && GameManager.Instance.AcceptFreeRevive())
             {
                 Close();
             }

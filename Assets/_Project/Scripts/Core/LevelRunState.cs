@@ -29,7 +29,13 @@ namespace FarmFuryStampede.Core
         public int coinsEarned;
         /// <summary>The Level Complete "Double Coins" ad reward has been claimed (once per result).</summary>
         public bool doubleCoinsClaimed;
+        /// <summary>The coin revive has been spent (once per attempt; a retry is a new attempt).</summary>
+        public bool coinReviveUsed;
+        /// <summary>The Remove Ads owner's free revive has been spent (once per attempt).</summary>
+        public bool freeReviveUsed;
         public bool bossCleared;
+        /// <summary>True on the first time this world's boss is beaten (a replay is false).</summary>
+        public bool firstBossClear;
         /// <summary>True when this boss clear opened the next world for the first time (not a replay, not the finale).</summary>
         public bool worldUnlocked;
 
@@ -56,7 +62,10 @@ namespace FarmFuryStampede.Core
             starsEarned = 0;
             coinsEarned = 0;
             doubleCoinsClaimed = false;
+            coinReviveUsed = false;
+            freeReviveUsed = false;
             bossCleared = false;
+            firstBossClear = false;
             worldUnlocked = false;
             hasCheckpoint = false;
             respawnPosition = Vector2.zero;

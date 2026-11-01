@@ -23,6 +23,9 @@ namespace FarmFuryStampede.UI
     /// Under the stars sits the score: a corn kernel and "collected / total" crops for the run, in the title's gold
     /// lettering, one star tall so it scales with them. New Character / World Unlocked signs flank it when earned.
     ///
+    /// Shop promotion (ShopPromos): a banner card bottom-centre of Level Complete, between the button groups, when one
+    /// is due; the Shop sign beside home on Level Failed.
+    ///
     /// Plain look (no art): the original dark panel with square stars, the crop/death summary and text buttons.
     /// </summary>
     public class ResultsScreen
@@ -87,10 +90,18 @@ namespace FarmFuryStampede.UI
         private const float BottomMargin = 40f;
         private const float ButtonGap = 30f;
 
-        public ResultsScreen(Transform canvas, Action onNext, Action onRetry, Action onQuit, Action onHome, Action onSettings, MenuArt art, ShopArt shop)
+        private const float PromoCardHeight = 200f;
+        private readonly ShopArt _shop;
+        private readonly Button _promoCard;
+        private readonly Button _shopSign;
+        private ShopPromo _promo;
+
+        public ResultsScreen(Transform canvas, Action onNext, Action onRetry, Action onQuit, Action onHome, Action onSettings,
+            Action<ShopPromo> onPromo, Action onShop, MenuArt art, ShopArt shop)
         {
             _art = art ?? new MenuArt();
             shop ??= new ShopArt();
+            _shop = shop;
             _artLook = _art.levelCompleteBackground != null && _art.levelFailedBackground != null;
 
             var root = UIKit.NewRect("Results", canvas);
@@ -148,6 +159,24 @@ namespace FarmFuryStampede.UI
                 SettingsButton = RoundButton(safe, "SettingsButton", _art.settingsButton, "SET", onSettings, Vector2.right, new Vector2(-EdgeMargin, BottomMargin));
                 // Home sits beside the cog on Level Complete, and in the cog's corner on Level Failed (see Layout).
                 HomeButton = RoundButton(safe, "HomeButton", _art.homeButton, "HOME", onHome, Vector2.right, new Vector2(-EdgeMargin, BottomMargin));
+
+                _promoCard = UIKit.MakeButton(safe, "ShopPromoCard", "", Color.white, () => onPromo?.Invoke(_promo));
+                _promoCard.image.preserveAspect = true;
+                UIKit.Place(_promoCard.image.rectTransform, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, BottomMargin),
+                    new Vector2(PromoCardHeight * 619f / 246f, PromoCardHeight));
+                _promoCard.gameObject.SetActive(false);
+
+                // In the corner beside home, where Level Complete has its cog; the sign is 666x375.
+                _shopSign = UIKit.MakeButton(safe, "ShopSign", shop.shopSign != null ? "" : "SHOP", shop.shopSign != null ? Color.white : UIKit.Accent, () => onShop?.Invoke());
+                if (shop.shopSign != null)
+                {
+                    _shopSign.image.sprite = shop.shopSign;
+                    _shopSign.image.preserveAspect = true;
+                }
+                float signWidth = UIKit.RoundButtonSize * 666f / 375f;
+                UIKit.Place(_shopSign.image.rectTransform, Vector2.right, Vector2.right,
+                    new Vector2(-EdgeMargin - UIKit.RoundButtonSize - ButtonGap, BottomMargin), new Vector2(signWidth, UIKit.RoundButtonSize));
+                _shopSign.gameObject.SetActive(false);
             }
             else
             {
@@ -284,6 +313,7 @@ namespace FarmFuryStampede.UI
                 _scoreText.text = $"{run.cropsCollectedThisRun} / {run.totalNormalCrops + run.totalSecretCrops}";
                 _score.SetActive(true);
                 LayoutButtons(complete: true);
+                ShowPromoCard(ShopPromos.PickForLevelComplete(gm.CurrentLevel, run));
                 Root.SetActive(true);
                 return;
             }
@@ -325,6 +355,7 @@ namespace FarmFuryStampede.UI
                 _newCharacterSign.gameObject.SetActive(false);
                 _worldUnlockedSign.gameObject.SetActive(false);
                 LayoutButtons(complete: false);
+                ShowPromoCard(ShopPromo.None);
                 Root.SetActive(true);
                 return;
             }
@@ -343,6 +374,22 @@ namespace FarmFuryStampede.UI
         public void Hide()
         {
             Root.SetActive(false);
+        }
+
+        // The existing category banners are the cards; a card without art isn't shown.
+        private void ShowPromoCard(ShopPromo promo)
+        {
+            Sprite art = promo switch
+            {
+                ShopPromo.Hats => _shop.hatsBanner,
+                ShopPromo.Trails => _shop.trailsBanner,
+                ShopPromo.Machines => _shop.machinesBanner,
+                ShopPromo.RemoveAds => _shop.promoNoAds,
+                _ => null,
+            };
+            _promo = promo;
+            _promoCard.image.sprite = art;
+            _promoCard.gameObject.SetActive(art != null);
         }
 
         // The level's world's own results backdrop (Frozen Tundra's aurora), or null to use the shared one. A world's
@@ -372,6 +419,7 @@ namespace FarmFuryStampede.UI
             NextButton.gameObject.SetActive(complete);
             RetryButton.gameObject.SetActive(!complete);
             SettingsButton.gameObject.SetActive(complete);
+            _shopSign.gameObject.SetActive(!complete);
             float homeX = complete ? -EdgeMargin - UIKit.RoundButtonSize - ButtonGap : -EdgeMargin;
             HomeButton.image.rectTransform.anchoredPosition = new Vector2(homeX, BottomMargin);
         }

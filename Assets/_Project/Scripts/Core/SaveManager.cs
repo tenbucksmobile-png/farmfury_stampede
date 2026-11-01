@@ -140,6 +140,25 @@ namespace FarmFuryStampede.Core
             PlayerPrefs.SetInt(LevelsSinceInterstitialKey, count);
         }
 
+        // Shop cards on Level Complete (UI.ShopPromos): pacing only, so plain prefs.
+        public int LevelsSincePromo
+        {
+            get => PlayerPrefs.GetInt("FFS_LevelsSincePromo", 0);
+            set => PlayerPrefs.SetInt("FFS_LevelsSincePromo", value);
+        }
+
+        public int InterstitialsSinceAdsCard
+        {
+            get => PlayerPrefs.GetInt("FFS_InterstitialsSinceAdsCard", 0);
+            set => PlayerPrefs.SetInt("FFS_InterstitialsSinceAdsCard", value);
+        }
+
+        public int PromoTurn
+        {
+            get => PlayerPrefs.GetInt("FFS_PromoTurn", 0);
+            set => PlayerPrefs.SetInt("FFS_PromoTurn", value);
+        }
+
         public bool IsCosmeticOwned(string cosmeticId)
         {
             return !string.IsNullOrEmpty(cosmeticId) && GetProtectedBool(CosmeticOwnedKeyPrefix + cosmeticId, false);
@@ -471,6 +490,7 @@ namespace FarmFuryStampede.Core
         /// </summary>
         public bool IsWorldUnlocked(WorldType world)
         {
+            if (DebugAllLevelsOpen) { return true; }
             var data = DataManager.Instance != null ? DataManager.Instance.GetWorldData(world) : null;
             if (data != null && data.purchaseRequired)
             {
@@ -489,6 +509,7 @@ namespace FarmFuryStampede.Core
             {
                 return false;
             }
+            if (DebugAllLevelsOpen) { return true; }
 
             var levels = DataManager.Instance.GetWorldLevels(level.worldType);
             int index = levels.IndexOf(level);
@@ -599,6 +620,24 @@ namespace FarmFuryStampede.Core
 
         /// <summary>DEBUG: adds coins (F1 panel), for testing revives and coin purchases.</summary>
         public void DebugAddCoins(int amount) => AddCoins(amount);
+
+        /// <summary>
+        /// DEBUG (F1): every world and level can be opened, without touching progress: nothing is marked completed, so
+        /// no character unlocks and the rare pellets stay in the secret rooms. Turning it off restores the real locks.
+        /// Always false in a release build.
+        /// </summary>
+        public const string DebugAllLevelsOpenKey = "FFS_DebugAllLevelsOpen";
+
+        public bool DebugAllLevelsOpen
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            get => PlayerPrefs.GetInt(DebugAllLevelsOpenKey, 0) == 1;
+            set { PlayerPrefs.SetInt(DebugAllLevelsOpenKey, value ? 1 : 0); PlayerPrefs.Save(); }
+#else
+            get => false;
+            set { }
+#endif
+        }
 
         /// <summary>DEBUG (F1): marks a paid world bought or not bought, so the world shop's purchase can be tested again.</summary>
         public void DebugSetWorldPurchased(WorldType world, bool bought)

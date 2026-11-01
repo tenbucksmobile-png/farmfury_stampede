@@ -67,6 +67,8 @@ namespace FarmFuryStampede.EditorTools
         public Sprite secretSignSprite;
 
         // ---- per world (Meadow Ruins leaves these empty) ----
+        /// <summary>The look of this world's secret passage rooms; null = a plain dirt cellar.</summary>
+        public PassageRoomArt passageRoom;
         /// <summary>Tile for IceFlat() ground (the slippery Ice tilemap); null draws ice with groundTile.</summary>
         public Tile iceTile;
         /// <summary>Warning sign stood at the start of every IceFlat() stretch (scenery); null places none.</summary>
@@ -145,6 +147,22 @@ namespace FarmFuryStampede.EditorTools
 
         /// <summary>A copy to override per world (the dictionary and arrays are shared until replaced).</summary>
         public LevelAssets Clone() => (LevelAssets)MemberwiseClone();
+    }
+
+    /// <summary>
+    /// How a world dresses its secret passage rooms (LevelBuilder.DressPassage); null on LevelAssets = a plain dirt
+    /// cellar (Meadow Ruins). Everything is visual, with no colliders, so it can't change what the room validates.
+    /// </summary>
+    internal sealed class PassageRoomArt
+    {
+        /// <summary>A band of the world's painting, drawn over the room's interior; null keeps the dark tiled wall.</summary>
+        public Sprite wall;
+        public Color wallTint = Color.white;
+        /// <summary>Cap the floor with the world's ground strip (off for Watermill's cellar: grass indoors looks wrong).</summary>
+        public bool surfaceFloor = true;
+        /// <summary>Stand on the floor behind the action (feet-pivoted), taking turns by layout so rooms differ.</summary>
+        public Sprite[] props = Array.Empty<Sprite>();
+        public Color propTint = new(0.72f, 0.72f, 0.78f, 1f);
     }
 
     /// <summary>Background-only farm art (no colliders). Any missing piece is skipped where a level asks for it.</summary>
@@ -1744,6 +1762,9 @@ namespace FarmFuryStampede.EditorTools
         private const int PassageSignSortingOrder = 3;   // over the farm backdrop, under crops (5) and actors
         private static readonly Color BackwallTint = new(0.3f, 0.24f, 0.2f, 1f);
         private const float RoomEntryX = 2f, RoomExitX = 32f;
+        private static readonly float[] RoomPropSpots = { 4.5f, 12f, 20f, 27.5f };
+        private static readonly float[] RoomBubbleSpots = { 8f, 16f, 24f };
+        private const float RoomPropMaxHeight = 6f, RoomPropMaxWidth = 7f;
 
         // ---- room layouts: every passage names one, and no world repeats one, so each secret room plays differently.
         // Blocks are in room cells: dx from the room's left wall, width, top above the floor, and bottom (0 = a solid
@@ -1839,9 +1860,10 @@ namespace FarmFuryStampede.EditorTools
             Fill(ground, assets.groundTile, r0 - 1, r1, f + RoomHeight, f + RoomHeight + 1);
 
             // Dark dirt back wall around the room, well past what the zoomed-out camera can see (no collider).
-            Tilemap backwall = CreateTilemap(grid, "PassageBackwall", 0, -2);
+            Tilemap backwall = CreateTilemap(grid, "PassageBackwall", 0, -4);
             Fill(backwall, assets.groundTile, r0 - 30, r1 + 30, f - 16, f + RoomHeight + 18);
             backwall.color = BackwallTint;
+            DressPassage(root, ground, assets, p.layout, r0, f);
 
             // The layout's stone blocks: solid columns down to the floor, or one-block floating slabs.
             var (blocks, pellet) = RoomLayouts[p.layout];
@@ -1879,6 +1901,79 @@ namespace FarmFuryStampede.EditorTools
             exit.returnsToLevel = true;
             exit.entrance = entrance;
             PassageRoom = new RectInt(r0, f, RoomWidth, RoomHeight);
+        }
+
+        // The world's look for the room: painted wall (-3, in front of the tiled back wall), props (-2, behind the
+        // tilemaps), its ground strip on the floor. Spots are fixed but the props take turns by layout, so a world's
+        // rooms differ; each is shrunk to clear the ceiling and its neighbours.
+        private static void DressPassage(Transform root, Tilemap ground, LevelAssets assets, PassageLayout layout, int r0, int f)
+        {
+            var art = assets.passageRoom;
+            if (art == null)
+            {
+                return;
+            }
+
+            if (art.surfaceFloor && assets.groundSurfaceTiles != null && assets.groundSurfaceTiles.Length > 0)
+            {
+                for (int x = r0; x < r0 + RoomWidth; x++)
+                {
+                    ground.SetTile(new Vector3Int(x, f - 1, 0), assets.groundSurfaceTiles[x % assets.groundSurfaceTiles.Length]);
+                }
+            }
+
+            var parent = new GameObject("PassageDressing").transform;
+            parent.SetParent(root, false);
+            if (art.wall != null)
+            {
+                var wall = RoomSprite(parent, "RoomWall", art.wall, new Vector3(r0 + RoomWidth * 0.5f, f + RoomHeight * 0.5f, 0f), -3, art.wallTint);
+                Vector2 size = art.wall.bounds.size;
+                wall.transform.localScale = new Vector3(RoomWidth / size.x, RoomHeight / size.y, 1f);
+            }
+
+            int turn = (int)layout;
+            for (int i = 0; i < RoomPropSpots.Length && art.props.Length > 0; i++)
+            {
+                var sprite = art.props[(i + turn) % art.props.Length];
+                if (sprite == null) { continue; }
+                var prop = RoomSprite(parent, $"RoomProp_{i}", sprite, new Vector3(r0 + RoomPropSpots[i], f, 0f), -2, art.propTint);
+                Vector2 size = sprite.bounds.size;
+                prop.transform.localScale = Vector3.one * Mathf.Min(1f, RoomPropMaxHeight / size.y, RoomPropMaxWidth / size.x);
+                prop.flipX = ((i + turn) & 1) == 1;
+            }
+
+            if (assets.ambientBubbles && assets.bubbleSprite != null)
+            {
+                foreach (float dx in RoomBubbleSpots)
+                {
+                    var trail = new GameObject($"RoomBubbles_{dx}");
+                    trail.transform.SetParent(parent, false);
+                    trail.transform.position = new Vector3(r0 + dx, f, 0f);
+                    var stream = trail.AddComponent<BubbleStream>();
+                    stream.bubble = assets.bubbleSprite;
+                    stream.count = 6;
+                    stream.height = RoomHeight;
+                    stream.width = 0.4f;
+                    stream.minSpeed = 1.2f;
+                    stream.maxSpeed = 2.2f;
+                    stream.minSize = 0.12f;
+                    stream.maxSize = 0.28f;
+                    stream.alpha = 0.6f;
+                    stream.sortingOrder = -2;
+                }
+            }
+        }
+
+        private static SpriteRenderer RoomSprite(Transform parent, string name, Sprite sprite, Vector3 position, int order, Color tint)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, false);
+            go.transform.position = position;
+            var renderer = go.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.sortingOrder = order;
+            renderer.color = tint;
+            return renderer;
         }
 
         /// <summary>The passage room's interior cells (after Build), or null when the level has no passage.</summary>

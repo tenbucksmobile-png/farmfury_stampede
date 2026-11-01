@@ -83,6 +83,12 @@ namespace FarmFuryStampede.UI
         [Tooltip("Frame behind each owned item in the Locker. (Shop/PurchaseCardFrame.png)")]
         public Sprite cardFrame;
 
+        [Header("Shop promotion")]
+        [Tooltip("Header of the page after a first boss clear: Cluck's board, 'New Worlds'. (Shop/Promo_NewWorlds.png)")]
+        public Sprite promoNewWorlds;
+        [Tooltip("Level Complete's Remove Ads card: Cluck's board, crossed-out 'Ads'. (Shop/Promo_NoAds.png)")]
+        public Sprite promoNoAds;
+
         [Header("On-screen controls (HUD)")]
         [Tooltip("Hold to run left / right. (left.png, right.png)")]
         public Sprite moveLeftButton;

@@ -57,7 +57,12 @@ namespace FarmFuryStampede.UI
         private const float TileSize = 260f;
         private const float TileGap = 20f;
         private const float TileInset = 0.23f;
-        private const float GridTop = 385f;                 // below the header sign
+        private static readonly Vector2 SignSize = new(390f, 220f);   // smaller than the standard header, for the card's room
+        private const float GridTop = 285f;                 // below the header sign
+        private const float CardHeight = 380f;
+        // The clear parchment on LockerAd.png, right of Cluck's wing, as fractions of the card (x from the left).
+        private const float ParchmentCentreX = 0.647f;
+        private const float ParchmentWidth = 0.5f;
         private const float BannerWidth = 330f;
         private static readonly float BannerHeight = BannerWidth * 246f / 619f;
         private const float BannerGap = 30f;
@@ -76,7 +81,15 @@ namespace FarmFuryStampede.UI
             : base(canvas, "Locker", art, shop)
         {
             _purchasePage = purchasePage;
-            HeaderSign(Shop.lockerBanner, "LOCKER");
+            if (Shop.lockerBanner != null)
+            {
+                var sign = UIKit.Picture(Rect, "TitleImage", Shop.lockerBanner);
+                UIKit.Place(sign.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, HeaderTop), SignSize);
+            }
+            else
+            {
+                HeaderSign(null, "LOCKER");
+            }
 
             // Owned items: a vertical scroll of 4-wide tiles between the header and the banner row.
             float bannerTop = BannerRowBottom - BannerHeight;
@@ -115,16 +128,21 @@ namespace FarmFuryStampede.UI
             // tiles take its place after the first purchase); tapping it opens that item's page.
             var card = IconButton(Rect, "Suggestion", Shop.lockerSuggestion, "", () => _purchasePage(_suggested.type)?.Show());
             if (Shop.lockerSuggestion == null) { card.image.color = new Color(0.97f, 0.94f, 0.86f, 1f); }
-            float cardHeight = 300f;
+            float cardHeight = CardHeight;
             float cardWidth = Shop.lockerSuggestion != null ? cardHeight * Shop.lockerSuggestion.rect.width / Shop.lockerSuggestion.rect.height : 780f;
             float gridMiddle = -(GridTop + bannerTop - 20f) * 0.5f;   // centred in the space between the header and the banners
             UIKit.Place(card.image.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 0.5f), new Vector2(0f, gridMiddle), new Vector2(cardWidth, cardHeight));
             _suggestion = card.gameObject;
             _suggestionIcon = UIKit.Picture(card.transform, "Icon", null);
-            UIKit.Place(_suggestionIcon.rectTransform, new Vector2(0.62f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 30f), new Vector2(140f, 140f));
-            _suggestionText = UIKit.Label(card.transform, "Text", "", 38, TextAnchor.MiddleCenter, NameColor);
+            UIKit.Place(_suggestionIcon.rectTransform, new Vector2(ParchmentCentreX, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 52f), new Vector2(120f, 120f));
+            // Best Fit inside a two-line box: the longest names ("Rainbow Ribbon Trail") wrap and still stay on the board.
+            _suggestionText = UIKit.Label(card.transform, "Text", "", 40, TextAnchor.MiddleCenter, NameColor);
             _suggestionText.fontStyle = FontStyle.Bold;
-            UIKit.Place(_suggestionText.rectTransform, new Vector2(0.62f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -80f), new Vector2(cardWidth * 0.6f, 70f));
+            _suggestionText.resizeTextForBestFit = true;
+            _suggestionText.resizeTextMinSize = 20;
+            _suggestionText.resizeTextMaxSize = 40;
+            _suggestionText.verticalOverflow = VerticalWrapMode.Truncate;
+            UIKit.Place(_suggestionText.rectTransform, new Vector2(ParchmentCentreX, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, -58f), new Vector2(cardWidth * ParchmentWidth, 100f));
         }
 
         private void Banner(string name, Sprite sprite, string fallback, float x, float top, CosmeticType type)
