@@ -51,6 +51,9 @@ namespace FarmFuryStampede.EditorTools
             string plistPath = Path.Combine(outputPath, "Info.plist");
             var plist = new PlistDocument();
             plist.ReadFromFile(plistPath);
+            // The name under the home screen icon; productName stays "Farm Fury Stampede" (the editor's save location
+            // depends on it). The App Store name is set in App Store Connect.
+            plist.root.SetString("CFBundleDisplayName", "Stampede");
             plist.root.SetBoolean("ITSAppUsesNonExemptEncryption", false);
             plist.root.SetString("GADApplicationIdentifier", AdMobAppId);
             plist.WriteToFile(plistPath);

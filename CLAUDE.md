@@ -38,6 +38,8 @@ Phases 1-4 done (foundation; controller; prefab-based levels + Harvester/Drone; 
 
 **2026-11-01: builds.** iOS build number 4 is the next Build Automation build (first on URP, with the changes below). The first Android build follows it; Android has no keystore yet, so it can only be a debug-signed test build, not a Play upload. The user hand-tested the secret rooms in the editor ("all look good"); the other 2026-11-01 entries have not been reported on.
 
+**2026-11-02: home screen name "Stampede" (compiled for Android, not yet built or seen on a phone).** The user's call: the icon carries the Farm Fury logo, and plain "Farm Fury" is reserved for the original game; Arcade's label becomes "Arcade" the same way. `StampedeAndroidBuild` rewrites `app_name` in the generated launcher's strings.xml and `StampedeIosBuild` sets `CFBundleDisplayName`. `productName` stays "Farm Fury Stampede" (the editor save's registry key depends on it), and the store names are unchanged.
+
 **2026-11-01: HUD pause moved** from beside the run buttons to the centre group: swap, Locker, pause, centred as a trio (not yet seen on a device). This replaces the bottom-left pause described in the older UI notes below.
 
 **2026-11-01: "All levels" switch** (menu Farm Fury Stampede > Debug > Unlock All Levels, ticked while on, also an F1 row; `SaveManager.DebugAllLevelsOpen`, editor/development builds only): every world and level opens without marking anything completed, so characters stay locked and pellets stay in the rooms.
