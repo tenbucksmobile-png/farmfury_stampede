@@ -179,7 +179,11 @@ namespace FarmFuryStampede.LevelSystem
             }
 
             Debug.Log($"[LevelLoader] Loaded '{data.levelId}': {_spawned.Count} spawned objects ({robots} robots).");
+            LevelLoaded?.Invoke(data);
         }
+
+        /// <summary>Raised at the end of every LoadLevel (a new attempt or a retry); the beginner tips listen to it.</summary>
+        public static event System.Action<LevelData> LevelLoaded;
 
         /// <summary>Destroys the level instance and returns everything spawned for it to the pool.</summary>
         public void UnloadLevel()

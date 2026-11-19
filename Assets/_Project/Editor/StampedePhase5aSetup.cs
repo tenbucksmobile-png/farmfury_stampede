@@ -2272,7 +2272,7 @@ namespace FarmFuryStampede.EditorTools
 
             Debug.Log($"[Phase5aSetup] Done. {characters.Count} characters, {levels.Count} levels, {worlds.Count} worlds and " +
                       $"{robots.Length} robot types wired into Game.unity. Play in the Game tab (not Device Simulator): pick a world, " +
-                      "a level, a character; A/D or arrows + Space + Shift/E (ability); Esc pauses; F1 = debug cheats.");
+                      "a level, a character; A/D or arrows + Space + K/J/Shift (ability); Esc pauses; F1 = debug cheats.");
         }
 
         private static void WireDataManager(List<CharacterData> characters, List<LevelData> levels, RobotData[] robots, List<WorldData> worlds)

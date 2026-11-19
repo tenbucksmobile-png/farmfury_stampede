@@ -4,7 +4,7 @@ using UnityEngine.InputSystem;
 namespace FarmFuryStampede.Movement
 {
     /// <summary>
-    /// Keyboard (A/D, arrows, Space) and gamepad bindings, plus the HUD's on-screen touch buttons (left, right, jump, ability),
+    /// Keyboard (A/D, arrows, Space; ability K / J / Shift) and gamepad bindings, plus the HUD's on-screen touch buttons (left, right, jump, ability),
     /// which write the static Touch* values below. Actions are created in code so no .inputactions asset is required.
     /// </summary>
     public class PlayerInputReader : MonoBehaviour
@@ -93,8 +93,11 @@ namespace FarmFuryStampede.Movement
             _jump.AddBinding("<Gamepad>/buttonSouth");
 
             _ability = new InputAction("Ability", InputActionType.Button);
+            // Not E (2026-11-19): on the web demo a thumb slipping onto Ctrl turned it into Ctrl+E, the browser's
+            // search-bar shortcut. K / J sit under the right hand, away from Ctrl; Shift stays.
+            _ability.AddBinding("<Keyboard>/k");
+            _ability.AddBinding("<Keyboard>/j");
             _ability.AddBinding("<Keyboard>/leftShift");
-            _ability.AddBinding("<Keyboard>/e");
             _ability.AddBinding("<Gamepad>/buttonWest");
         }
 

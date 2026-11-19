@@ -67,6 +67,7 @@ namespace FarmFuryStampede.UI
             Pause = new PauseScreen(canvas.transform, ResumeFromPause, OpenSettings, RestartLevel, QuitToLevelSelect, EnterLanding, menuArt);
             Swap = new SwapCharacterScreen(canvas.transform, menuArt);
             PelletCelebration = RarePelletCelebration.Create(canvas.transform, menuArt);
+            TutorialHints.Create(transform, Hud);   // beginner tips on Meadow Ruins 1-4
         }
 
         /// <summary>The HUD's swap button (and Tab): the character picker, over a frozen level.</summary>

@@ -28,6 +28,10 @@ namespace FarmFuryStampede.UI
         public Button PauseButton { get; private set; }
         public Button LockerButton { get; private set; }
         public Button SwapButton { get; private set; }
+        /// <summary>The bottom-row controls, for the beginner tips' pointing hand (TutorialHints).</summary>
+        public RectTransform MoveRect { get; private set; }
+        public RectTransform JumpRect { get; private set; }
+        public RectTransform AbilityRect { get; private set; }
         private readonly Text _coins;
 
         private readonly List<Image> _lifeIcons = new();
@@ -39,6 +43,8 @@ namespace FarmFuryStampede.UI
         // on an iPhone; 120 before that read too small).
         private const float ControlSize = 150f;
         private const float ControlGap = 20f;
+        private const float PadEdgeReach = 200f;   // the move pad reaches this far past the safe area left/bottom (off-screen is harmless)
+        private const float PadMargin = 60f;       // and this far beyond the arrows to the right and above
         private readonly Sprite _defaultLife;
         private CharacterType? _lifeCharacter;
         private readonly Sprite[] _abilityIcons;
@@ -108,24 +114,38 @@ namespace FarmFuryStampede.UI
             // One row along the bottom, every button the same size (ControlSize) and ControlGap apart:
             // left, right bottom-left | swap, Locker, pause centred | ability, jump bottom-right (jump in the corner).
             const float pitch = ControlSize + ControlGap;
+            // Left/right: one invisible MovePad behind the two arrows (which are art only) takes the touches - out to
+            // the screen's left and bottom edges and PadMargin round the arrows - and picks the side from where each
+            // finger is now, so drifting or sliding between the arrows never drops the run.
+            var pad = UIKit.Panel(safe, "MovePad", Color.clear);
+            UIKit.Place(pad.rectTransform, Vector2.zero, Vector2.zero, new Vector2(-PadEdgeReach, -PadEdgeReach),
+                new Vector2(PadEdgeReach + EdgeMargin + pitch + ControlSize + PadMargin,
+                    PadEdgeReach + EdgeMargin + ControlSize + PadMargin));
             var left = HoldControl(safe, "MoveLeftButton", shop.moveLeftButton, "<", Vector2.zero, new Vector2(EdgeMargin, EdgeMargin), ControlSize);
-            left.Pressed += () => PlayerInputReader.TouchLeftHeld = true;
-            left.Released += () => PlayerInputReader.TouchLeftHeld = false;
             var right = HoldControl(safe, "MoveRightButton", shop.moveRightButton, ">", Vector2.zero,
                 new Vector2(EdgeMargin + pitch, EdgeMargin), ControlSize);
-            right.Pressed += () => PlayerInputReader.TouchRightHeld = true;
-            right.Released += () => PlayerInputReader.TouchRightHeld = false;
+            foreach (var arrow in new[] { left, right })
+            {
+                UnityEngine.Object.Destroy(arrow);   // the HoldButton: the pad handles these two
+                foreach (var g in arrow.GetComponentsInChildren<Graphic>(true)) g.raycastTarget = false;
+            }
+            var movePad = pad.gameObject.AddComponent<MovePad>();
+            movePad.rightArrow = (RectTransform)right.transform;
+            movePad.gap = ControlGap;
+            MoveRect = pad.rectTransform;
 
             var jump = HoldControl(safe, "JumpButton", shop.jumpButton, "^", Vector2.right, new Vector2(-EdgeMargin, EdgeMargin), ControlSize);
             jump.Pressed += PlayerInputReader.PressTouchJump;
             jump.Released += () => PlayerInputReader.TouchJumpHeld = false;
             _controlRow = (RectTransform)jump.transform;
+            JumpRect = _controlRow;
 
             // Ability: the played character's ability card, left of jump; dimmed once its uses are spent.
             _abilityIcons = shop.abilityIcons;
             var ability = HoldControl(safe, "AbilityButton", null, "ABILITY", Vector2.right, new Vector2(-EdgeMargin - pitch, EdgeMargin), ControlSize);
             ability.Pressed += PlayerInputReader.PressTouchAbility;
             _ability = ability.GetComponent<Image>();
+            AbilityRect = (RectTransform)ability.transform;
             _abilityLabel = ability.GetComponentInChildren<Text>();
             if (_abilityLabel != null) { _abilityLabel.fontSize = 30; }
 
@@ -195,7 +215,32 @@ namespace FarmFuryStampede.UI
             UIKit.Place(_coins.rectTransform, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(EdgeMargin + coinSize + 14f, -EdgeMargin * 0.5f - 12f),
                 new Vector2(400f, coinSize));
 
+            // Web / desktop only: which key does what, in a small cap over each control (2026-11-19).
+            if (!Application.isMobilePlatform)
+            {
+                KeyCap((RectTransform)left.transform, "A");
+                KeyCap((RectTransform)right.transform, "D");
+                KeyCap(JumpRect, "SPACE");
+                KeyCap(AbilityRect, "K");
+                KeyCap((RectTransform)SwapButton.transform, "TAB");
+                KeyCap((RectTransform)PauseButton.transform, "ESC");
+            }
+
             Root.SetActive(false);
+        }
+
+        // A small dark key cap just above a control, naming its keyboard key. Never takes a touch.
+        private static void KeyCap(RectTransform control, string key)
+        {
+            if (control == null) return;
+            var cap = UIKit.Panel(control, "KeyCap", new Color(0.08f, 0.1f, 0.16f, 0.8f));
+            cap.raycastTarget = false;
+            float width = 28f + 22f * key.Length;
+            UIKit.Place(cap.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 0f), new Vector2(0f, 6f), new Vector2(width, 44f));
+            var label = UIKit.Label(cap.transform, "Key", key, 30, TextAnchor.MiddleCenter, new Color(1f, 0.95f, 0.75f));
+            label.fontStyle = FontStyle.Bold;
+            label.raycastTarget = false;
+            UIKit.Stretch(label.rectTransform);
         }
 
         private void SkipWithCoins()
